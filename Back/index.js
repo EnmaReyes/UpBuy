@@ -14,6 +14,7 @@ const adminOrdersRoutes = require("./Rutas/adminOrders.js");
 const adminUsersRoutes = require("./Rutas/adminUsers.js");
 const pricesRoutes = require("./Rutas/prices.js");
 const paymentsRoutes = require("./Rutas/payments.js");
+const webhooksRoutes = require("./Rutas/webhooks.js");
 
 const { sequelize, databaseHost } = require("./DataBase/db.js");
 const { ensurePricingSchema } = require("./DataBase/ensurePricing.js");
@@ -221,6 +222,8 @@ app.use("/api/admin/orders", adminOrdersRoutes);
 app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/prices", pricesRoutes);
 app.use("/api/payments", paymentsRoutes);
+// Webhooks canonicos: /api/webhooks/wompi y /api/webhooks/vendelo.
+app.use("/api/webhooks", webhooksRoutes);
 
 // Red de seguridad: ruta inexistente y errores no controlados. Va al final,
 // despues de todas las rutas (ver Middlewares/errors.js).
