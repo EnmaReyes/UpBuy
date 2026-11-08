@@ -5,7 +5,8 @@ const {
 } = require("../DataBase/models/index.js");
 const {
   PAYMENT_STATUS,
-  ORDER_STATUS,
+  FULFILLMENT_STATUS,
+  PAYMENT_STATE,
 } = require("../DataBase/models/enums.js");
 const { registerPayment } = require("./payments.js");
 const { getOrderForUser } = require("./orders.js");
@@ -28,7 +29,8 @@ const {
 // Wompi — Web Checkout + eventos.
 //
 // Flujo:
-//   1. El comprador confirma el pedido (orders.status = pendiente_pago).
+//   1. El comprador confirma el pedido (orders.fulfillmentStatus =
+//      pending_payment).
 //   2. POST /api/orders/:id/payment crea un Payment pendiente con referencia
 //      propia y devuelve la URL de checkout firmada.
 //   3. Wompi cobra y redirige al sitio; ademas envia el evento
@@ -396,12 +398,12 @@ const createCheckoutForOrder = async ({ orderId, userId }) => {
   if (!order) {
     throw new HttpError(404, "Pedido no encontrado");
   }
-  if (order.status !== ORDER_STATUS.PENDIENTE_PAGO) {
+  if (order.fulfillmentStatus !== FULFILLMENT_STATUS.PENDING_PAYMENT) {
     throw new HttpError(409, "El pedido ya no está pendiente de pago");
   }
   if (
-    [PAYMENT_STATUS.APROBADO, PAYMENT_STATUS.REEMBOLSADO].includes(
-      order.paymentStatus,
+    [PAYMENT_STATE.SETTLED, PAYMENT_STATE.REFUNDED].includes(
+      order.paymentState,
     )
   ) {
     throw new HttpError(409, "Este pedido ya está pagado");

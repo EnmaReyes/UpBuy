@@ -9,8 +9,14 @@ const {
   Dtf,
 } = require("../DataBase/models/index.js");
 const {
-  ORDER_STATUS,
-  ORDER_STATUS_VALUES,
+  FULFILLMENT_STATUS,
+  FULFILLMENT_STATUS_VALUES,
+  PAYMENT_STATE,
+  PAYMENT_STATE_VALUES,
+  PAYMENT_METHOD_CODE,
+  STATUS_SOURCE,
+  // PAYMENT_STATUS es el ciclo del INTENTO de pago (tabla payments), mas
+  // rico que el ciclo canonico del dinero del pedido. No confundir.
   PAYMENT_STATUS,
   PAYMENT_STATUS_VALUES,
   HISTORY_KIND,
@@ -21,6 +27,11 @@ const {
 } = require("../DataBase/models/enums.js");
 const { buildOrderLines } = require("./pricing.js");
 const { quoteShipping, deliveryDaysForZone } = require("./shipping.js");
+const {
+  buildAddressSnapshot,
+  applyAccountingTotals,
+  transitionFulfillment,
+} = require("./orderService.js");
 const HttpError = require("../Utils/HttpError.js");
 const { assertUuid } = require("../Utils/ids.js");
 const { STOCK_RESERVATION_ENABLED } = require("../config.js");
@@ -235,7 +246,7 @@ const releaseExpiredReservations = async (transaction) => {
 
   const expired = await Order.findAll({
     where: {
-      status: ORDER_STATUS.PENDIENTE_PAGO,
+      fulfillmentStatus: FULFILLMENT_STATUS.PENDING_PAYMENT,
       stockReservedUntil: { [Op.ne]: null, [Op.lt]: new Date() },
     },
     transaction,
@@ -246,7 +257,7 @@ const releaseExpiredReservations = async (transaction) => {
   for (const order of expired) {
     await releaseOrderStock(order, transaction);
 
-    order.status = ORDER_STATUS.CANCELADO;
+    order.fulfillmentStatus = FULFILLMENT_STATUS.CANCELLED;
     order.cancelledAt = new Date();
     order.stockReservedUntil = null;
     await order.save({ transaction });
@@ -255,8 +266,8 @@ const releaseExpiredReservations = async (transaction) => {
       {
         orderId: order.id,
         kind: HISTORY_KIND.LOGISTICA,
-        fromStatus: ORDER_STATUS.PENDIENTE_PAGO,
-        toStatus: ORDER_STATUS.CANCELADO,
+        fromStatus: FULFILLMENT_STATUS.PENDING_PAYMENT,
+        toStatus: FULFILLMENT_STATUS.CANCELLED,
         note: "Reserva de stock expirada",
       },
       { transaction },
@@ -300,14 +311,24 @@ const getOrderForUser = async ({ orderId, userId, admin = false, transaction }) 
   return json;
 };
 
-// Filtro opcional por uno o varios estados: "pagado,enviado".
+// Filtro opcional por uno o varios estados: "paid,shipped".
 // Se descartan los valores desconocidos para no exponer errores de SQL.
 const parseStatusFilter = (status) => {
   if (!status) return null;
   const lista = String(status)
     .split(",")
     .map((valor) => valor.trim())
-    .filter((valor) => ORDER_STATUS_VALUES.includes(valor));
+    .filter((valor) => FULFILLMENT_STATUS_VALUES.includes(valor));
+  return lista.length ? lista : null;
+};
+
+// Filtro opcional por estado del dinero: "unpaid,pending_collection".
+const parsePaymentFilter = (paymentState) => {
+  if (!paymentState) return null;
+  const lista = String(paymentState)
+    .split(",")
+    .map((valor) => valor.trim())
+    .filter((valor) => PAYMENT_STATE_VALUES.includes(valor));
   return lista.length ? lista : null;
 };
 
@@ -317,13 +338,16 @@ const listOrdersForUser = async ({
   limit = 20,
   offset = 0,
   status,
+  paymentState,
 }) => {
   const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
   const safeOffset = Math.max(Number(offset) || 0, 0);
   const statusFilter = parseStatusFilter(status);
+  const paymentFilter = parsePaymentFilter(paymentState);
 
   const where = admin ? {} : { userId };
-  if (statusFilter) where.status = { [Op.in]: statusFilter };
+  if (statusFilter) where.fulfillmentStatus = { [Op.in]: statusFilter };
+  if (paymentFilter) where.paymentState = { [Op.in]: paymentFilter };
 
   const { rows, count } = await Order.findAndCountAll({
     where,
@@ -339,6 +363,11 @@ const listOrdersForUser = async ({
 
 // Nucleo compartido de creacion de pedidos (checkout web y venta manual):
 // precios y stock desde la BD, snapshot completo y reserva de stock.
+//
+// Los estados que nacen son los canonicos: el pedido arranca en
+// pending_payment / unpaid. Que se libere el cumplimiento (paid) o no
+// depende de como se cobre: el pago online lo libera al confirmarse, el
+// COD al confirmar el pedido (lo libera el courier).
 const createOrderCore = async ({
   userId = null,
   items,
@@ -346,9 +375,11 @@ const createOrderCore = async ({
   notes,
   channel = SALE_CHANNEL.WEB,
   deliveryType = "envio",
-  initialStatus = ORDER_STATUS.PENDIENTE_PAGO,
-  initialPaymentStatus = PAYMENT_STATUS.PENDIENTE,
+  initialFulfillmentStatus = FULFILLMENT_STATUS.PENDING_PAYMENT,
+  initialPaymentState = PAYMENT_STATE.UNPAID,
   paymentMethod = null,
+  paymentMethodCode = null,
+  provider = null,
   manualDiscount = 0,
   actorUserId = null,
   notify = true,
@@ -416,27 +447,40 @@ const createOrderCore = async ({
         userId: userId || null,
         channel,
         paymentMethod,
-        status: initialStatus,
-        paymentStatus: initialPaymentStatus,
+        paymentMethodCode,
+        provider,
+        fulfillmentStatus: initialFulfillmentStatus,
+        paymentState: initialPaymentState,
         currency: "COP",
         subtotal,
         shippingCost,
         discountTotal,
         total,
         ...shippingData,
+        // Direccion congelada: el pedido no depende de que el usuario
+        // cambie despues su direccion en el perfil.
+        addressSnapshot: buildAddressSnapshot({
+          ...shippingData,
+          notes: notes ? trim(notes).slice(0, 1000) : shippingData.notes,
+        }),
         notes: notes ? trim(notes).slice(0, 1000) : shippingData.notes,
         shippingZone,
         estimatedDeliveryDays,
         paymentApprovedAt:
-          initialPaymentStatus === PAYMENT_STATUS.APROBADO ? new Date() : null,
+          initialPaymentState === PAYMENT_STATE.SETTLED ? new Date() : null,
         stockReservedUntil:
           STOCK_RESERVATION_ENABLED &&
-          initialStatus === ORDER_STATUS.PENDIENTE_PAGO
+          initialFulfillmentStatus === FULFILLMENT_STATUS.PENDING_PAYMENT
             ? new Date(Date.now() + STOCK_RESERVATION_MINUTES * 60 * 1000)
             : null,
       },
       { transaction },
     );
+
+    // Utilidad del pedido (subtotal + envio - costos del proveedor y la
+    // pasarela). Se calcula en el servidor, nunca la manda el front.
+    applyAccountingTotals(order);
+    await order.save({ transaction });
 
     await OrderItem.bulkCreate(
       lines.map((line) => ({ ...line, orderId: order.id })),
@@ -448,7 +492,7 @@ const createOrderCore = async ({
         orderId: order.id,
         kind: HISTORY_KIND.LOGISTICA,
         fromStatus: null,
-        toStatus: initialStatus,
+        toStatus: initialFulfillmentStatus,
         changedByUserId: actorUserId,
         note: manual
           ? `Venta registrada manualmente (canal: ${channel}).`
@@ -459,7 +503,7 @@ const createOrderCore = async ({
       { transaction },
     );
 
-    if (manual && initialPaymentStatus === PAYMENT_STATUS.APROBADO) {
+    if (manual && initialPaymentState === PAYMENT_STATE.SETTLED) {
       // La venta manual nace pagada: se registra el pago en la tabla payments
       // (fuente unica de verdad, igual que Wompi mas adelante). registerPayment
       // escribe tambien el historial de pago y devuelve el stock al catalogo.
@@ -542,7 +586,18 @@ const parseDiscount = (value, subtotal) => {
 };
 
 // Pedido creado desde el checkout web (mismo comportamiento de siempre).
-const createOrder = ({ userId, items, shipping, notes }) =>
+//
+// Nace en pending_payment / unpaid. Si el comprador paga con Wompi, el
+// webhook lo lleva a paid / settled. Si es COD, el pago lo hace el courier
+// al entregar.
+const createOrder = ({
+  userId,
+  items,
+  shipping,
+  notes,
+  paymentMethodCode = PAYMENT_METHOD_CODE.WOMPI,
+  provider = null,
+}) =>
   createOrderCore({
     userId,
     items,
@@ -550,8 +605,10 @@ const createOrder = ({ userId, items, shipping, notes }) =>
     notes,
     channel: SALE_CHANNEL.WEB,
     deliveryType: "envio",
-    initialStatus: ORDER_STATUS.PENDIENTE_PAGO,
-    initialPaymentStatus: PAYMENT_STATUS.PENDIENTE,
+    initialFulfillmentStatus: FULFILLMENT_STATUS.PENDING_PAYMENT,
+    initialPaymentState: PAYMENT_STATE.UNPAID,
+    paymentMethodCode,
+    provider,
     notify: true,
     manual: false,
   });
@@ -588,10 +645,17 @@ const createManualOrder = async ({
     throw new HttpError(400, "Método de pago inválido");
   }
 
-  const initialStatus =
-    safePaymentStatus === PAYMENT_STATUS.APROBADO
-      ? ORDER_STATUS.PAGADO
-      : ORDER_STATUS.PENDIENTE_PAGO;
+  // El pago ya esta: el cumplimiento se libera (paid) y el dinero esta
+  // liquidado (settled). Si no, el pedido queda pendiente de pago.
+  const yaEstaPagado = safePaymentStatus === PAYMENT_STATUS.APROBADO;
+
+  const initialFulfillmentStatus = yaEstaPagado
+    ? FULFILLMENT_STATUS.PAID
+    : FULFILLMENT_STATUS.PENDING_PAYMENT;
+
+  const initialPaymentState = yaEstaPagado
+    ? PAYMENT_STATE.SETTLED
+    : PAYMENT_STATE.UNPAID;
 
   return createOrderCore({
     userId: null,
@@ -600,8 +664,8 @@ const createManualOrder = async ({
     notes,
     channel: safeChannel,
     deliveryType: deliveryType === "pickup" ? "pickup" : "envio",
-    initialStatus,
-    initialPaymentStatus: safePaymentStatus,
+    initialFulfillmentStatus,
+    initialPaymentState,
     paymentMethod: safePaymentMethod,
     manualDiscount,
     actorUserId: adminId,
@@ -629,33 +693,31 @@ const cancelOrder = async ({ orderId, user }) => {
       throw new HttpError(403, "No tienes permisos sobre este pedido");
     }
     if (
-      order.paymentStatus === PAYMENT_STATUS.APROBADO ||
-      order.paymentStatus === PAYMENT_STATUS.REEMBOLSADO
+      order.paymentState === PAYMENT_STATE.SETTLED ||
+      order.paymentState === PAYMENT_STATE.REFUNDED
     ) {
       throw new HttpError(409, "No se puede cancelar un pedido con pago aprobado");
     }
-    if (order.status !== ORDER_STATUS.PENDIENTE_PAGO) {
+    if (order.fulfillmentStatus !== FULFILLMENT_STATUS.PENDING_PAYMENT) {
       throw new HttpError(409, "Solo se pueden cancelar pedidos pendientes de pago");
     }
 
     await releaseOrderStock(order, transaction);
 
-    order.status = ORDER_STATUS.CANCELADO;
-    order.cancelledAt = new Date();
+    // El cliente cancela: no es un cambio del administrador, asi que no
+    // bloquea el auto-sync (manualOverride).
+    await transitionFulfillment({
+      order,
+      to: FULFILLMENT_STATUS.CANCELLED,
+      transaction,
+      actorUserId: user.id,
+      source: user.admin ? STATUS_SOURCE.MANUAL_ADMIN : STATUS_SOURCE.CUSTOMER,
+      note: user.admin ? "Cancelado por administrador" : "Cancelado por el cliente",
+      audit: true,
+    });
+
     order.stockReservedUntil = null;
     await order.save({ transaction });
-
-    await OrderStatusHistory.create(
-      {
-        orderId: order.id,
-        kind: HISTORY_KIND.LOGISTICA,
-        fromStatus: ORDER_STATUS.PENDIENTE_PAGO,
-        toStatus: ORDER_STATUS.CANCELADO,
-        changedByUserId: user.id,
-        note: user.admin ? "Cancelado por administrador" : "Cancelado por el cliente",
-      },
-      { transaction },
-    );
 
     const full = await getOrderForUser({
       orderId: order.id,

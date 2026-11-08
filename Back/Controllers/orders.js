@@ -29,12 +29,15 @@ const create = async (req, res) => {
 // GET /api/orders — pedidos del usuario autenticado
 const list = async (req, res) => {
   try {
-    const { limit, offset, status } = req.query;
+    const { limit, offset, status, fulfillmentStatus, paymentState } = req.query;
     const result = await listOrdersForUser({
       userId: req.user.id,
       limit,
       offset,
-      status,
+      // `status` es el nombre historico del parametro; `fulfillmentStatus`
+      // es el canonico. Se aceptan los dos.
+      status: fulfillmentStatus || status,
+      paymentState,
     });
     return res.status(200).json(result);
   } catch (error) {

@@ -7,10 +7,13 @@ const {
 const {
   PAYMENT_STATUS,
   HISTORY_KIND,
-  ORDER_STATUS,
+  FULFILLMENT_STATUS,
+  PAYMENT_STATE,
+  STATUS_SOURCE,
 } = require("../DataBase/models/enums.js");
 const { restoreOrderStock, detectStockConflicts } = require("./orders.js");
 const { notifyAdmins } = require("./notifications.js");
+const { transitionFulfillment } = require("./orderService.js");
 const HttpError = require("../Utils/HttpError.js");
 const { assertUuid } = require("../Utils/ids.js");
 
@@ -25,8 +28,8 @@ const { assertUuid } = require("../Utils/ids.js");
 // lo reutilice en la siguiente fase sin duplicar reglas: el webhook solo
 // tendra que llamar a `registerPayment` con el estado que reporte el proveedor.
 //
-// El estado LOGISTICO del pedido (orders.status) no se toca aqui: pago y
-// envio son estados separados a proposito.
+// El estado LOGISTICO del pedido (orders.fulfillmentStatus) no se toca aqui:
+// pago y envio son estados separados a proposito.
 // ---------------------------------------------------------------------------
 
 // Estados que un administrador puede fijar a mano.
@@ -103,13 +106,29 @@ const assertSettableStatus = (status) => {
   }
 };
 
+// Estado canonico del dinero del pedido, a partir del estado del INTENTO
+// de pago (que es mas rico: distingue rechazado de error, por ejemplo).
+//
+// El ciclo canonico tiene 5 estados; el del intento tiene mas. La
+// diferencia fina se conserva en el registro del pago (statusMessage,
+// failureCode, wompiStatus), no en el estado del pedido.
+const CANONICAL_PAYMENT_BY_PAYMENT_STATUS = {
+  [PAYMENT_STATUS.PENDIENTE]: PAYMENT_STATE.UNPAID,
+  [PAYMENT_STATUS.RECHAZADO]: PAYMENT_STATE.UNPAID,
+  [PAYMENT_STATUS.EN_REVISION]: PAYMENT_STATE.UNPAID,
+  [PAYMENT_STATUS.ERROR]: PAYMENT_STATE.UNPAID,
+  [PAYMENT_STATUS.APROBADO]: PAYMENT_STATE.SETTLED,
+  [PAYMENT_STATUS.ANULADO]: PAYMENT_STATE.REFUNDED,
+  [PAYMENT_STATUS.REEMBOLSADO]: PAYMENT_STATE.REFUNDED,
+};
+
 // Estado que debe quedar en el pedido. Nunca se "rebaja" un pago aprobado o
-// reembolsado a pendiente/rechazado; el indice unico lo protege igual.
+// reembolsado a pendiente/rechazado: el indice unico lo protege igual.
 const orderStatusFor = (current, next) => {
-  if (current === PAYMENT_STATUS.REEMBOLSADO) return current;
+  if (current === PAYMENT_STATE.REFUNDED) return current;
   if (
-    current === PAYMENT_STATUS.APROBADO &&
-    next !== PAYMENT_STATUS.REEMBOLSADO
+    current === PAYMENT_STATE.SETTLED &&
+    next === PAYMENT_STATE.UNPAID
   ) {
     return current;
   }
@@ -172,27 +191,28 @@ const applyPaymentStatus = async ({
   actorUserId,
   note,
 }) => {
-  const nextOrderStatus = orderStatusFor(order.paymentStatus, nextStatus);
+  // El ciclo canonico del dinero del pedido.
+  const previousPaymentState = order.paymentState;
 
-  if (nextOrderStatus !== order.paymentStatus) {
-    order.paymentStatus = nextOrderStatus;
+  const nextPaymentState = orderStatusFor(
+    previousPaymentState,
+    CANONICAL_PAYMENT_BY_PAYMENT_STATUS[nextStatus] || PAYMENT_STATE.UNPAID,
+  );
+
+  if (nextPaymentState !== order.paymentState) {
+    order.paymentState = nextPaymentState;
   }
 
   if (nextStatus === PAYMENT_STATUS.APROBADO && !order.paymentApprovedAt) {
     order.paymentApprovedAt = new Date();
   }
 
-  // Un pago aprobado mueve el pedido de "pendiente_pago" a "pagado": deja de
-  // poder cancelarse y el panel lo refleja igual que una venta manual (ver
-  // Services/adminOrders.js). Solo se aplica una vez y nunca revierte un estado
-  // logistico ya avanzado.
+  // Un pago online confirmado libera el CUMPLIMIENTO (fulfillmentStatus =
+  // "paid"), no solo el dinero. En COD esto no aplica: el cumplimiento se
+  // libera al confirmar el pedido y el cobro lo hace el courier.
   const promoverAPagado =
     nextStatus === PAYMENT_STATUS.APROBADO &&
-    order.status === ORDER_STATUS.PENDIENTE_PAGO;
-
-  if (promoverAPagado) {
-    order.status = ORDER_STATUS.PAGADO;
-  }
+    order.fulfillmentStatus === FULFILLMENT_STATUS.PENDING_PAYMENT;
 
   // Detector de sobreventa: se mira ANTES de devolver el producto al catalogo,
   // porque restoreOrderStock vuelve a poner stock = true.
@@ -214,17 +234,16 @@ const applyPaymentStatus = async ({
   await order.save({ transaction });
 
   if (promoverAPagado) {
-    await OrderStatusHistory.create(
-      {
-        orderId: order.id,
-        kind: HISTORY_KIND.LOGISTICA,
-        fromStatus: ORDER_STATUS.PENDIENTE_PAGO,
-        toStatus: ORDER_STATUS.PAGADO,
-        changedByUserId: actorUserId || null,
-        note: "Pago aprobado.",
-      },
-      { transaction },
-    );
+    // Mismo camino que el panel: la maquina de estados valida, deja
+    // historial y audita.
+    await transitionFulfillment({
+      order,
+      to: FULFILLMENT_STATUS.PAID,
+      transaction,
+      actorUserId: actorUserId || null,
+      source: STATUS_SOURCE.WEBHOOK,
+      note: "Pago aprobado.",
+    });
   }
 
   // La alerta queda tambien en el historial del pedido para que se vea en el
@@ -249,8 +268,9 @@ const applyPaymentStatus = async ({
     {
       orderId: order.id,
       kind: HISTORY_KIND.PAGO,
-      fromStatus: previousStatus,
-      toStatus: nextStatus,
+      // Valores canonicos del ciclo del dinero (no los del intento de pago).
+      fromStatus: previousPaymentState,
+      toStatus: nextPaymentState,
       changedByUserId: actorUserId || null,
       note: finalNote,
     },
@@ -418,7 +438,7 @@ const registerPayment = async ({
   const result = await withTransaction(transaction, async (tx) => {
     const order = await loadOrder({ orderId, transaction: tx });
 
-    if (order.status === ORDER_STATUS.CANCELADO) {
+    if (order.fulfillmentStatus === FULFILLMENT_STATUS.CANCELLED) {
       throw new HttpError(409, "El pedido está cancelado");
     }
 
@@ -544,7 +564,9 @@ const listOrderPayments = async (orderId) => {
   return {
     orderId,
     orderNumber: order.orderNumber,
-    paymentStatus: order.paymentStatus,
+    // Estado canonico del dinero del pedido + los intentos de pago.
+    paymentState: order.paymentState,
+    paymentStatus: order.paymentState,
     paymentApprovedAt: order.paymentApprovedAt,
     payments,
   };

@@ -1,14 +1,17 @@
 // Verificacion end-to-end de la migracion de dropshipping.
 //
-// Simula una base LEGACY: crea el esquema, inserta pedidos con los estados
+// Simula una base LEGACY: crea el esquema, le devuelve las columnas
+// historicas (status / paymentStatus), inserta pedidos con los estados
 // antiguos en espanol, borra las columnas canonicas (para forzar el camino
 // de migracion) y despues corre ensureDropshippingSchema().
 //
 // Al final comprueba que:
 //   - las columnas canonicas existen y tienen los valores esperados,
+//   - las columnas legacy fueron retiradas,
 //   - las tablas nuevas se crearon,
 //   - el perfil completo se recalculo,
 //   - la direccion del perfil se migro a addresses,
+//   - el historial quedo en vocabulario canonico,
 //   - correr la migracion dos veces no rompe nada (idempotencia).
 //
 // Uso:  node scripts/verifyDropshippingMigration.js
@@ -34,46 +37,26 @@ const check = (nombre, ok, detalle = "") => {
 };
 
 const LEGACY_ORDERS = [
-  {
-    status: "pendiente_pago",
-    paymentStatus: "pendiente",
-    esperadoF: "pending_payment",
-    esperadoP: "unpaid",
-  },
-  {
-    status: "pagado",
-    paymentStatus: "aprobado",
-    esperadoF: "paid",
-    esperadoP: "settled",
-  },
-  {
-    status: "en_preparacion",
-    paymentStatus: "aprobado",
-    esperadoF: "packing",
-    esperadoP: "settled",
-  },
-  {
-    status: "enviado",
-    paymentStatus: "pendiente",
-    esperadoF: "shipped",
-    esperadoP: "unpaid",
-  },
-  {
-    status: "entregado",
-    paymentStatus: "aprobado",
-    esperadoF: "delivered",
-    esperadoP: "settled",
-  },
-  {
-    status: "cancelado",
-    paymentStatus: "reembolsado",
-    esperadoF: "cancelled",
-    esperadoP: "refunded",
-  },
+  { status: "pendiente_pago", paymentStatus: "pendiente", esperadoF: "pending_payment", esperadoP: "unpaid" },
+  { status: "pagado", paymentStatus: "aprobado", esperadoF: "paid", esperadoP: "settled" },
+  { status: "en_preparacion", paymentStatus: "aprobado", esperadoF: "packing", esperadoP: "settled" },
+  { status: "enviado", paymentStatus: "pendiente", esperadoF: "shipped", esperadoP: "unpaid" },
+  { status: "entregado", paymentStatus: "aprobado", esperadoF: "delivered", esperadoP: "settled" },
+  { status: "cancelado", paymentStatus: "reembolsado", esperadoF: "cancelled", esperadoP: "refunded" },
 ];
 
+const columnasExisten = async (tabla, columnas) => {
+  const [rows] = await sequelize.query(
+    `SELECT column_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = $1
+        AND column_name = ANY($2::text[])`,
+    { bind: [tabla, columnas] },
+  );
+  return rows.map((r) => r.column_name);
+};
+
 const run = async () => {
-  // --- 1. Esquema base -------------------------------------------------
+  // --- 1. Esquema base (ya con el modelo nuevo) ------------------------
   await sequelize.sync();
   console.log("--- esquema creado ---");
 
@@ -83,18 +66,22 @@ const run = async () => {
   );
   await sequelize.query(`DELETE FROM orders WHERE "orderNumber" LIKE 'LEG-%'`);
 
-  // --- 2. Datos legacy -------------------------------------------------
-  const [user] = await sequelize.query(
-    `INSERT INTO usuarios (id, username, email, password, admin, name, "lastName", phone, address, "createdAt", "updatedAt")
-     VALUES (gen_random_uuid(), 'test', 'test@upbuy.local', 'x', false, 'Ana', 'Perez', '3001234567', 'Calle 1 #2-3', now(), now())
-     RETURNING id`,
+  // --- 2. Devolver las columnas historicas (simular base vieja) -------
+  await sequelize.query(
+    `ALTER TABLE orders
+       ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'pendiente_pago',
+       ADD COLUMN IF NOT EXISTS "paymentStatus" VARCHAR(30) NOT NULL DEFAULT 'pendiente'`,
   );
-  const userId = user[0].id;
 
-  const [dirUser] = await sequelize.query(
+  // --- 3. Datos legacy ------------------------------------------------
+  await sequelize.query(
     `INSERT INTO usuarios (id, username, email, password, admin, name, "lastName", phone, address, "createdAt", "updatedAt")
-     VALUES (gen_random_uuid(), 'test2', 'test2@upbuy.local', 'x', false, 'Luis', NULL, NULL, NULL, now(), now())
-     RETURNING id`,
+     VALUES (gen_random_uuid(), 'test', 'test@upbuy.local', 'x', false, 'Ana', 'Perez', '3001234567', 'Calle 1 #2-3', now(), now())`,
+  );
+
+  await sequelize.query(
+    `INSERT INTO usuarios (id, username, email, password, admin, name, "lastName", phone, address, "createdAt", "updatedAt")
+     VALUES (gen_random_uuid(), 'test2', 'test2@upbuy.local', 'x', false, 'Luis', NULL, NULL, NULL, now(), now())`,
   );
 
   const ordenes = [];
@@ -114,7 +101,7 @@ const run = async () => {
     ordenes.push({ id: row[0].id, ...item });
   }
 
-  // --- 3. Simular base legacy: quitar las columnas canonicas ----------
+  // --- 4. Simular base legacy: quitar columnas canonicas y tablas nuevas
   await sequelize.query(
     `ALTER TABLE orders
        DROP COLUMN IF EXISTS "fulfillmentStatus",
@@ -161,13 +148,13 @@ const run = async () => {
   );
   console.log("--- base simulada como legacy ---");
 
-  // --- 4. Correr la migracion ------------------------------------------
+  // --- 5. Correr la migracion -----------------------------------------
   const primera = await ensureDropshippingSchema();
   check("la migracion corrio", primera.migrated === true);
 
-  // --- 5. Verificar el backfill ----------------------------------------
+  // --- 6. Verificar el backfill ---------------------------------------
   const [rows] = await sequelize.query(
-    `SELECT id, status, "paymentStatus", "fulfillmentStatus", "paymentState", "addressSnapshot"
+    `SELECT id, "fulfillmentStatus", "paymentState", "addressSnapshot"
        FROM orders ORDER BY "createdAt" ASC`,
   );
 
@@ -190,7 +177,18 @@ const run = async () => {
   );
   check("addressSnapshot congelado", conSnapshot[0].n === ordenes.length, `${conSnapshot[0].n}/${ordenes.length}`);
 
-  // --- 6. Tablas nuevas -------------------------------------------------
+  // --- 7. Columnas legacy retiradas -----------------------------------
+  const legacyRestantes = await columnasExisten("orders", [
+    "status",
+    "paymentStatus",
+  ]);
+  check(
+    "columnas legacy retiradas",
+    legacyRestantes.length === 0,
+    legacyRestantes.join(", "),
+  );
+
+  // --- 8. Tablas nuevas ------------------------------------------------
   const [tablas] = await sequelize.query(
     `SELECT tablename FROM pg_tables WHERE schemaname='public'`,
   );
@@ -199,7 +197,7 @@ const run = async () => {
     check(`tabla ${tabla} creada`, nombres.includes(tabla));
   }
 
-  // --- 7. Direcciones migradas del perfil ------------------------------
+  // --- 9. Direcciones migradas del perfil ------------------------------
   const [dirs] = await sequelize.query(
     `SELECT "userId", address, "isDefault" FROM addresses`,
   );
@@ -209,7 +207,7 @@ const run = async () => {
     JSON.stringify(dirs),
   );
 
-  // --- 8. Perfil completo ----------------------------------------------
+  // --- 10. Perfil completo ---------------------------------------------
   const [perfiles] = await sequelize.query(
     `SELECT email, "profileComplete", "profileCompleteAt" FROM usuarios ORDER BY email`,
   );
@@ -219,12 +217,9 @@ const run = async () => {
     "perfil completo calculado (true)",
     completo?.profileComplete === true && completo?.profileCompleteAt !== null,
   );
-  check(
-    "perfil incompleto calculado (false)",
-    incompleto?.profileComplete === false,
-  );
+  check("perfil incompleto calculado (false)", incompleto?.profileComplete === false);
 
-  // --- 9. CHECK constraints de enum ------------------------------------
+  // --- 11. CHECK constraints de enum -----------------------------------
   const [bad] = await sequelize.query(
     `SELECT COUNT(*)::int AS n FROM orders WHERE "fulfillmentStatus" NOT IN ('pending_payment','paid','packing','shipped','delivered','cancelled')`,
   );
@@ -241,7 +236,7 @@ const run = async () => {
   }
   check("CHECK de paymentState rechaza valores inventados", Boolean(falloCheck));
 
-  // --- 10. Idempotencia -------------------------------------------------
+  // --- 12. Idempotencia ------------------------------------------------
   const segunda = await ensureDropshippingSchema();
   check("segunda corrida = no-op (idempotente)", segunda.migrated === false);
 
@@ -254,7 +249,7 @@ const run = async () => {
       rows2.every((r, i) => r.fulfillmentStatus === rows[i].fulfillmentStatus),
   );
 
-  // --- 11. Limpieza -----------------------------------------------------
+  // --- 13. Limpieza ----------------------------------------------------
   await sequelize.query(`DELETE FROM orders WHERE "orderNumber" LIKE 'LEG-%'`);
   await sequelize.query(`DELETE FROM usuarios WHERE email IN ('test@upbuy.local','test2@upbuy.local')`);
 

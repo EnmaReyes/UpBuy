@@ -15,13 +15,20 @@ const {
 const { sendError } = require("../Utils/respond.js");
 
 // GET /api/admin/orders?status&paymentStatus&channel&paymentMethod&q&from&to&limit&offset
+//
+// `status` y `paymentStatus` son los nombres historicos; el canonico es
+// fulfillmentStatus / paymentState. Se aceptan los dos.
 const list = async (req, res) => {
   try {
     const {
       status,
+      fulfillmentStatus,
       paymentStatus,
+      paymentState,
       channel,
       paymentMethod,
+      paymentMethodCode,
+      provider,
       q,
       from,
       to,
@@ -29,10 +36,12 @@ const list = async (req, res) => {
       offset,
     } = req.query;
     const result = await listOrdersAdmin({
-      status,
-      paymentStatus,
+      status: fulfillmentStatus || status,
+      paymentStatus: paymentState || paymentStatus,
       channel,
       paymentMethod,
+      paymentMethodCode,
+      provider,
       q,
       from,
       to,
@@ -99,15 +108,21 @@ const detail = async (req, res) => {
   }
 };
 
-// PATCH /api/admin/orders/:id/status  { status, note? }
+// PATCH /api/admin/orders/:id/status
+// Body: { status | fulfillmentStatus, note?, trackingNumber?, trackingUrl? }
 const changeStatus = async (req, res) => {
   try {
-    const { status, note } = req.body || {};
+    const { status, fulfillmentStatus, note, trackingNumber, trackingUrl } =
+      req.body || {};
     const order = await changeOrderStatus({
       orderId: req.params.id,
-      status,
+      status: fulfillmentStatus || status,
       note,
       adminId: req.user.id,
+      trackingNumber,
+      trackingUrl,
+      ip: req.ip,
+      requestId: req.get("X-Request-Id") || null,
     });
     return res.status(200).json(order);
   } catch (error) {

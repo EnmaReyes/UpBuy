@@ -8,28 +8,28 @@ const {
   Usuarios,
 } = require("../DataBase/models/index.js");
 const {
-  ORDER_STATUS,
-  ORDER_STATUS_VALUES,
-  ORDER_STATUS_TRANSITIONS,
+  FULFILLMENT_STATUS,
+  FULFILLMENT_STATUS_VALUES,
+  PAYMENT_STATE,
+  PAYMENT_STATE_VALUES,
   PAYMENT_STATUS,
-  PAYMENT_STATUS_VALUES,
+  PAYMENT_METHOD_CODE,
   HISTORY_KIND,
   SALE_CHANNEL_VALUES,
   PAYMENT_METHOD_VALUES,
+  STATUS_SOURCE,
 } = require("../DataBase/models/enums.js");
 const { releaseOrderStock, restoreOrderStock } = require("./orders.js");
 const { registerPayment } = require("./payments.js");
+const {
+  transitionFulfillment,
+  applyAccountingTotals,
+} = require("./orderService.js");
+const { FULFILLMENT_LABELS } = require("./statusMachine.js");
 const HttpError = require("../Utils/HttpError.js");
 const { assertUuid } = require("../Utils/ids.js");
 
-const STATUS_LABELS = {
-  pendiente_pago: "Pendiente de pago",
-  pagado: "Pagado",
-  en_preparacion: "En preparación",
-  enviado: "Enviado",
-  entregado: "Entregado",
-  cancelado: "Cancelado",
-};
+const STATUS_LABELS = FULFILLMENT_LABELS;
 
 // Consultas y acciones del panel de administracion.
 // Toda la informacion sensible del comprador se expone aqui, por eso las
@@ -96,6 +96,8 @@ const listOrdersAdmin = async ({
   paymentStatus,
   channel,
   paymentMethod,
+  paymentMethodCode,
+  provider,
   q,
   from,
   to,
@@ -105,17 +107,17 @@ const listOrdersAdmin = async ({
   const where = {};
 
   if (status) {
-    if (!ORDER_STATUS_VALUES.includes(status)) {
+    if (!FULFILLMENT_STATUS_VALUES.includes(status)) {
       throw new HttpError(400, "Estado de pedido inválido");
     }
-    where.status = status;
+    where.fulfillmentStatus = status;
   }
 
   if (paymentStatus) {
-    if (!PAYMENT_STATUS_VALUES.includes(paymentStatus)) {
+    if (!PAYMENT_STATE_VALUES.includes(paymentStatus)) {
       throw new HttpError(400, "Estado de pago inválido");
     }
-    where.paymentStatus = paymentStatus;
+    where.paymentState = paymentStatus;
   }
 
   if (channel) {
@@ -130,6 +132,20 @@ const listOrdersAdmin = async ({
       throw new HttpError(400, "Método de pago inválido");
     }
     where.paymentMethod = paymentMethod;
+  }
+
+  if (paymentMethodCode) {
+    if (!Object.values(PAYMENT_METHOD_CODE).includes(paymentMethodCode)) {
+      throw new HttpError(400, "Método de pago inválido");
+    }
+    where.paymentMethodCode = paymentMethodCode;
+  }
+
+  if (provider) {
+    if (!["vendelo", "dropi"].includes(provider)) {
+      throw new HttpError(400, "Proveedor inválido");
+    }
+    where.provider = provider;
   }
 
   const search = String(q || "").trim();
@@ -192,12 +208,26 @@ const getOrderAdmin = async (orderId) => {
 };
 
 // PATCH /api/admin/orders/:id/status
+//
 // El estado logistico solo avanza por las transiciones permitidas. Cuando se
 // marca como pagado se registra tambien el cambio de estado de pago.
-const changeOrderStatus = async ({ orderId, status, note, adminId }) => {
+//
+// Todas las reglas viven en Services/orderService.js (la misma que usa el
+// cron y los webhooks): transicion invalida -> 422, "enviado" exige guia, y
+// en COD el pago se mueve solo.
+const changeOrderStatus = async ({
+  orderId,
+  status,
+  note,
+  adminId,
+  trackingNumber,
+  trackingUrl,
+  ip = null,
+  requestId = null,
+}) => {
   assertUuid(orderId, "pedido");
 
-  if (!ORDER_STATUS_VALUES.includes(status)) {
+  if (!FULFILLMENT_STATUS_VALUES.includes(status)) {
     throw new HttpError(400, "Estado de pedido inválido");
   }
 
@@ -215,53 +245,31 @@ const changeOrderStatus = async ({ orderId, status, note, adminId }) => {
       throw new HttpError(404, "Pedido no encontrado");
     }
 
-    const fromStatus = order.status;
-
-    if (fromStatus === status) {
-      throw new HttpError(409, `El pedido ya está en estado "${status}"`);
-    }
-
-    const allowed = ORDER_STATUS_TRANSITIONS[fromStatus] || [];
-    if (!allowed.includes(status)) {
-      throw new HttpError(
-        409,
-        `No se puede pasar de "${fromStatus}" a "${status}"`,
-      );
-    }
-
     const cleanNote = note ? String(note).trim().slice(0, 1000) : null;
 
-    order.status = status;
-
-    if (status === ORDER_STATUS.CANCELADO) {
-      // Un pedido cancelado devuelve el producto al catalogo.
+    // Un pedido cancelado devuelve el producto al catalogo.
+    if (status === FULFILLMENT_STATUS.CANCELLED) {
       await releaseOrderStock(order, transaction);
-      order.cancelledAt = new Date();
-      order.stockReservedUntil = null;
     }
 
-    if (status === ORDER_STATUS.PAGADO) {
-      // El pago se registra en la tabla payments (fuente unica de verdad), no
-      // solo en orders.paymentStatus. Ver el bloque posterior al save().
-      if (!order.paymentApprovedAt) order.paymentApprovedAt = new Date();
-      order.stockReservedUntil = null;
-    }
+    // La transicion valida, los efectos (guia, COD) y la auditoria los
+    // aplica el servicio de pedidos.
+    await transitionFulfillment({
+      order,
+      to: status,
+      transaction,
+      actorUserId: adminId,
+      source: STATUS_SOURCE.MANUAL_ADMIN,
+      note: cleanNote,
+      trackingNumber,
+      trackingUrl,
+      ip,
+      requestId,
+    });
 
-    if (status === ORDER_STATUS.ENVIADO) {
-      if (!order.shippedAt) order.shippedAt = new Date();
-      order.stockReservedUntil = null;
-    }
-
-    if (status === ORDER_STATUS.ENTREGADO) {
-      if (!order.deliveredAt) order.deliveredAt = new Date();
-      order.stockReservedUntil = null;
-    }
-
-    await order.save({ transaction });
-
-    if (status === ORDER_STATUS.PAGADO) {
-      // Regla de negocio: una compra aprobada devuelve el producto al catalogo
-      // (stock = true) mientras el stock sea booleano.
+    if (status === FULFILLMENT_STATUS.PAID) {
+      // El pago se registra en la tabla payments (fuente unica de verdad),
+      // no solo en orders.paymentState.
       await restoreOrderStock(order, transaction);
 
       const approved = await Payment.findOne({
@@ -281,17 +289,10 @@ const changeOrderStatus = async ({ orderId, status, note, adminId }) => {
       }
     }
 
-    await OrderStatusHistory.create(
-      {
-        orderId: order.id,
-        kind: HISTORY_KIND.LOGISTICA,
-        fromStatus,
-        toStatus: status,
-        changedByUserId: adminId,
-        note: cleanNote,
-      },
-      { transaction },
-    );
+    // La utilidad se recalcula por si el cambio de estado afecta los
+    // costos (un pedido entregado ya no tiene costo de envio pendiente).
+    applyAccountingTotals(order);
+    await order.save({ transaction });
 
     await transaction.commit();
   } catch (error) {
@@ -330,7 +331,7 @@ const updateTracking = async ({
   if (!order) {
     throw new HttpError(404, "Pedido no encontrado");
   }
-  if (order.status === ORDER_STATUS.CANCELADO) {
+  if (order.fulfillmentStatus === FULFILLMENT_STATUS.CANCELLED) {
     throw new HttpError(
       409,
       "No se puede editar el envío de un pedido cancelado",
@@ -362,44 +363,46 @@ const orderStats = async () => {
   const [statusRows, paymentRows, ordersToday] = await Promise.all([
     Order.findAll({
       attributes: [
-        "status",
+        "fulfillmentStatus",
         [fn("count", col("id")), "count"],
         [fn("coalesce", fn("sum", col("total")), 0), "total"],
+        [fn("coalesce", fn("sum", col("netProfit")), 0), "profit"],
       ],
-      group: ["status"],
+      group: ["fulfillmentStatus"],
       raw: true,
     }),
     Order.findAll({
       attributes: [
-        "paymentStatus",
+        "paymentState",
         [fn("count", col("id")), "count"],
         [fn("coalesce", fn("sum", col("total")), 0), "total"],
       ],
-      group: ["paymentStatus"],
+      group: ["paymentState"],
       raw: true,
     }),
     Order.count({ where: { createdAt: { [Op.gte]: startOfTodayBogota() } } }),
   ]);
 
-  const byStatus = ORDER_STATUS_VALUES.reduce((acc, value) => {
-    acc[value] = { count: 0, total: 0 };
+  const byStatus = FULFILLMENT_STATUS_VALUES.reduce((acc, value) => {
+    acc[value] = { count: 0, total: 0, profit: 0 };
     return acc;
   }, {});
 
   for (const row of statusRows) {
-    byStatus[row.status] = {
+    byStatus[row.fulfillmentStatus] = {
       count: Number(row.count) || 0,
       total: Number(row.total) || 0,
+      profit: Number(row.profit) || 0,
     };
   }
 
-  const byPaymentStatus = PAYMENT_STATUS_VALUES.reduce((acc, value) => {
+  const byPaymentStatus = PAYMENT_STATE_VALUES.reduce((acc, value) => {
     acc[value] = { count: 0, total: 0 };
     return acc;
   }, {});
 
   for (const row of paymentRows) {
-    byPaymentStatus[row.paymentStatus] = {
+    byPaymentStatus[row.paymentState] = {
       count: Number(row.count) || 0,
       total: Number(row.total) || 0,
     };
@@ -415,7 +418,14 @@ const orderStats = async () => {
     ordersToday,
     byStatus,
     byPaymentStatus,
-    approvedRevenue: byPaymentStatus[PAYMENT_STATUS.APROBADO]?.total || 0,
+    // Alias en espanol para no romper el panel actual.
+    approvedRevenue: byPaymentStatus[PAYMENT_STATE.SETTLED]?.total || 0,
+    // Utilidad ganada: pedidos entregados.
+    earnedProfit:
+      byStatus[FULFILLMENT_STATUS.DELIVERED]?.profit || 0,
+    // Efectivo recibido: pedidos con el dinero liquidado.
+    cashIn:
+      byPaymentStatus[PAYMENT_STATE.SETTLED]?.total || 0,
   };
 };
 
@@ -471,10 +481,11 @@ const salesByPeriod = async ({ periodo } = {}) => {
   const queryResult = await sequelize.query(
     `SELECT (date_trunc(:bucket, "createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Bogota')) AS bucket,
             COUNT(*)::int AS count,
-            COALESCE(SUM(total), 0)::bigint AS total
+            COALESCE(SUM(total), 0)::bigint AS total,
+            COALESCE(SUM("netProfit"), 0)::bigint AS profit
      FROM orders
-     WHERE "paymentStatus" = 'aprobado'
-       AND status <> 'cancelado'
+     WHERE "paymentState" = 'settled'
+       AND "fulfillmentStatus" <> 'cancelled'
        AND "createdAt" >= :desde
      GROUP BY bucket
      ORDER BY bucket ASC`,

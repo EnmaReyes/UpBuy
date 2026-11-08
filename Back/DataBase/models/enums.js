@@ -215,6 +215,10 @@ const STATUS_SOURCE = {
   MANUAL_ADMIN: "manual_admin",
   MANUAL_ADMIN_PUSHED: "manual_admin_pushed",
   WEBHOOK: "webhook",
+  // El propio cliente cancela su pedido desde "Mis pedidos". No bloquea el
+  // auto-sync (no es una decision del negocio, es una instruccion del
+  // comprador), pero si queda registrado de donde salio el cambio.
+  CUSTOMER: "customer",
 };
 
 const STATUS_SOURCE_VALUES = Object.values(STATUS_SOURCE);

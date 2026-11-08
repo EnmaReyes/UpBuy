@@ -4,11 +4,13 @@
 // Requiere el servidor corriendo (npm run dev) y la base local disponible.
 //
 // Casos:
-//   A. APPROVED valido              -> applied true, pago/estado = aprobado
+//   A. APPROVED valido              -> applied true, intento=aprobado,
+//                                      pedido paymentState=settled + paid
 //   B. Repetir el mismo evento      -> applied false, reason ya_procesado
 //   C. Otra transaccion, misma ref  -> applied false, reason otra_transaccion
 //   D. Monto distinto               -> applied false, reason monto_no_coincide
-//   E. VOIDED sobre pago aprobado   -> applied true, estado = reembolsado
+//   E. VOIDED sobre pago aprobado   -> applied true, intento=reembolsado,
+//                                      pedido paymentState=refunded
 //
 // Uso: node scripts/testWebhookApplied.js
 
@@ -22,7 +24,11 @@ const {
   Payment,
   OrderStatusHistory,
 } = require("../DataBase/models/index.js");
-const { ORDER_STATUS, PAYMENT_STATUS } = require("../DataBase/models/enums.js");
+const {
+  FULFILLMENT_STATUS,
+  PAYMENT_STATE,
+  PAYMENT_STATUS,
+} = require("../DataBase/models/enums.js");
 
 const API_URL = process.env.API_TEST_URL || "http://localhost:3000";
 
@@ -106,8 +112,8 @@ const rnd = () => crypto.randomBytes(6).toString("hex");
     order = await Order.create({
       orderNumber: `TEST-${rnd()}`,
       userId: null,
-      status: ORDER_STATUS.PENDIENTE_PAGO,
-      paymentStatus: PAYMENT_STATUS.PENDIENTE,
+      fulfillmentStatus: FULFILLMENT_STATUS.PENDING_PAYMENT,
+      paymentState: PAYMENT_STATE.UNPAID,
       currency: "COP",
       subtotal: 12345,
       shippingCost: 0,
@@ -120,8 +126,8 @@ const rnd = () => crypto.randomBytes(6).toString("hex");
     order2 = await Order.create({
       orderNumber: `TEST-${rnd()}`,
       userId: null,
-      status: ORDER_STATUS.PENDIENTE_PAGO,
-      paymentStatus: PAYMENT_STATUS.PENDIENTE,
+      fulfillmentStatus: FULFILLMENT_STATUS.PENDING_PAYMENT,
+      paymentState: PAYMENT_STATE.UNPAID,
       currency: "COP",
       subtotal: 12345,
       shippingCost: 0,
@@ -161,10 +167,10 @@ const rnd = () => crypto.randomBytes(6).toString("hex");
       rA.status === 200 &&
         rA.body?.applied === true &&
         p1.status === PAYMENT_STATUS.APROBADO &&
-        order.paymentStatus === PAYMENT_STATUS.APROBADO &&
-        order.status === ORDER_STATUS.PAGADO &&
+        order.paymentState === PAYMENT_STATE.SETTLED &&
+        order.fulfillmentStatus === FULFILLMENT_STATUS.PAID &&
         Boolean(order.paymentApprovedAt),
-      `http ${rA.status} ${JSON.stringify(rA.body)} | pago=${p1.status} pedido.paymentStatus=${order.paymentStatus} pedido.status=${order.status}`,
+      `http ${rA.status} ${JSON.stringify(rA.body)} | pago=${p1.status} pedido.paymentState=${order.paymentState} pedido.fulfillmentStatus=${order.fulfillmentStatus}`,
     );
 
     // B. Repetir el mismo evento (idempotencia)
@@ -208,8 +214,8 @@ const rnd = () => crypto.randomBytes(6).toString("hex");
       rE.status === 200 &&
         rE.body?.applied === true &&
         p1.status === PAYMENT_STATUS.REEMBOLSADO &&
-        order.paymentStatus === PAYMENT_STATUS.REEMBOLSADO,
-      `http ${rE.status} ${JSON.stringify(rE.body)} | pago=${p1.status} pedido=${order.paymentStatus}`,
+        order.paymentState === PAYMENT_STATE.REFUNDED,
+      `http ${rE.status} ${JSON.stringify(rE.body)} | pago=${p1.status} pedido=${order.paymentState}`,
     );
   } catch (error) {
     check("ejecucion", false, `${error.name}: ${error.message}`);

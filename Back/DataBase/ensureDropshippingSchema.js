@@ -79,6 +79,13 @@ const getSchemaState = async (transaction) => {
                   AND column_name = 'addressSnapshot')    AS "hasAddressSnapshot",
 
        EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'orders'
+                  AND column_name = 'status')              AS "hasLegacyStatus",
+       EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'orders'
+                  AND column_name = 'paymentStatus')       AS "hasLegacyPaymentStatus",
+
+       EXISTS (SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'public' AND table_name = 'payments'
                   AND column_name = 'payoutAmount')       AS "hasPayoutAmount",
        EXISTS (SELECT 1 FROM information_schema.columns
@@ -128,7 +135,11 @@ const needsMigration = (state) => {
     (state.hasPayments && !state.hasSettledAt) ||
     (state.hasUsers && !state.hasProfileComplete) ||
     (state.hasUsers && !state.hasUserCreatedAt) ||
-    (state.hasNotifications && !state.hasNotificationOrderId)
+    (state.hasNotifications && !state.hasNotificationOrderId) ||
+    // Fase 2: las columnas historicas ya no se usan. Mientras existan, la
+    // migracion tiene trabajo pendiente (backfill del historial y DROP).
+    state.hasLegacyStatus ||
+    state.hasLegacyPaymentStatus
   );
 };
 
@@ -139,15 +150,19 @@ const isUpToDate = async (state, transaction) =>
 // Aplicacion del esquema
 // ---------------------------------------------------------------------------
 
-// Agrega un CHECK de enum si no existe todavia.
+// Reemplaza un CHECK de enum por el conjunto de valores de este archivo.
 //
 // En Postgres no hay "ADD CONSTRAINT IF NOT EXISTS", asi que se consulta
-// pg_constraint primero (mismo truco que usa ensurePricing.js).
+// pg_constraint primero (mismo truco que usa ensurePricing.js) y, si el
+// conjunto de valores cambio, se rehace.
 //
 // OJO: el cuerpo de un bloque DO es una cadena PL/pgSQL, no admite
 // parametros de bind ($1). Por eso los nombres se escriben como literales:
 // son constantes internas de este archivo, nunca entrada de usuario.
 const addCheckConstraint = async (transaction, table, column, values, name) => {
+  const lista = values.map((v) => `'${v}'`).join(", ");
+  const definicion = `CHECK (${column} IS NULL OR ${column} IN (${lista}))`;
+
   await sequelize.query(
     `DO $constraint$
      BEGIN
@@ -158,14 +173,37 @@ const addCheckConstraint = async (transaction, table, column, values, name) => {
        ) THEN
          ALTER TABLE ${table}
            ADD CONSTRAINT ${name}
-           CHECK (${column} IS NULL OR ${column} IN (${values
-             .map((v) => `'${v}'`)
-             .join(", ")}));
+           ${definicion};
        END IF;
      END
      $constraint$`,
     { transaction },
   );
+
+  // Si el constraint ya existe pero con otros valores, se rehace para que
+  // este archivo sea la unica fuente de verdad.
+  const [actual] = await sequelize.query(
+    `SELECT pg_get_constraintdef(oid) AS def
+       FROM pg_constraint
+      WHERE conrelid = '${table}'::regclass
+        AND conname = '${name}'`,
+    { transaction },
+  );
+
+  const defActual = actual?.[0]?.def || "";
+  const normalizada = defActual.replace(/\s+/g, " ").toLowerCase();
+  const defEsperada = definicion.replace(/\s+/g, " ").toLowerCase();
+
+  if (!normalizada.includes(defEsperada)) {
+    await sequelize.query(
+      `ALTER TABLE ${table} DROP CONSTRAINT IF EXISTS ${name}`,
+      { transaction },
+    );
+    await sequelize.query(
+      `ALTER TABLE ${table} ADD CONSTRAINT ${name} ${definicion}`,
+      { transaction },
+    );
+  }
 };
 
 const applySchema = async (transaction, state) => {
@@ -443,7 +481,7 @@ const applySchema = async (transaction, state) => {
     transaction,
     "orders",
     '"statusSource"',
-    ["auto_sync", "manual_admin", "manual_admin_pushed", "webhook"],
+    ["auto_sync", "manual_admin", "manual_admin_pushed", "webhook", "customer"],
     "orders_status_source_check",
   );
 
@@ -566,39 +604,46 @@ const applySchema = async (transaction, state) => {
 
   // -------------------------------------------------------------------------
   // 5. Backfill: estados legacy -> canonicos.
+  //
+  // Solo corre si las columnas historicas todavia existen. Se hace ANTES de
+  // retirarlas (paso 7).
   // -------------------------------------------------------------------------
 
-  await sequelize.query(
-    `UPDATE orders
-        SET "fulfillmentStatus" = CASE "status"
-              WHEN 'pendiente_pago'  THEN 'pending_payment'
-              WHEN 'pagado'          THEN 'paid'
-              WHEN 'en_preparacion'  THEN 'packing'
-              WHEN 'enviado'         THEN 'shipped'
-              WHEN 'entregado'       THEN 'delivered'
-              WHEN 'cancelado'       THEN 'cancelled'
-              ELSE 'pending_payment'
-            END
-      WHERE "fulfillmentStatus" = 'pending_payment'
-        AND "status" <> 'pendiente_pago'`,
-    { transaction },
-  );
+  if (state.hasLegacyStatus) {
+    await sequelize.query(
+      `UPDATE orders
+          SET "fulfillmentStatus" = CASE "status"
+                WHEN 'pendiente_pago'  THEN 'pending_payment'
+                WHEN 'pagado'          THEN 'paid'
+                WHEN 'en_preparacion'  THEN 'packing'
+                WHEN 'enviado'         THEN 'shipped'
+                WHEN 'entregado'       THEN 'delivered'
+                WHEN 'cancelado'       THEN 'cancelled'
+                ELSE 'pending_payment'
+              END
+        WHERE "fulfillmentStatus" = 'pending_payment'
+          AND "status" <> 'pendiente_pago'`,
+      { transaction },
+    );
+  }
 
-  // El estado del dinero solo se toca cuando sigue en el valor por defecto
-  // ('unpaid') y el legacy dice otra cosa. Asi una segunda corrida de la
-  // migracion no degrada un estado canonico ya avanzado (p. ej. 'collected').
-  await sequelize.query(
-    `UPDATE orders
-        SET "paymentState" = CASE "paymentStatus"
-              WHEN 'aprobado'     THEN 'settled'
-              WHEN 'anulado'      THEN 'refunded'
-              WHEN 'reembolsado'  THEN 'refunded'
-              ELSE 'unpaid'
-            END
-      WHERE "paymentState" = 'unpaid'
-        AND "paymentStatus" IN ('aprobado', 'anulado', 'reembolsado')`,
-    { transaction },
-  );
+  if (state.hasLegacyPaymentStatus) {
+    // El estado del dinero solo se toca cuando sigue en el valor por defecto
+    // ('unpaid') y el legacy dice otra cosa. Asi una segunda corrida de la
+    // migracion no degrada un estado canonico ya avanzado (p. ej. 'collected').
+    await sequelize.query(
+      `UPDATE orders
+          SET "paymentState" = CASE "paymentStatus"
+                WHEN 'aprobado'     THEN 'settled'
+                WHEN 'anulado'      THEN 'refunded'
+                WHEN 'reembolsado'  THEN 'refunded'
+                ELSE 'unpaid'
+              END
+        WHERE "paymentState" = 'unpaid'
+          AND "paymentStatus" IN ('aprobado', 'anulado', 'reembolsado')`,
+      { transaction },
+    );
+  }
 
   // El metodo de pago canonico solo se puede afirmar con evidencia: si el
   // pedido tiene un pago de Wompi, su metodo fue wompi. Para el resto se
@@ -688,6 +733,87 @@ const applySchema = async (transaction, state) => {
         )`,
     { transaction },
   );
+
+  // -------------------------------------------------------------------------
+  // 7. Retiro de las columnas historicas de estado (Fase 2).
+  //
+  // No hay front que las consuma: los estados canonicos ya son la unica
+  // fuente de verdad. Antes de borrarlas, el historial del pedido se traduce
+  // al vocabulario canonico para que las dos mitades de la tabla se lean
+  // igual.
+  // -------------------------------------------------------------------------
+
+  if (state.hasLegacyStatus || state.hasLegacyPaymentStatus) {
+    // Historial logistico: valores en espanol -> canonicos.
+    await sequelize.query(
+      `UPDATE order_status_history
+          SET "fromStatus" = CASE "fromStatus"
+                WHEN 'pendiente_pago'  THEN 'pending_payment'
+                WHEN 'pagado'          THEN 'paid'
+                WHEN 'en_preparacion'  THEN 'packing'
+                WHEN 'enviado'         THEN 'shipped'
+                WHEN 'entregado'       THEN 'delivered'
+                WHEN 'cancelado'       THEN 'cancelled'
+                ELSE "fromStatus"
+              END,
+              "toStatus" = CASE "toStatus"
+                WHEN 'pendiente_pago'  THEN 'pending_payment'
+                WHEN 'pagado'          THEN 'paid'
+                WHEN 'en_preparacion'  THEN 'packing'
+                WHEN 'enviado'         THEN 'shipped'
+                WHEN 'entregado'       THEN 'delivered'
+                WHEN 'cancelado'       THEN 'cancelled'
+                ELSE "toStatus"
+              END
+        WHERE kind = 'logistica'`,
+      { transaction },
+    );
+
+    // Historial de pago: el vocabulario viejo del pedido -> canonico.
+    await sequelize.query(
+      `UPDATE order_status_history
+          SET "fromStatus" = CASE "fromStatus"
+                WHEN 'pendiente'    THEN 'unpaid'
+                WHEN 'rechazado'    THEN 'unpaid'
+                WHEN 'en_revision'  THEN 'unpaid'
+                WHEN 'error'        THEN 'unpaid'
+                WHEN 'aprobado'     THEN 'settled'
+                WHEN 'anulado'      THEN 'refunded'
+                WHEN 'reembolsado'  THEN 'refunded'
+                ELSE "fromStatus"
+              END,
+              "toStatus" = CASE "toStatus"
+                WHEN 'pendiente'    THEN 'unpaid'
+                WHEN 'rechazado'    THEN 'unpaid'
+                WHEN 'en_revision'  THEN 'unpaid'
+                WHEN 'error'        THEN 'unpaid'
+                WHEN 'aprobado'     THEN 'settled'
+                WHEN 'anulado'      THEN 'refunded'
+                WHEN 'reembolsado'  THEN 'refunded'
+                ELSE "toStatus"
+              END
+        WHERE kind = 'pago'`,
+      { transaction },
+    );
+
+    // Se retiran los indices antes que las columnas (Postgres los borra
+    // igual, pero dejarlo explicito evita sorpresas en el log).
+    await sequelize.query(
+      `DROP INDEX IF EXISTS orders_status_idx`,
+      { transaction },
+    );
+    await sequelize.query(
+      `DROP INDEX IF EXISTS orders_payment_status_idx`,
+      { transaction },
+    );
+
+    await sequelize.query(
+      `ALTER TABLE orders
+         DROP COLUMN IF EXISTS status,
+         DROP COLUMN IF EXISTS "paymentStatus"`,
+      { transaction },
+    );
+  }
 };
 
 // ---------------------------------------------------------------------------

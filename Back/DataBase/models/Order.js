@@ -2,10 +2,6 @@ const { DataTypes } = require("sequelize");
 const { sequelize } = require("../db.js");
 const { v4: uuidv4 } = require("uuid");
 const {
-  ORDER_STATUS,
-  ORDER_STATUS_VALUES,
-  PAYMENT_STATUS,
-  PAYMENT_STATUS_VALUES,
   SALE_CHANNEL,
   SALE_CHANNEL_VALUES,
   PAYMENT_METHOD_VALUES,
@@ -79,26 +75,12 @@ const Order = sequelize.define(
       },
     },
 
-    status: {
-      type: DataTypes.STRING(30),
-      allowNull: false,
-      defaultValue: ORDER_STATUS.PENDIENTE_PAGO,
-      validate: { isIn: [ORDER_STATUS_VALUES] },
-    },
-
-    paymentStatus: {
-      type: DataTypes.STRING(30),
-      allowNull: false,
-      defaultValue: PAYMENT_STATUS.PENDIENTE,
-      validate: { isIn: [PAYMENT_STATUS_VALUES] },
-    },
-
     // ---------------------------------------------------------------------
     // Estados canonicos (dropshipping).
     //
-    // Son la fuente de verdad del pedido. `status` y `paymentStatus` quedan
-    // como columnas legacy hasta que el codigo este migrado (Fase 2); a
-    // partir de ahi solo se escriben estos dos.
+    // Son la UNICA fuente de verdad del pedido. Las columnas historicas
+    // status / paymentStatus se retiraron en la Fase 2 (no habia front que
+    // las consumiera).
     // ---------------------------------------------------------------------
 
     // Ciclo de cumplimiento: donde va el pedido fisicamente.
@@ -362,8 +344,6 @@ const Order = sequelize.define(
     timestamps: true,
     indexes: [
       { fields: ["userId"], name: "orders_user_id_idx" },
-      { fields: ["status"], name: "orders_status_idx" },
-      { fields: ["paymentStatus"], name: "orders_payment_status_idx" },
       { fields: ["fulfillmentStatus"], name: "orders_fulfillment_status_idx" },
       { fields: ["paymentState"], name: "orders_payment_state_idx" },
       {
