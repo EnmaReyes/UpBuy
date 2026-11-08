@@ -26,6 +26,7 @@ const {
   applyAccountingTotals,
 } = require("./orderService.js");
 const { FULFILLMENT_LABELS } = require("./statusMachine.js");
+const { pushCurrentStatus } = require("./syncService.js");
 const HttpError = require("../Utils/HttpError.js");
 const { assertUuid } = require("../Utils/ids.js");
 const { parseBogotaDay: parseDay, startOfTodayBogota } = require("../Utils/dates.js");
@@ -201,6 +202,7 @@ const changeOrderStatus = async ({
   adminId,
   trackingNumber,
   trackingUrl,
+  pushToProvider = false,
   ip = null,
   requestId = null,
 }) => {
@@ -294,7 +296,23 @@ const changeOrderStatus = async ({
     console.error("No se pudo crear la notificación:", error.message);
   }
 
-  return getOrderAdmin(orderId);
+  // Empujar el cambio al proveedor es OPCIONAL y nunca revierte lo local:
+  // si falla, el pedido queda con providerOutOfSync para que el panel lo
+  // muestre.
+  let providerPush = null;
+  if (pushToProvider) {
+    const fresh = await Order.findByPk(order.id);
+    providerPush = await pushCurrentStatus({
+      order: fresh,
+      actorUserId: adminId,
+    });
+  }
+
+  const result = await getOrderAdmin(orderId);
+  if (providerPush) {
+    result.dataValues.providerPush = providerPush;
+  }
+  return result;
 };
 
 // PATCH /api/admin/orders/:id/tracking

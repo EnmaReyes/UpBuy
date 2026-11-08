@@ -9,6 +9,11 @@ const {
 const { createManualOrder } = require("../Services/orders.js");
 const { getAccounting } = require("../Services/accounting.js");
 const {
+  syncOrderById,
+  pushOrderToProvider,
+} = require("../Services/syncService.js");
+const { listProviders } = require("../Services/providers/index.js");
+const {
   listOrderPayments,
   registerPayment,
   changePaymentStatus,
@@ -113,8 +118,15 @@ const detail = async (req, res) => {
 // Body: { status | fulfillmentStatus, note?, trackingNumber?, trackingUrl? }
 const changeStatus = async (req, res) => {
   try {
-    const { status, fulfillmentStatus, note, trackingNumber, trackingUrl } =
-      req.body || {};
+    const {
+      status,
+      fulfillmentStatus,
+      note,
+      trackingNumber,
+      trackingUrl,
+      pushToProvider,
+      push_to_provider,
+    } = req.body || {};
     const order = await changeOrderStatus({
       orderId: req.params.id,
       status: fulfillmentStatus || status,
@@ -122,6 +134,7 @@ const changeStatus = async (req, res) => {
       adminId: req.user.id,
       trackingNumber,
       trackingUrl,
+      pushToProvider: Boolean(pushToProvider ?? push_to_provider),
       ip: req.ip,
       requestId: req.get("X-Request-Id") || null,
     });
@@ -166,6 +179,38 @@ const accounting = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     return sendError(res, error, "No se pudo cargar la contabilidad");
+  }
+};
+
+// GET /api/admin/orders/providers — estado de cada proveedor.
+const providers = async (req, res) => {
+  try {
+    return res.status(200).json({ providers: listProviders() });
+  } catch (error) {
+    return sendError(res, error, "No se pudieron cargar los proveedores");
+  }
+};
+
+// POST /api/admin/orders/:id/sync — forzar la lectura del estado del proveedor.
+const sync = async (req, res) => {
+  try {
+    const result = await syncOrderById(req.params.id);
+    return res.status(200).json(result);
+  } catch (error) {
+    return sendError(res, error, "No se pudo sincronizar el pedido");
+  }
+};
+
+// POST /api/admin/orders/:id/push — enviar el pedido al proveedor.
+const push = async (req, res) => {
+  try {
+    const result = await pushOrderToProvider({
+      orderId: req.params.id,
+      actorUserId: req.user.id,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    return sendError(res, error, "No se pudo enviar el pedido al proveedor");
   }
 };
 
@@ -237,6 +282,9 @@ module.exports = {
   tracking,
   sales,
   accounting,
+  providers,
+  sync,
+  push,
   createManual,
   payments,
   registerPaymentHandler,
