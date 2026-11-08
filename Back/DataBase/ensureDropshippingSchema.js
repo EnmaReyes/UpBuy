@@ -170,6 +170,19 @@ const addCheckConstraint = async (transaction, table, column, values, name) => {
 
 const applySchema = async (transaction, state) => {
   // -------------------------------------------------------------------------
+  // 0. Secuencia de numeracion de pedidos.
+  //
+  // Services/orders.js -> generateOrderNumber() hace
+  // "SELECT nextval('order_number_seq')". La secuencia se usaba pero nunca
+  // se creaba desde el codigo (venia de la base original), asi que una base
+  // nueva fallaba al crear el primer pedido. Se crea aqui si falta.
+  // -------------------------------------------------------------------------
+  await sequelize.query(
+    `CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1 INCREMENT 1`,
+    { transaction },
+  );
+
+  // -------------------------------------------------------------------------
   // 1. Tablas nuevas.
   // -------------------------------------------------------------------------
 

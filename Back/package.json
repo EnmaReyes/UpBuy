@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "tunnel": "node scripts/tunnel.js"
+    "tunnel": "node scripts/tunnel.js",
+    "db:create": "node scripts/createLocalDb.js",
+    "db:migrate": "node scripts/migrateDropshipping.js",
+    "db:check": "node scripts/checkSchema.js",
+    "db:verify-migration": "node scripts/verifyDropshippingMigration.js"
   },
   "keywords": [],
   "author": "",
