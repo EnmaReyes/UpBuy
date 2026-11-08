@@ -7,6 +7,7 @@ const {
   OrderStatusHistory,
   Articulos,
   Dtf,
+  Usuarios,
 } = require("../DataBase/models/index.js");
 const {
   FULFILLMENT_STATUS,
@@ -32,6 +33,11 @@ const {
   applyAccountingTotals,
   transitionFulfillment,
 } = require("./orderService.js");
+const {
+  FULFILLMENT_LABELS,
+  PAYMENT_LABELS,
+  userFacingMessage,
+} = require("./statusMachine.js");
 const HttpError = require("../Utils/HttpError.js");
 const { assertUuid } = require("../Utils/ids.js");
 const { STOCK_RESERVATION_ENABLED } = require("../config.js");
@@ -585,23 +591,62 @@ const parseDiscount = (value, subtotal) => {
   return parsed;
 };
 
+// Rellena los datos de envio que falten con el perfil y la direccion
+// principal. El checkout puede mandar todo (invitado no: exige sesion) o solo
+// los items y dejar que el servidor use lo que el comprador ya guardo.
+const hydrateShippingFromProfile = async (userId, shipping = {}) => {
+  if (!userId) return shipping;
+
+  const { getDefaultAddress } = require("./addresses.js");
+  const user = await Usuarios.findByPk(userId, {
+    attributes: ["id", "name", "lastName", "email", "phone", "address"],
+  });
+  if (!user) return shipping;
+
+  const address = await getDefaultAddress(userId);
+
+  const fullName = [user.name, user.lastName].filter(Boolean).join(" ").trim();
+
+  const pick = (value, fallback) => {
+    const clean = trim(value);
+    return clean || fallback || "";
+  };
+
+  return {
+    ...shipping,
+    recipientName: pick(
+      shipping.recipientName || shipping.name,
+      fullName,
+    ),
+    email: pick(shipping.email, user.email),
+    phone: pick(shipping.phone, user.phone),
+    address: pick(shipping.address, address?.address || user.address),
+    city: pick(shipping.city, address?.city),
+    department: pick(shipping.department, address?.department),
+    postalCode: pick(shipping.postalCode, null),
+    reference: pick(shipping.reference, address?.reference),
+  };
+};
+
 // Pedido creado desde el checkout web (mismo comportamiento de siempre).
 //
 // Nace en pending_payment / unpaid. Si el comprador paga con Wompi, el
 // webhook lo lleva a paid / settled. Si es COD, el pago lo hace el courier
 // al entregar.
-const createOrder = ({
+const createOrder = async ({
   userId,
   items,
   shipping,
   notes,
   paymentMethodCode = PAYMENT_METHOD_CODE.WOMPI,
   provider = null,
-}) =>
-  createOrderCore({
+}) => {
+  const filledShipping = await hydrateShippingFromProfile(userId, shipping);
+
+  return createOrderCore({
     userId,
     items,
-    shipping,
+    shipping: filledShipping,
     notes,
     channel: SALE_CHANNEL.WEB,
     deliveryType: "envio",
@@ -612,6 +657,7 @@ const createOrder = ({
     notify: true,
     manual: false,
   });
+};
 
 // Venta externa registrada por un administrador (sin usuario de tienda).
 const createManualOrder = async ({
@@ -755,12 +801,83 @@ const cancelOrder = async ({ orderId, user }) => {
   }
 };
 
+// Tracking publico: lo consulta el comprador (o quien tenga el enlace) sin
+// iniciar sesion. Por eso NO devuelve la direccion, el correo ni el telefono:
+// solo el estado, la guia y las fechas.
+//
+// Se exige que el telefono o el correo coincidan con el pedido. Sin eso, el
+// id (que es un UUID) seria la unica barrera y cualquiera con el enlace veria
+// el pedido de otra persona.
+const getPublicTracking = async ({ orderId, phone, email }) => {
+  assertUuid(orderId, "pedido");
+
+  const order = await Order.findByPk(orderId, {
+    attributes: [
+      "id",
+      "orderNumber",
+      "fulfillmentStatus",
+      "paymentState",
+      "paymentMethodCode",
+      "trackingCarrier",
+      "trackingNumber",
+      "trackingUrl",
+      "estimatedDeliveryDays",
+      "shippedAt",
+      "deliveredAt",
+      "cancelledAt",
+      "createdAt",
+      "phone",
+      "email",
+    ],
+  });
+
+  if (!order) {
+    throw new HttpError(404, "Pedido no encontrado");
+  }
+
+  const digits = (value) => String(value || "").replace(/\D/g, "");
+  const phoneOk =
+    phone && digits(order.phone) && digits(phone).slice(-10) === digits(order.phone).slice(-10);
+  const emailOk =
+    email &&
+    order.email &&
+    String(email).trim().toLowerCase() === String(order.email).trim().toLowerCase();
+
+  if (!phoneOk && !emailOk) {
+    // Mismo 404 que "no existe": no se confirma si el pedido existe.
+    throw new HttpError(404, "Pedido no encontrado");
+  }
+
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    fulfillmentStatus: order.fulfillmentStatus,
+    paymentState: order.paymentState,
+    fulfillmentLabel: FULFILLMENT_LABELS[order.fulfillmentStatus] || null,
+    paymentLabel: PAYMENT_LABELS[order.paymentState] || null,
+    message: userFacingMessage(order),
+    tracking: {
+      carrier: order.trackingCarrier,
+      number: order.trackingNumber,
+      url: order.trackingUrl,
+    },
+    estimatedDeliveryDays: order.estimatedDeliveryDays,
+    dates: {
+      createdAt: order.createdAt,
+      shippedAt: order.shippedAt,
+      deliveredAt: order.deliveredAt,
+      cancelledAt: order.cancelledAt,
+    },
+  };
+};
+
 module.exports = {
   createOrder,
   createManualOrder,
   cancelOrder,
   getOrderForUser,
   listOrdersForUser,
+  getPublicTracking,
   releaseExpiredReservations,
   releaseOrderStock,
   restoreOrderStock,

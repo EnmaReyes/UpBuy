@@ -3,6 +3,7 @@ const {
   cancelOrder,
   getOrderForUser,
   listOrdersForUser,
+  getPublicTracking,
 } = require("../Services/orders.js");
 const {
   createCheckoutForOrder,
@@ -103,4 +104,28 @@ const verifyPayment = async (req, res) => {
   }
 };
 
-module.exports = { create, list, detail, cancel, createPayment, verifyPayment };
+// GET /api/orders/:id/tracking — publico (sin sesion).
+// Exige que el telefono o el correo coincidan con el pedido.
+const tracking = async (req, res) => {
+  try {
+    const { phone, email } = req.query;
+    const result = await getPublicTracking({
+      orderId: req.params.id,
+      phone,
+      email,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    return sendError(res, error, "No se pudo cargar el seguimiento");
+  }
+};
+
+module.exports = {
+  create,
+  list,
+  detail,
+  tracking,
+  cancel,
+  createPayment,
+  verifyPayment,
+};

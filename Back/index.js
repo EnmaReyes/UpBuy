@@ -3,6 +3,7 @@ const express = require("express");
 const postRoutes = require("./Rutas/posts.js");
 const authRoutes = require("./Rutas/auth.js");
 const userRoutes = require("./Rutas/user.js");
+const usersRoutes = require("./Rutas/users.js");
 const notificationsRoutes = require("./Rutas/notifications.js");
 const campaignsRoutes = require("./Rutas/campaigns.js");
 const bannerRoutes = require("./Rutas/banner.js");
@@ -15,6 +16,7 @@ const adminUsersRoutes = require("./Rutas/adminUsers.js");
 const pricesRoutes = require("./Rutas/prices.js");
 const paymentsRoutes = require("./Rutas/payments.js");
 const webhooksRoutes = require("./Rutas/webhooks.js");
+const productsRoutes = require("./Rutas/products.js");
 
 const { sequelize, databaseHost } = require("./DataBase/db.js");
 const { ensurePricingSchema } = require("./DataBase/ensurePricing.js");
@@ -211,6 +213,8 @@ app.use(async (req, res, next) => {
 app.use("/api/posts", postRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
+// API canonica del comprador: /api/users/me (+ direcciones).
+app.use("/api/users", usersRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/admin/campaigns", campaignsRoutes);
 app.use("/api/banner", bannerRoutes);
@@ -224,6 +228,7 @@ app.use("/api/prices", pricesRoutes);
 app.use("/api/payments", paymentsRoutes);
 // Webhooks canonicos: /api/webhooks/wompi y /api/webhooks/vendelo.
 app.use("/api/webhooks", webhooksRoutes);
+app.use("/api/products", productsRoutes);
 
 // Red de seguridad: ruta inexistente y errores no controlados. Va al final,
 // despues de todas las rutas (ver Middlewares/errors.js).
