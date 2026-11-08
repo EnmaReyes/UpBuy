@@ -1,0 +1,15 @@
+# Secretos: NUNCA se versionan.
+# Los valores reales van en .env.local (tampoco se versiona) y en las
+# Environment Variables de Vercel.
+.env
+.env.local
+.env.*.local
+
+# La plantilla SI se versiona.
+!.env.example
+
+node_modules
+coverage
+*.log
+.DS_Store
+.vercel
