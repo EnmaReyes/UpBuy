@@ -91,6 +91,7 @@ Quién produjo el último cambio. Es lo que permite que el auto-sync (cron)
 | `manual_admin` | Un admin lo cambió, sin empujarlo al proveedor |
 | `manual_admin_pushed` | Un admin lo cambió y el push al proveedor funcionó |
 | `webhook` | Lo puso un webhook del proveedor |
+| `customer` | El comprador canceló su propio pedido |
 
 ---
 

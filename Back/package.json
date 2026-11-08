@@ -10,7 +10,8 @@
     "db:create": "node scripts/createLocalDb.js",
     "db:migrate": "node scripts/migrateDropshipping.js",
     "db:check": "node scripts/checkSchema.js",
-    "db:verify-migration": "node scripts/verifyDropshippingMigration.js"
+    "db:verify-migration": "node scripts/verifyDropshippingMigration.js",
+    "test": "node --test test/*.test.js"
   },
   "keywords": [],
   "author": "",
