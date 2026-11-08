@@ -20,7 +20,8 @@ const {
 
 // Pedido. Los datos del comprador/envio son un snapshot: el pedido no
 // depende de que el usuario o el producto sigan existiendo igual.
-// status (logistico) y paymentStatus (pago) viven separados a proposito.
+// El ciclo logistico (fulfillmentStatus) y el del dinero (paymentState) viven
+// separados a proposito.
 const Order = sequelize.define(
   "Order",
   {
@@ -104,7 +105,14 @@ const Order = sequelize.define(
     paymentMethodCode: {
       type: DataTypes.STRING(30),
       allowNull: true,
-      validate: { isInOrNull: [PAYMENT_METHOD_CODE_VALUES] },
+      validate: {
+        isInOrNull(value) {
+          if (value === null || value === undefined) return;
+          if (!PAYMENT_METHOD_CODE_VALUES.includes(value)) {
+            throw new Error("Método de pago inválido");
+          }
+        },
+      },
     },
 
     currency: {
@@ -266,7 +274,14 @@ const Order = sequelize.define(
     provider: {
       type: DataTypes.STRING(30),
       allowNull: true,
-      validate: { isInOrNull: [PROVIDER_VALUES] },
+      validate: {
+        isInOrNull(value) {
+          if (value === null || value === undefined) return;
+          if (!PROVIDER_VALUES.includes(value)) {
+            throw new Error("Proveedor inválido");
+          }
+        },
+      },
     },
 
     // Id del pedido en el proveedor. Con el forma la clave del auto-sync.

@@ -7,6 +7,7 @@ const {
   salesByPeriod,
 } = require("../Services/adminOrders.js");
 const { createManualOrder } = require("../Services/orders.js");
+const { getAccounting } = require("../Services/accounting.js");
 const {
   listOrderPayments,
   registerPayment,
@@ -156,6 +157,18 @@ const sales = async (req, res) => {
   }
 };
 
+// GET /api/admin/orders/accounting?from&to&provider
+// Contabilidad: bruto, comisiones, costo proveedor, margen y desglose COD.
+const accounting = async (req, res) => {
+  try {
+    const { from, to, provider } = req.query;
+    const result = await getAccounting({ from, to, provider });
+    return res.status(200).json(result);
+  } catch (error) {
+    return sendError(res, error, "No se pudo cargar la contabilidad");
+  }
+};
+
 // GET /api/admin/orders/:id/payments — intentos de pago del pedido.
 const payments = async (req, res) => {
   try {
@@ -223,6 +236,7 @@ module.exports = {
   changeStatus,
   tracking,
   sales,
+  accounting,
   createManual,
   payments,
   registerPaymentHandler,

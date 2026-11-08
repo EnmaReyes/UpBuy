@@ -28,6 +28,7 @@ const {
 const { FULFILLMENT_LABELS } = require("./statusMachine.js");
 const HttpError = require("../Utils/HttpError.js");
 const { assertUuid } = require("../Utils/ids.js");
+const { parseBogotaDay: parseDay, startOfTodayBogota } = require("../Utils/dates.js");
 
 const STATUS_LABELS = FULFILLMENT_LABELS;
 
@@ -62,30 +63,8 @@ const ADMIN_ORDER_SORT = [
   [{ model: OrderStatusHistory, as: "history" }, "createdAt", "ASC"],
 ];
 
-const BOGOTA_OFFSET = "-05:00";
-
 // Las fechas del panel se interpretan como dias completos en hora de Colombia
-// (UTC-5), no en la zona del servidor.
-const parseDay = (value, field, endOfDay = false) => {
-  const raw = String(value || "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    throw new HttpError(400, `Fecha inválida en "${field}" (YYYY-MM-DD)`);
-  }
-  const time = endOfDay ? "23:59:59.999" : "00:00:00.000";
-  const date = new Date(`${raw}T${time}${BOGOTA_OFFSET}`);
-  if (Number.isNaN(date.getTime())) {
-    throw new HttpError(400, `Fecha inválida en "${field}"`);
-  }
-  return date;
-};
-
-// Inicio del dia actual en Colombia, expresado en UTC.
-const startOfTodayBogota = () => {
-  const now = new Date(Date.now() - 5 * 60 * 60 * 1000);
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 5),
-  );
-};
+// (ver Utils/dates.js).
 
 const parseLimit = (limit) => Math.min(Math.max(Number(limit) || 20, 1), 100);
 const parseOffset = (offset) => Math.max(Number(offset) || 0, 0);
@@ -423,9 +402,12 @@ const orderStats = async () => {
     // Utilidad ganada: pedidos entregados.
     earnedProfit:
       byStatus[FULFILLMENT_STATUS.DELIVERED]?.profit || 0,
-    // Efectivo recibido: pedidos con el dinero liquidado.
+    // Efectivo ya cobrado al cliente (en transito + liquidado).
     cashIn:
-      byPaymentStatus[PAYMENT_STATE.SETTLED]?.total || 0,
+      (byPaymentStatus[PAYMENT_STATE.SETTLED]?.total || 0) +
+      (byPaymentStatus[PAYMENT_STATE.COLLECTED]?.total || 0),
+    // Dinero que viene en camino: COD entregado, pendiente de liquidacion.
+    pendingCash: byPaymentStatus[PAYMENT_STATE.PENDING_COLLECTION]?.total || 0,
   };
 };
 

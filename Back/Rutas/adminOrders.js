@@ -7,6 +7,7 @@ const {
   changeStatus,
   tracking,
   sales,
+  accounting,
   createManual,
   payments,
   registerPaymentHandler,
@@ -21,6 +22,7 @@ router.use(requireAuth, requireAdmin);
 // /stats va antes de /:id para que no lo capture el parametro.
 router.get("/stats", stats);
 router.get("/ventas", sales);
+router.get("/accounting", accounting);
 
 // Registro manual de ventas externas.
 router.post("/manual", createManual);
