@@ -17,6 +17,7 @@ const pricesRoutes = require("./Rutas/prices.js");
 const paymentsRoutes = require("./Rutas/payments.js");
 const webhooksRoutes = require("./Rutas/webhooks.js");
 const productsRoutes = require("./Rutas/products.js");
+const cronRoutes = require("./Rutas/cron.js");
 
 const { sequelize, databaseHost } = require("./DataBase/db.js");
 const { ensurePricingSchema } = require("./DataBase/ensurePricing.js");
@@ -229,6 +230,8 @@ app.use("/api/payments", paymentsRoutes);
 // Webhooks canonicos: /api/webhooks/wompi y /api/webhooks/vendelo.
 app.use("/api/webhooks", webhooksRoutes);
 app.use("/api/products", productsRoutes);
+// Tareas periodicas: /api/cron/sync-providers (Bearer CRON_SECRET).
+app.use("/api/cron", cronRoutes);
 
 // Red de seguridad: ruta inexistente y errores no controlados. Va al final,
 // despues de todas las rutas (ver Middlewares/errors.js).
