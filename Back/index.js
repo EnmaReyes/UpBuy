@@ -29,6 +29,7 @@ require("./DataBase/models/index.js");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
+const compression = require("compression");
 const { FRONTEND_URL, TRUST_PROXY } = require("./config.js");
 const { globalLimiter } = require("./Middlewares/rateLimits.js");
 const { notFound, errorHandler } = require("./Middlewares/errors.js");
@@ -148,7 +149,9 @@ app.use(
   }),
 );
 
-app.use(express.json());
+app.use(compression());
+
+app.use(express.json({ limit: "1mb" }));
 
 app.use(
   cors({
@@ -240,10 +243,11 @@ app.use(errorHandler);
 
 // Servidor local.
 // En Vercel, la aplicacion se exporta sin app.listen().
+let server = null;
 if (!isProduction) {
   getDbReady()
     .then(() => {
-      app.listen(port, () => {
+      server = app.listen(port, () => {
         console.log(`🚀 Servidor corriendo en http://localhost:${port}`);
       });
     })
@@ -252,5 +256,22 @@ if (!isProduction) {
       process.exit(1);
     });
 }
+
+// Cierre ordenado: libera conexiones y el servidor HTTP.
+const gracefulShutdown = async (signal) => {
+  console.log(` ${signal} recibido, cerrando ordenadamente...`);
+  try {
+    if (server) server.close();
+    await sequelize.close();
+    console.log("✅ Conexiones cerradas");
+  } catch (error) {
+    console.error("❌ Error al cerrar:", error.message);
+  } finally {
+    process.exit(0);
+  }
+};
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 module.exports = app;

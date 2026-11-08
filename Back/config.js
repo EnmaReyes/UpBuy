@@ -17,6 +17,14 @@ const FRONTEND_URL =
 
 const isProduction = process.env.NODE_ENV === "production";
 
+// Fail-fast: en produccion el secreto JWT debe venir de la variable de entorno.
+// No hay default silencioso que oculte un olvido de configuracion.
+if (isProduction && !process.env.JWT_SECRET) {
+  throw new Error(
+    "JWT_SECRET es obligatorio en producción. Configúralo en Vercel (Environment Variables).",
+  );
+}
+
 const toNumber = (value, fallback) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
