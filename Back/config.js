@@ -212,6 +212,10 @@ module.exports = {
   // Llave de pago de Vendelo (para el checkout hosted del proveedor).
   VENDELO_PAYMENT_KEY: (process.env.VENDELO_PAYMENT_KEY || "").trim(),
 
+  // Secreto para verificar la firma del webhook de pagos de Vendelo.
+  // Vacio = el endpoint /api/webhooks/vendelo responde 503.
+  VENDELO_WEBHOOK_SECRET: (process.env.VENDELO_WEBHOOK_SECRET || "").trim(),
+
   // Dropi no tiene API publica confirmada. Con DROPI_API_URL y DROPI_TOKEN
   // vacios el adaptador funciona en modo MANUAL: el pedido se registra y se
   // exporta a CSV/panel de Dropi. Si el proveedor habilita la API, se

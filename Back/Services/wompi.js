@@ -10,6 +10,7 @@ const {
 } = require("../DataBase/models/enums.js");
 const { registerPayment } = require("./payments.js");
 const { getOrderForUser } = require("./orders.js");
+const { beginWebhookEvent, finishWebhookEvent } = require("./webhookEvents.js");
 const HttpError = require("../Utils/HttpError.js");
 const { assertUuid } = require("../Utils/ids.js");
 const {
@@ -533,10 +534,37 @@ const handleWebhook = async (event, headerChecksum) => {
     throw new HttpError(400, "Evento sin transacción");
   }
 
-  const result = await applyProviderTransaction({
-    providerTransaction,
-    event,
+  // Idempotencia: un evento ya procesado se responde 200 sin volver a
+  // aplicarlo. La clave incluye el estado porque la misma transaccion puede
+  // pasar por APPROVED y luego VOIDED (reembolso): son eventos distintos.
+  const eventId = sha256(
+    `${event.event}|${providerTransaction.id}|${providerTransaction.status}`,
+  ).slice(0, 120);
+
+  const { duplicate, record } = await beginWebhookEvent({
+    provider: PROVIDER_WOMPI,
+    eventId,
+    event: event.event,
+    payload: event,
   });
+
+  if (duplicate) {
+    logWebhook("ignorado", { ...resumen, motivo: "ya_procesado" });
+    return { received: true, applied: false, reason: "ya_procesado" };
+  }
+
+  let result;
+  try {
+    result = await applyProviderTransaction({
+      providerTransaction,
+      event,
+    });
+  } catch (error) {
+    await finishWebhookEvent(record, { ok: false, error: error.message });
+    throw error;
+  }
+
+  await finishWebhookEvent(record, { ok: true });
 
   if (result.applied) {
     logWebhook("aplicado", {
