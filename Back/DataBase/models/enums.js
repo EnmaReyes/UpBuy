@@ -54,11 +54,10 @@ const PRODUCT_TYPE = {
 
 const PRODUCT_TYPE_VALUES = Object.values(PRODUCT_TYPE);
 
-// Tipos de tarifa de un producto: la talla define el tipo (basico/oversize);
-// 'unico' es para combos, que no dependen de la talla.
+// Tipos de tarifa de un producto. 'unico' es para combos, que no dependen de
+// la talla; el resto de prendas se tarifan igual (basico).
 const ARTICLE_TIPO = {
   BASICO: "basico",
-  OVERSIZE: "oversize",
   UNICO: "unico",
 };
 

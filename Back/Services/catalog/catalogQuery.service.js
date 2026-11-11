@@ -37,7 +37,6 @@ const publicShape = (product) => {
     stock: Number(json.stock) || 0,
     available: Boolean(json.active) && Number(json.stock) > 0,
     sizes: toArray(json.sizes),
-    oversize: Boolean(json.oversize),
     combo: Boolean(json.combo),
     featured: Boolean(json.destacadas),
     categories: toArray(json.categories).map((category) => ({
@@ -49,13 +48,14 @@ const publicShape = (product) => {
   };
 };
 
-const categoryInclude = {
+const categoryInclude = (where) => ({
   model: Category,
   as: "categories",
   attributes: ["id", "name", "slug"],
   through: { attributes: [] },
-  required: false,
-};
+  required: Boolean(where),
+  ...(where ? { where } : {}),
+});
 
 const listPublished = async ({
   q,
@@ -80,12 +80,7 @@ const listPublished = async ({
     where.destacadas = true;
   }
 
-  const include = [categoryInclude];
-  if (category) {
-    // Filtra por slug de categoria sin perder el include para el shape.
-    include[0].where = { slug: String(category) };
-    include[0].required = true;
-  }
+  const include = [categoryInclude(category ? { slug: String(category) } : null)];
 
   const { rows, count } = await Product.findAndCountAll({
     where,
@@ -123,7 +118,7 @@ const getBySlugOrSku = async (value) => {
       active: true,
     },
     include: [
-      categoryInclude,
+      categoryInclude(),
       { model: ProductImage, as: "gallery" },
     ],
   });
@@ -148,7 +143,7 @@ const listAdmin = async ({ q, status, provider, limit = 24, offset = 0 } = {}) =
 
   const { rows, count } = await Product.findAndCountAll({
     where,
-    include: [categoryInclude, { model: ProductImage, as: "gallery" }],
+    include: [categoryInclude(), { model: ProductImage, as: "gallery" }],
     order: [["updatedAt", "DESC"]],
     limit: safeLimit,
     offset: safeOffset,
@@ -168,7 +163,7 @@ const listAdmin = async ({ q, status, provider, limit = 24, offset = 0 } = {}) =
 
 const getAdmin = async (id) => {
   const product = await Product.findByPk(id, {
-    include: [categoryInclude, { model: ProductImage, as: "gallery" }],
+    include: [categoryInclude(), { model: ProductImage, as: "gallery" }],
   });
   if (!product) throw new HttpError(404, "Producto no encontrado");
   return {

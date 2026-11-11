@@ -1,71 +1,106 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, SlidersHorizontal } from "lucide-react";
-import { Suspense } from "react";
+import { ArrowLeft } from "lucide-react";
 import { ProductCard } from "@/components/products/ProductCard";
 import { CatalogToolbar } from "@/components/products/CatalogToolbar";
+import { CatalogPagination } from "@/components/products/CatalogPagination";
+import {
+  CatalogEmpty,
+  CatalogUnavailable,
+} from "@/components/products/CatalogStates";
 import { Reveal } from "@/components/shared/Reveal";
 import {
-  CATEGORIES,
-  PRODUCTS,
-  getCategoryBySlug,
-  type Product,
-} from "@/lib/mock-data";
+  getCoverImage,
+  listCategories,
+  listProducts,
+} from "@/services/catalog";
+import { ApiError } from "@/services/api/client";
+import type { Category, PublicProduct } from "@/types/catalog";
+
+const PAGE_SIZE = 12;
+
+// El catálogo depende de la query string y del backend en vivo.
+export const dynamic = "force-dynamic";
 
 type ProductosPageProps = {
-  searchParams: Promise<{ categoria?: string; orden?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    categoria?: string;
+    destacados?: string;
+    pagina?: string;
+  }>;
 };
 
 export const metadata: Metadata = {
   title: "Tienda — UPBUY",
   description:
-    "Explora toda la colección UPBUY: camisetas, oversize, combos y accesorios con envío a toda Colombia.",
-  openGraph: {
-    title: "Tienda — UPBUY",
-    description: "Camisetas, oversize, combos y accesorios. Envíos a toda Colombia.",
-    type: "website",
-    locale: "es_CO",
-  },
+    "Explora toda la colección UPBUY: prendas con identidad propia y envío a toda Colombia.",
+  alternates: { canonical: "/productos" },
 };
 
-function sortProducts(products: Product[], order: string | undefined): Product[] {
-  const list = [...products];
+function toCardData(product: PublicProduct) {
+  const base =
+    product.discountPercent > 0 && product.priceBase > product.price
+      ? product.priceBase
+      : null;
+  const compareAt =
+    product.compareAtPrice && product.compareAtPrice > product.price
+      ? product.compareAtPrice
+      : base;
 
-  switch (order) {
-    case "precio-asc":
-      return list.sort((a, b) => a.price - b.price);
-    case "precio-desc":
-      return list.sort((a, b) => b.price - a.price);
-    case "nuevos":
-      return list.sort((a, b) => Number(b.newArrival) - Number(a.newArrival));
-    case "destacados":
-    default:
-      return list.sort((a, b) => Number(b.featured) - Number(a.featured));
-  }
+  return {
+    slug: product.slug,
+    name: product.name,
+    price: product.price,
+    compareAtPrice: compareAt,
+    discountPercent: product.discountPercent,
+    sizes: product.sizes,
+    categoryLabel: product.categories[0]?.name ?? null,
+    badge: null,
+    available: product.available,
+    image: getCoverImage(product),
+  };
 }
 
 export default async function ProductosPage({ searchParams }: ProductosPageProps) {
   const params = await searchParams;
-  const categorySlug = typeof params.categoria === "string" ? params.categoria : undefined;
-  const order = typeof params.orden === "string" ? params.orden : undefined;
+  const q = typeof params.q === "string" && params.q.trim() ? params.q.trim() : null;
+  const categorySlug =
+    typeof params.categoria === "string" && params.categoria.trim()
+      ? params.categoria.trim()
+      : null;
+  const featured = params.destacados === "1";
+  const page = Math.max(1, Number(params.pagina) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
 
-  const activeCategory = categorySlug ? getCategoryBySlug(categorySlug) : undefined;
-  const filtered = categorySlug
-    ? PRODUCTS.filter((item) => item.category === categorySlug)
-    : PRODUCTS;
-  const products = sortProducts(filtered, order);
+  const [categoriesResult, productsResult] = await Promise.allSettled([
+    listCategories(),
+    listProducts({
+      q: q ?? undefined,
+      category: categorySlug ?? undefined,
+      featured: featured || undefined,
+      limit: PAGE_SIZE,
+      offset,
+    }),
+  ]);
+
+  const categories: Category[] =
+    categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
+  const activeCategory = categorySlug
+    ? categories.find((category) => category.slug === categorySlug)
+    : undefined;
 
   const buildCategoryHref = (slug?: string) => {
     const query = new URLSearchParams();
     if (slug) query.set("categoria", slug);
-    if (order && order !== "destacados") query.set("orden", order);
+    if (q) query.set("q", q);
+    if (featured) query.set("destacados", "1");
     const search = query.toString();
     return search ? `/productos?${search}` : "/productos";
   };
 
   return (
     <div className="bg-background">
-      {/* Cabecera editorial del catálogo */}
       <section className="bg-carbon pt-28 pb-14 text-cream sm:pt-32 lg:pb-20">
         <div className="container-page">
           <Link
@@ -86,9 +121,8 @@ export default async function ProductosPage({ searchParams }: ProductosPageProps
               </h1>
             </div>
             <p className="max-w-md text-sm leading-relaxed text-cream/70 sm:text-base lg:col-span-4">
-              {activeCategory
-                ? activeCategory.description
-                : "Piezas pensadas para acompañar tu ritmo: cortes cómodos, materiales elegidos y una paleta que combina con todo."}
+              {activeCategory?.description ??
+                "Piezas pensadas para acompañar tu ritmo: cortes cómodos, materiales elegidos y una paleta que combina con todo."}
             </p>
           </div>
         </div>
@@ -96,63 +130,84 @@ export default async function ProductosPage({ searchParams }: ProductosPageProps
 
       <section className="section-y">
         <div className="container-page">
-          {/* Filtros por categoría */}
-          <nav aria-label="Filtrar por categoría" className="mb-8 flex flex-wrap gap-2">
-            <CategoryPill href={buildCategoryHref()} active={!activeCategory}>
-              Todo
-            </CategoryPill>
-            {CATEGORIES.map((category) => (
-              <CategoryPill
-                key={category.slug}
-                href={buildCategoryHref(category.slug)}
-                active={activeCategory?.slug === category.slug}
-              >
-                {category.name}
+          {/* Encabezado de sección para no saltar de h1 a h3 en las tarjetas. */}
+          <h2 className="sr-only">Resultados del catálogo</h2>
+
+          {categories.length > 0 ? (
+            <nav
+              aria-label="Filtrar por categoría"
+              className="mb-8 flex flex-wrap gap-2"
+            >
+              <CategoryPill href={buildCategoryHref()} active={!activeCategory}>
+                Todo
               </CategoryPill>
-            ))}
-          </nav>
-
-          <Suspense
-            fallback={
-              <div className="flex items-center gap-2 border-b border-border pb-5 text-sm text-muted-foreground">
-                <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-                Cargando filtros…
-              </div>
-            }
-          >
-            <CatalogToolbar total={products.length} activeCategoryName={activeCategory?.name ?? null} />
-          </Suspense>
-
-          {products.length > 0 ? (
-            <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
-              {products.map((product, index) => (
-                <Reveal key={product.id} delay={Math.min(index * 0.05, 0.25)}>
-                  <ProductCard product={product} />
-                </Reveal>
+              {categories.map((category) => (
+                <CategoryPill
+                  key={category.id}
+                  href={buildCategoryHref(category.slug)}
+                  active={activeCategory?.slug === category.slug}
+                >
+                  {category.name}
+                </CategoryPill>
               ))}
-            </div>
-          ) : (
-            <div className="mt-16 flex flex-col items-center gap-4 text-center">
-              <p className="font-heading text-xl font-semibold text-carbon">
-                No hay productos en esta categoría
-              </p>
-              <p className="max-w-md text-sm text-muted-foreground">
-                Estamos preparando nuevas piezas. Mientras tanto, puedes ver la colección
-                completa.
-              </p>
-              <Link
-                href="/productos"
-                className="mt-2 inline-flex h-11 items-center justify-center rounded-full bg-carbon px-6 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep"
-              >
-                Ver todo
-              </Link>
-            </div>
-          )}
+            </nav>
+          ) : null}
 
-          <p className="mt-14 border-t border-border pt-6 text-xs leading-relaxed text-muted-foreground">
-            Catálogo de demostración: los productos y precios mostrados son de referencia.
-            La conexión con el catálogo real del backend está en curso.
-          </p>
+          {productsResult.status === "rejected" ? (
+            <CatalogUnavailable
+              detail={
+                productsResult.reason instanceof ApiError
+                  ? productsResult.reason.message
+                  : undefined
+              }
+            />
+          ) : (
+            <>
+              <CatalogToolbar
+                total={productsResult.value.total}
+                activeCategoryName={activeCategory?.name ?? null}
+                q={q}
+                categorySlug={categorySlug}
+                featured={featured}
+              />
+
+              {productsResult.value.products.length > 0 ? (
+                <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
+                  {productsResult.value.products.map((product, index) => (
+                    <Reveal
+                      key={product.id}
+                      delay={Math.min(index * 0.05, 0.25)}
+                    >
+                      <ProductCard
+                        product={toCardData(product)}
+                        priority={index < 4}
+                      />
+                    </Reveal>
+                  ))}
+                </div>
+              ) : (
+                <CatalogEmpty
+                  title="No encontramos productos"
+                  description={
+                    q || featured || categorySlug
+                      ? "Prueba con otros filtros o revisa la colección completa."
+                      : "Todavía no hay productos publicados. Estamos preparando la primera colección."
+                  }
+                />
+              )}
+
+              <CatalogPagination
+                page={page}
+                pageSize={PAGE_SIZE}
+                total={productsResult.value.total}
+                query={{
+                  q: q ?? undefined,
+                  categoria: categorySlug ?? undefined,
+                  destacados: featured ? "1" : undefined,
+                }}
+              />
+            </>
+          )}
         </div>
       </section>
     </div>

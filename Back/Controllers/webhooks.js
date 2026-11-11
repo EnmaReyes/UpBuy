@@ -10,6 +10,9 @@
 
 const { handleWebhook } = require("../Services/wompi.js");
 const { handleVendeloWebhook } = require("../Services/vendeloWebhook.js");
+const {
+  handleVenndeloWebhook,
+} = require("../Services/venndeloChatbotWebhook.js");
 const { sendError } = require("../Utils/respond.js");
 const HttpError = require("../Utils/HttpError.js");
 
@@ -39,11 +42,25 @@ const vendelo = async (req, res) => {
   }
 };
 
+// POST /api/webhooks/venndelo — eventos de pedidos/envios (chatbot).
+const venndelo = async (req, res) => {
+  try {
+    const result = await handleVenndeloWebhook({
+      body: req.body,
+      headers: req.headers,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    return sendError(res, error, "No se pudo procesar el evento de Venndelo");
+  }
+};
+
 // POST /api/webhooks/:provider — despacha al handler correcto.
 const dispatch = async (req, res) => {
   const provider = String(req.params.provider || "").toLowerCase();
   if (provider === "wompi") return wompi(req, res);
   if (provider === "vendelo") return vendelo(req, res);
+  if (provider === "venndelo") return venndelo(req, res);
   return sendError(
     res,
     new HttpError(404, `Webhook de proveedor desconocido: "${provider}"`),
@@ -51,4 +68,4 @@ const dispatch = async (req, res) => {
   );
 };
 
-module.exports = { wompi, vendelo, dispatch };
+module.exports = { wompi, vendelo, venndelo, dispatch };

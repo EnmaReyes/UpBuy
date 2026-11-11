@@ -179,48 +179,119 @@ Cada fase: explicar alcance, archivos afectados, dependencias y riesgos antes de
 | FASE 0 | Completada | Auditoría + 3 documentos en `Front/docs/` |
 | FASE 1 | Completada | shadcn + Kokonut, tokens, fuentes, Motion, GlitchText |
 | FASE 2 | Completada | Home completa con datos mock (`src/lib/mock-data.ts`) |
-| FASE 3 | Parcial (mock) | Catálogo, detalle, Nosotros y Contacto; falta conectar el contrato real del backend |
+| FASE 3 | Completada | Catálogo y detalle conectados a `/api/products` y `/api/categories` |
+| FASE 4 | Completada | Registro, login, sesión, perfil y direcciones |
+| FASE 5 | Completada | Carrito local, checkout y pedido creado en el backend |
+| FASE 6 | Completada | Pago Wompi, contra entrega (UI) y listado de pedidos |
 
-## 13. Próximo paso
+## 13. FASE 3 — entregado
 
-La FASE 3 quedó avanzada visualmente con datos mock:
+- `src/services/api/client.ts`: cliente HTTP centralizado (`NEXT_PUBLIC_API_URL`),
+  errores tipados (`ApiError`: red / HTTP / parse).
+- `src/services/catalog/`: `listProducts`, `getProductBySlug`, `listCategories`
+  y helpers de imágenes. Único punto que conoce las rutas del backend.
+- `src/types/catalog.ts`: contrato público (`PublicProduct`, `Category`,
+  `PaginatedProducts`, `CatalogQuery`).
+- `/productos`: datos reales, búsqueda (`q`), filtro por categoría (slug),
+  destacados, paginación por `offset`, estado vacío y estado de error.
+- `/producto/[slug]`: datos reales, galería con imágenes del backend (o
+  marcadores), ficha con SKU/tallas/stock, relacionados por categoría,
+  JSON-LD y metadata dinámica.
+- La Home sigue con `src/lib/mock-data.ts` (FASE 2). Migrarla a la API es un
+  cambio acotado: `ProductCard` ya consume `ProductCardData`, que ambos tipos
+  cumplen.
+- `sitemap.ts` **no** incluye todavía las fichas de producto.
 
-- `/productos`: cabecera editorial, filtros por categoría en la URL, orden
-  (destacados, novedades, precio), grid responsive y estado vacío.
-- `/producto/[slug]`: galería de marcadores, selector de talla/color/cantidad,
-  acordeones de detalles, relacionados, metadata y JSON-LD. El botón de compra
-  explica que el carrito depende del backend; no simula pedidos.
-- `/nosotros` y `/contacto`: contenido de marca y formulario de contacto que
-  declara la integración pendiente (no envía ni almacena nada).
-- Home alineada a la referencia: producto destacado sobre el Hero, ticker,
-  banner con cifras de envío, pilares, favoritos, categorías y newsletter.
-- `sitemap.ts` incluye las rutas nuevas y las fichas de producto mock.
+## 14. FASE 4 — entregado
 
-Pendiente para completar la FASE 3 real:
+- `src/types/auth.ts`: `AuthUser`, `Profile`, `Address`, `MissingProfileField`.
+- `src/services/api/server.ts`: `serverFetch` reenvía la cookie entrante a la
+  API (los Server Components no la adjuntan solos).
+- `src/services/api/client.ts`: `apiSend` (mutaciones con `credentials:
+  "include"`) y `apiGetOptional` (widgets optimistas que nunca lanzan).
+- `src/services/auth` y `src/services/account`: registro, login, logout, perfil
+  y CRUD de direcciones.
+- `/login` y `/registro`: grupo `(auth)` con panel de marca; registro con
+  validación local y auto-login tras crear la cuenta.
+- `/cuenta/perfil`: datos personales + estado de perfil completo (`missing`).
+- `/cuenta/direcciones`: listar, crear, editar, marcar principal y eliminar.
+- `src/middleware.ts`: protege `/cuenta/*` comprobando solo la **presencia** de
+  la cookie; el servidor revalida la firma contra `/api/auth/me`.
+- Navbar: botón de cuenta con sesión en cliente (mantiene la Home estática) y
+  acceso en el drawer móvil.
 
-- Definir el contrato HTTP público del catálogo con el backend (sin exponer
-  `cost`/`markup`).
-- Reemplazar las funciones de `src/lib/mock-data.ts` por el cliente HTTP
-  centralizado (`src/services/api/`), conservando los tipos y componentes.
-- Incorporar imágenes reales de producto (`next/image`) y precios/stock reales.
-- Resolver el carrito y checkout en FASE 5 cuando el backend esté listo.
+Decisiones y límites:
 
-Notas del backend que siguen vigentes:
+- **No** se implementa login social (Google/Facebook): requiere claves OAuth y
+  SDK del proveedor que no están configurados.
+- No hay endpoints de cambio ni recuperación de contraseña: no se ofrece nada
+  que el backend no pueda cumplir.
+- La sesión dura 12 h (`access_token`); al caducar, `/cuenta/*` vuelve a login.
 
-- El backend no expone un endpoint público de catálogo todavía. El refactor a
-  dropshipping (Vendelo/Dropi) eliminó `/products`, `/category`, `/dtf`,
-  `/posts`, `/prices`, `/banner`, `/campaigns` y `/shipping/*` (ver
-  `BACKEND_INTEGRATION.md` §1.1).
-- El modelo `Articulos` es la fuente de verdad del producto (`sku`,
-  `provider`, `images`, `cost`, `markup`, `price`, `stock`, `active`, `sizes`).
-  El contrato HTTP público está por definir por el backend.
-- **Bug en el refactor del backend:** `Back/index.js:15` requiere
-  `./DataBase/ensurePricingSchema.js`, pero el archivo se llama
-  `ensurePricing.js` (exporta `ensurePricingSchema`). El servidor no arranca
-  (`MODULE_NOT_FOUND`). Es trabajo del usuario; el frontend no lo modifica.
-- CORS ya resuelto: `Back/config.js` fija `FRONTEND_URL = http://localhost:3001`
-  en desarrollo, que es el puerto del frontend Next.
-- El endpoint de newsletter no existe: la Home lo declara explícitamente como
-  integración pendiente y no simula la suscripción.
-- El endpoint de contacto tampoco existe: `/contacto` declara la integración
-  pendiente y no envía ni almacena el formulario.
+## 15. FASE 5 — entregado
+
+- `src/context/cart-context.tsx`: carrito en `localStorage`
+  (`upbuy.cart.v1`), hidratación segura y clave `productId::talla`.
+- `src/components/cart/`: `CartButton` (contador en el navbar) y `CartView`.
+- `/carrito`: cantidades, eliminar, subtotal y CTA a checkout.
+- `/checkout`: dirección principal preseleccionada, notas y resumen. Envía
+  `POST /api/orders` con `items: [{ productId, quantity, size }]` y el envío
+  de la dirección elegida.
+- `/pedido/[id]`: confirmación con número de pedido, ítems, totales,
+  dirección congelada, plazo estimado y estado.
+- `src/services/orders/`: `createOrder` (cliente) y `getOrder`/`listOrders`
+  (servidor), separados para no arrastrar `next/headers` al bundle.
+- Middleware: `/checkout` también exige sesión.
+- El backend valida precio, stock y total; el front nunca los calcula.
+
+Decisiones y límites:
+
+- El pago en línea (Wompi) es FASE 6: el pedido queda en `pending_payment` /
+  `unpaid` y la confirmación lo dice explícitamente.
+- `shippingCost` es 0 y `shippingZone` "nacional" en el backend actual; la UI
+  muestra «Gratis» en la confirmación y «se calcula al confirmar» antes.
+- Los combos **no** piden talla, y un producto sin tallas tampoco: la talla es
+  una medida y solo se exige cuando el producto la ofrece.
+- El carrito no reserva stock; si algo se agota entre el carrito y el pedido,
+  el backend responde 409 y se muestra el mensaje.
+
+## 16. FASE 6 — entregado
+
+- `src/services/payments/`: `createPayment` (Wompi), `verifyPayment` (cliente)
+  y `verifyPaymentServer` (servidor).
+- `src/components/orders/OrderPayment.tsx`: botón «Pagar ahora» para pedidos
+  Wompi pendientes, aviso de contra entrega y estado de pago confirmado.
+- `/pedido/[id]`: muestra método de pago y acciones según el estado real.
+- `/mis-pedidos/[id]`: **destino de retorno de Wompi** (`?id=<transactionId>`).
+  Intenta verificar el pago como respaldo del webhook y redirige a
+  `/pedido/[id]`.
+- `/cuenta/pedidos`: listado paginado de pedidos con estado y total.
+- Checkout: selector de método de pago (en línea / contra entrega) y envío
+  mostrado siempre como **gratis**.
+
+Decisiones y límites:
+
+- **Envío:** se muestra «Gratis» en carrito, checkout y pedido, tanto para
+  Antioquia como nacional. El coste real lo suma el backend al total; la UI no
+  lo desglosa (requisito del negocio).
+- **Wompi** exige `WOMPI_*` configurado y una URL de retorno que no sea
+  localhost. Sin eso, «Pagar ahora» devuelve 503 y se muestra el mensaje real
+  del backend (no se simula el cobro).
+- **Contra entrega:** la UI envía `paymentMethodCode: "cod_vendelo"` y el
+  backend lo acepta: el pedido nace en `paid` / `pending_collection` y no se
+  puede cobrar en línea. Ver `BACKEND_INTEGRATION.md` → «Pedidos».
+
+## 17. Próximo paso
+
+FASE 7 (logística y proveedores) cuando se apruebe. Antes:
+
+- `GET /api/orders/:id/tracking?phone=&email=` es público y exige que el
+  teléfono o el correo coincidan.
+- Solo `NEXT_PUBLIC_API_URL` es necesaria; el mercado está fijado en
+  `src/config/market.config.ts`.
+- El endpoint de newsletter no existe: la Home lo declara como pendiente y no
+  simula la suscripción.
+- El endpoint de contacto tampoco existe: `/contacto` lo declara y no envía ni
+  almacena el formulario.
+- Las imágenes de producto se muestran con `<img>` porque el dominio del
+  proveedor no está fijado; al definirlo se puede migrar a `next/image`.

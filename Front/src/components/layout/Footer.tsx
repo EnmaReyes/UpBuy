@@ -4,9 +4,9 @@ import { Camera, Play, Music2 } from "lucide-react";
 const FOOTER_LINKS = {
   Tienda: [
     { label: "Todos los productos", href: "/productos" },
-    { label: "Novedades", href: "/productos?orden=nuevos" },
+    { label: "Novedades", href: "/productos" },
     { label: "Camisetas", href: "/productos?categoria=camisetas" },
-    { label: "Oversize", href: "/productos?categoria=oversize" },
+    { label: "Básicos", href: "/productos?categoria=basicos" },
     { label: "Combos", href: "/productos?categoria=combos" },
   ],
   Ayuda: [

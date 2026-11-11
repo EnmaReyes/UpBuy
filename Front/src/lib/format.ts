@@ -10,3 +10,15 @@ const numberFormatter = new Intl.NumberFormat(MARKET.locale, {
 export function formatPrice(value: number): string {
   return numberFormatter.format(value);
 }
+
+const dateFormatter = new Intl.DateTimeFormat(MARKET.locale, {
+  day: "2-digit",
+  month: "long",
+  year: "numeric",
+});
+
+export function formatDate(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return dateFormatter.format(date);
+}

@@ -29,7 +29,7 @@ const FAQ = [
   {
     question: "¿Cómo sé qué talla elegir?",
     answer:
-      "Cada ficha incluye las medidas de referencia. Si estás entre dos tallas, te recomendamos elegir la mayor para un ajuste más cómodo en las siluetas oversize.",
+      "Cada ficha incluye las medidas de referencia. Si estás entre dos tallas, te recomendamos elegir la mayor para un ajuste más cómodo en siluetas amplias.",
   },
   {
     question: "¿Hacen envíos internacionales?",

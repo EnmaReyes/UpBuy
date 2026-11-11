@@ -62,11 +62,6 @@ const OrderItem = sequelize.define(
       type: DataTypes.STRING(50),
       allowNull: true,
     },
-    oversize: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-    },
     shirtColor: {
       type: DataTypes.STRING(50),
       allowNull: true,

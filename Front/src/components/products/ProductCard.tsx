@@ -2,19 +2,25 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/format";
-import type { Product } from "@/lib/mock-data";
+import { SafeImage } from "@/components/shared/SafeImage";
+import type { ProductCardData } from "@/types/catalog";
 
 type ProductCardProps = {
-  product: Product;
+  product: ProductCardData;
   className?: string;
   priority?: boolean;
 };
 
-// Tarjeta de producto editorial. La imagen real todavía no existe: el marcador
-// usa la paleta de la marca y se reemplaza cuando lleguen las fotografías.
-// Los enlaces ya apuntan a /producto/[slug], la ruta que consumirá el backend.
-export function ProductCard({ product, className }: ProductCardProps) {
-  const hasDiscount = Boolean(product.compareAtPrice && product.discountPercent > 0);
+// Tarjeta de producto editorial.
+// - Si el producto trae imagen real se muestra; si no, un marcador con la
+//   paleta de la marca (las fotografías comerciales todavía no existen).
+// - `priority` reserva la carga temprana de la primera fila.
+export function ProductCard({ product, className, priority }: ProductCardProps) {
+  const hasDiscount = Boolean(
+    product.compareAtPrice && product.discountPercent > 0,
+  );
+  const soldOut = product.available === false;
+  const href = product.slug ? `/producto/${product.slug}` : "/productos";
 
   return (
     <article
@@ -23,23 +29,20 @@ export function ProductCard({ product, className }: ProductCardProps) {
         className,
       )}
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-[linear-gradient(150deg,#EDE0CE_0%,#F5E9D7_48%,#D9C9B3_100%)]">
+      <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+        <SafeImage
+          src={product.image}
+          alt={product.name}
+          eager={priority}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          fallback={<ProductImagePlaceholder />}
+        />
+
         <Link
-          href={`/producto/${product.slug}`}
+          href={href}
           aria-label={`Ver ${product.name}`}
           className="absolute inset-0 z-10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         />
-
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-[radial-gradient(120%_90%_at_20%_10%,rgba(211,84,0,0.10)_0%,rgba(245,233,215,0)_58%)]"
-        />
-
-        <div className="absolute inset-0 flex items-center justify-center p-6">
-          <span className="rounded-full border border-coffee/25 px-4 py-1.5 text-center text-[10px] font-semibold tracking-[0.22em] text-coffee-deep uppercase">
-            Foto de producto
-          </span>
-        </div>
 
         <div className="absolute top-3 left-3 z-20 flex flex-col items-start gap-2">
           {hasDiscount ? (
@@ -47,19 +50,24 @@ export function ProductCard({ product, className }: ProductCardProps) {
               -{product.discountPercent}%
             </span>
           ) : null}
-          {product.badge === "bestseller" ? (
+          {soldOut ? (
+            <span className="rounded-full bg-carbon px-3 py-1 text-[11px] font-semibold text-cream">
+              Agotado
+            </span>
+          ) : null}
+          {!soldOut && product.badge === "bestseller" ? (
             <span className="rounded-full bg-carbon px-3 py-1 text-[11px] font-semibold text-cream">
               Más vendido
             </span>
           ) : null}
-          {product.badge === "nuevo" ? (
+          {!soldOut && product.badge === "nuevo" ? (
             <span className="rounded-full bg-cream px-3 py-1 text-[11px] font-semibold text-carbon">
               Nuevo
             </span>
           ) : null}
         </div>
 
-        <div className="absolute inset-x-3 bottom-3 z-20 flex translate-y-2 items-center justify-between rounded-lg bg-carbon/90 px-4 py-3 text-cream opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
+        <div className="pointer-events-none absolute inset-x-3 bottom-3 z-20 flex translate-y-2 items-center justify-between rounded-lg bg-carbon/90 px-4 py-3 text-cream opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
           <span className="text-[11px] font-semibold tracking-[0.18em] uppercase">
             Ver detalle
           </span>
@@ -68,12 +76,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <span className="text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-          {product.categoryLabel}
-        </span>
+        {product.categoryLabel ? (
+          <span className="text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+            {product.categoryLabel}
+          </span>
+        ) : null}
 
         <h3 className="font-heading text-base leading-snug font-semibold text-carbon sm:text-lg">
-          <Link href={`/producto/${product.slug}`} className="hover:text-terracotta-deep">
+          <Link
+            href={href}
+            className="hover:text-terracotta-deep focus-visible:underline focus-visible:outline-none"
+          >
             {product.name}
           </Link>
         </h3>
@@ -90,11 +103,37 @@ export function ProductCard({ product, className }: ProductCardProps) {
             ) : null}
           </div>
 
-          <span className="text-[11px] font-medium tracking-wide text-coffee-deep uppercase">
-            {product.sizes.length > 1 ? "Varias tallas" : product.sizes[0]}
-          </span>
+          {product.sizes.length > 0 ? (
+            <span className="text-[11px] font-medium tracking-wide text-coffee-deep uppercase">
+              {product.sizes.length > 1
+                ? `${product.sizes.length} tallas`
+                : product.sizes[0]}
+            </span>
+          ) : null}
         </div>
       </div>
     </article>
+  );
+}
+
+// Marcador editorial: se muestra cuando el producto no tiene foto o cuando la
+// del proveedor no carga.
+function ProductImagePlaceholder() {
+  return (
+    <span className="absolute inset-0">
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 block bg-[linear-gradient(150deg,#EDE0CE_0%,#F5E9D7_48%,#D9C9B3_100%)]"
+      />
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 block bg-[radial-gradient(120%_90%_at_20%_10%,rgba(211,84,0,0.10)_0%,rgba(245,233,215,0)_58%)]"
+      />
+      <span className="absolute inset-0 flex items-center justify-center p-6">
+        <span className="rounded-full border border-coffee/25 px-4 py-1.5 text-center text-[10px] font-semibold tracking-[0.22em] text-coffee-deep uppercase">
+          Foto de producto
+        </span>
+      </span>
+    </span>
   );
 }

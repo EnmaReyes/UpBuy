@@ -12,12 +12,10 @@ const { Product } = require("../DataBase/models/index.js");
 const HttpError = require("../Utils/HttpError.js");
 
 const PRODUCT_TYPES = ["product"];
-const ARTICLE_TIPOS = ["basico", "oversize"];
+const ARTICLE_TIPOS = ["basico"];
 const COMBO_TIPO = "unico";
 
 const toPlain = (row) => (row?.toJSON ? row.toJSON() : row);
-
-const articleTipo = (product) => (product?.oversize ? "oversize" : "basico");
 
 // Precio sugerido a partir del costo del proveedor y el markup del producto.
 const suggestedPrice = (cost, markup) => {
@@ -111,7 +109,7 @@ const buildPriceSnapshot = (price, productType, tipo, kind) => ({
 // admin/catalogo. No se usa en el checkout (alli buildOrderLines arma la linea).
 const decorateProduct = async (product, transaction) => {
   const plain = toPlain(product);
-  const tipo = product.combo ? COMBO_TIPO : articleTipo(product);
+  const tipo = product.combo ? COMBO_TIPO : "basico";
   const price = await resolvePrice({
     productId: product.id,
     tipo,
@@ -139,7 +137,6 @@ module.exports = {
   PRODUCT_TYPES,
   ARTICLE_TIPOS,
   COMBO_TIPO,
-  articleTipo,
   suggestedPrice,
   resolvePrice,
   normalizarDescuentoPorcentaje,

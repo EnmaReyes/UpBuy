@@ -10,6 +10,7 @@ const {
   publish,
   unpublish,
 } = require("../../Controllers/suppliers/venndelo.controller.js");
+const accountController = require("../../Controllers/suppliers/venndelo.account.controller.js");
 
 const router = express.Router();
 
@@ -20,6 +21,13 @@ router.use(requireAuth, requireAdmin);
 router.get("/status", status);
 router.post("/test-connection", testConnection);
 router.get("/sync-history", syncHistory);
+
+// Wallet del proveedor y pedidos en Venndelo (operacion administrativa).
+router.get("/wallet/balance", accountController.balance);
+router.post("/wallet/topup", accountController.topup);
+router.get("/orders", accountController.listOrders);
+router.post("/orders", accountController.createOrder);
+router.get("/orders/:id", accountController.getOrder);
 
 router.get("/products", listProducts);
 router.get("/products/:id", getProduct);

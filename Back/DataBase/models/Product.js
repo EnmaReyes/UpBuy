@@ -129,11 +129,6 @@ const Product = sequelize.define(
       allowNull: false,
       defaultValue: [],
     },
-    oversize: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-    },
     destacadas: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

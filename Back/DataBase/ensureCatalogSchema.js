@@ -330,7 +330,6 @@ const applySchema = async (transaction, state) => {
       provider VARCHAR(30) NOT NULL DEFAULT 'manual',
       "providerSku" VARCHAR(100),
       sizes JSONB NOT NULL DEFAULT '[]'::jsonb,
-      oversize BOOLEAN NOT NULL DEFAULT false,
       destacadas BOOLEAN NOT NULL DEFAULT false,
       combo BOOLEAN NOT NULL DEFAULT false,
       "descuentoPorcentaje" INTEGER,

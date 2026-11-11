@@ -14,12 +14,15 @@ const { sendError } = require("../Utils/respond.js");
 // POST /api/orders — requiere sesion
 const create = async (req, res) => {
   try {
-    const { items, shipping, notes } = req.body || {};
+    const { items, shipping, notes, paymentMethodCode } = req.body || {};
     const order = await createOrder({
       userId: req.user.id,
       items,
       shipping,
       notes,
+      // "wompi" (por defecto) o un codigo contra entrega. El servicio valida
+      // el valor y fija los estados iniciales segun el metodo.
+      paymentMethodCode,
     });
     return res.status(201).json(order);
   } catch (error) {

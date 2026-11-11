@@ -3,15 +3,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, ShoppingBag, User, Menu, X } from "lucide-react";
+import { Search, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "cn";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
+import { AccountButton } from "@/components/layout/AccountButton";
+import { CartButton } from "@/components/cart/CartButton";
 
+// No se incluye "Novedades" ni orden por precio: el backend no expone esos
+// filtros (solo `q`, `category` y `featured`), así que el catálogo los resuelve
+// con sus propias pills y búsqueda.
 const NAV_ITEMS = [
   { label: "Inicio", href: "/" },
   { label: "Tienda", href: "/productos" },
-  { label: "Novedades", href: "/productos?orden=nuevos" },
   { label: "Categorías", href: "/productos" },
   { label: "Nosotros", href: "/nosotros" },
   { label: "Contacto", href: "/contacto" },
@@ -79,12 +83,8 @@ export function Navbar() {
             <IconButton label="Buscar" href="/productos">
               <Search className="h-5 w-5" />
             </IconButton>
-            <IconButton label="Cuenta de usuario" href="/cuenta/perfil">
-              <User className="h-5 w-5" />
-            </IconButton>
-            <IconButton label="Carrito" href="/carrito">
-              <ShoppingBag className="h-5 w-5" />
-            </IconButton>
+            <AccountButton />
+            <CartButton />
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
@@ -129,6 +129,15 @@ export function Navbar() {
                 </Link>
               ))}
             </nav>
+
+            <div className="mt-6 border-t border-cream/10 pt-4">
+              <Link
+                href="/cuenta/perfil"
+                className="flex rounded-lg px-3 py-3 text-base font-medium text-cream/90 transition-colors hover:bg-cream/10 hover:text-cream"
+              >
+                Mi cuenta
+              </Link>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

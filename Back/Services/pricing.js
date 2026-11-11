@@ -1,7 +1,6 @@
 const { Product } = require("../DataBase/models/index.js");
 const HttpError = require("../Utils/HttpError.js");
 const {
-  articleTipo,
   resolvePrice,
   COMBO_TIPO,
   aplicarDescuento,
@@ -64,16 +63,17 @@ const resolveProduct = async (item, transaction) => {
     throw new HttpError(409, `"${product.name}" está agotado`);
   }
 
-  const oversize = Boolean(product.oversize);
+  // La talla es una medida: solo se pide si el producto ofrece tallas.
+  // Un combo (o un producto sin tallas, como un accesorio) no la pide.
   let size = null;
+  const sizes = toArray(product.sizes).map((s) => String(s));
 
-  if (!oversize && !product.combo) {
+  if (!product.combo && sizes.length > 0) {
     const requested = String(item.size || "").trim();
     if (!requested) {
       throw new HttpError(400, `Selecciona una talla para "${product.name}"`);
     }
-    const sizes = toArray(product.sizes).map((s) => String(s));
-    if (sizes.length > 0 && !sizes.includes(requested)) {
+    if (!sizes.includes(requested)) {
       throw new HttpError(
         400,
         `La talla "${requested}" no está disponible para "${product.name}"`,
@@ -83,7 +83,7 @@ const resolveProduct = async (item, transaction) => {
   }
 
   const kind = product.combo ? "combo" : "unit";
-  const tipo = product.combo ? COMBO_TIPO : articleTipo(product);
+  const tipo = product.combo ? COMBO_TIPO : "basico";
 
   const price = await resolvePrice({
     productId: product.id,
@@ -110,7 +110,6 @@ const resolveProduct = async (item, transaction) => {
       title: product.name,
       imageUrl: firstImage(product.images),
       size,
-      oversize,
       shirtColor: null,
       shirtName: null,
       dtfSize: null,

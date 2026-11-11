@@ -58,7 +58,7 @@ export default function NosotrosPage() {
           </p>
           <div className="mt-5 grid gap-8 lg:grid-cols-12 lg:items-end">
             <h1 className="font-heading text-[clamp(2.5rem,6vw,5rem)] leading-[1.02] font-bold tracking-tight uppercase lg:col-span-8">
-              Ropa con
+              Ropa con{" "}
               <br />
               identidad propia
             </h1>

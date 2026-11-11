@@ -30,7 +30,7 @@ export function Favorites({ products }: FavoritesProps) {
               selección que se mueve con nuestra gente.
             </p>
             <Link
-              href="/productos?orden=destacados"
+              href="/productos?destacados=1"
               className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-carbon transition-colors hover:text-terracotta-deep"
             >
               Ver todos los productos

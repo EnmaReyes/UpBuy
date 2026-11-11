@@ -73,7 +73,7 @@ ok("100% de 35000 -> 0 (gratuito)", () => {
   assert.strictEqual(r.precioFinal, 0);
   assert.strictEqual(r.descuentoUnitario, 35000);
 });
-ok("oversize 60000 con 33% -> 40200", () => {
+ok("60000 con 33% -> 40200", () => {
   assert.strictEqual(finalDe(60000, 33), 40200);
 });
 ok("desglose coherente: original - final = unitario", () => {

@@ -123,7 +123,6 @@ module.exports = {
   // Ecommerce
   // Precios por defecto de las variantes DTF (pesos COP)
   DTF_PRICE_BASICO: toNumber(process.env.DTF_PRICE_BASICO, 22000),
-  DTF_PRICE_OVERSIZE: toNumber(process.env.DTF_PRICE_OVERSIZE, 32000),
 
   // Punto de despacho para calcular la distancia de envio (bodega en Itagui).
   WAREHOUSE_LAT: toNumber(process.env.WAREHOUSE_LAT, 6.1724352),
@@ -274,6 +273,14 @@ module.exports = {
   VENNDELO_CLIENT_ID: (process.env.VENNDELO_CLIENT_ID || "").trim(),
   VENNDELO_CLIENT_SECRET: (process.env.VENNDELO_CLIENT_SECRET || "").trim(),
   VENNDELO_REFRESH_TOKEN: (process.env.VENNDELO_REFRESH_TOKEN || "").trim(),
+
+  // URLs de retorno del checkout de topup de wallet (opcionales: si estan
+  // vacias no se mandan a Venndelo).
+  VENNDELO_RETURN_URL: (process.env.VENNDELO_RETURN_URL || "").trim(),
+  VENNDELO_CANCEL_URL: (process.env.VENNDELO_CANCEL_URL || "").trim(),
+  // Secreto HMAC del webhook de eventos de pedidos/envios (chatbot). Vacio =
+  // los eventos se aceptan sin verificar firma (con aviso en el log).
+  VENNDELO_WEBHOOK_SECRET: (process.env.VENNDELO_WEBHOOK_SECRET || "").trim(),
 
   // Clave AES-256-GCM (base64, 32 bytes) para cifrar las credenciales que se
   // persisten en supplier_credentials. Sin ella, la rotacion del refresh token

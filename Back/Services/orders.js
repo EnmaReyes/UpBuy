@@ -14,6 +14,7 @@ const {
   PAYMENT_STATE,
   PAYMENT_STATE_VALUES,
   PAYMENT_METHOD_CODE,
+  COD_PAYMENT_METHOD_CODES,
   STATUS_SOURCE,
   PAYMENT_STATUS,
   PAYMENT_STATUS_VALUES,
@@ -626,11 +627,20 @@ const hydrateShippingFromProfile = async (userId, shipping = {}) => {
   };
 };
 
-// Pedido creado desde el checkout web (mismo comportamiento de siempre).
+// Pedido creado desde el checkout web.
 //
-// Nace en pending_payment / unpaid. Si el comprador paga con Wompi, el
-// webhook lo lleva a paid / settled. Si es COD, el pago lo hace el courier
-// al entregar.
+// El metodo de pago lo elige el comprador:
+//   - Wompi: nace pending_payment / unpaid. El webhook lo lleva a paid / settled.
+//   - Contra entrega (COD): el cumplimiento se libera al confirmar (paid) y el
+//     dinero entra al entregar (pending_collection). Ver statusMachine.js.
+//
+// Solo se aceptan los metodos que el checkout web puede ofrecer. Cualquier
+// otro valor cae a Wompi en vez de guardar un codigo invalido en el pedido.
+const WEB_PAYMENT_METHODS = [
+  PAYMENT_METHOD_CODE.WOMPI,
+  ...COD_PAYMENT_METHOD_CODES,
+];
+
 const createOrder = async ({
   userId,
   items,
@@ -641,6 +651,11 @@ const createOrder = async ({
 }) => {
   const filledShipping = await hydrateShippingFromProfile(userId, shipping);
 
+  const code = WEB_PAYMENT_METHODS.includes(paymentMethodCode)
+    ? paymentMethodCode
+    : PAYMENT_METHOD_CODE.WOMPI;
+  const isCod = COD_PAYMENT_METHOD_CODES.includes(code);
+
   return createOrderCore({
     userId,
     items,
@@ -648,9 +663,13 @@ const createOrder = async ({
     notes,
     channel: SALE_CHANNEL.WEB,
     deliveryType: "envio",
-    initialFulfillmentStatus: FULFILLMENT_STATUS.PENDING_PAYMENT,
-    initialPaymentState: PAYMENT_STATE.UNPAID,
-    paymentMethodCode,
+    initialFulfillmentStatus: isCod
+      ? FULFILLMENT_STATUS.PAID
+      : FULFILLMENT_STATUS.PENDING_PAYMENT,
+    initialPaymentState: isCod
+      ? PAYMENT_STATE.PENDING_COLLECTION
+      : PAYMENT_STATE.UNPAID,
+    paymentMethodCode: code,
     provider,
     notify: true,
     manual: false,
