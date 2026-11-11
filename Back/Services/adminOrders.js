@@ -289,7 +289,7 @@ const changeOrderStatus = async ({
       tipo: "pedido",
       titulo: `Pedido ${order.orderNumber}: ${STATUS_LABELS[status] || status}`,
       texto: "El estado de tu pedido cambió. Toca para ver el detalle.",
-      to: `/dashboard/pedidos/${order.id}`,
+      to: `/pedido/${order.id}`,
       clave: `pedido:${order.id}:${status}`,
     });
   } catch (error) {

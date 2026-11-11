@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MapPin, Package, UserRound } from "lucide-react";
+import { MapPin, Package, UserRound, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Navegación del área de cuenta.
@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/cuenta/perfil", label: "Perfil", icon: UserRound },
   { href: "/cuenta/direcciones", label: "Direcciones", icon: MapPin },
   { href: "/cuenta/pedidos", label: "Pedidos", icon: Package },
+  { href: "/cuenta/notificaciones", label: "Notificaciones", icon: Bell },
 ];
 
 export function AccountNav() {

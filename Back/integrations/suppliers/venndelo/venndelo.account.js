@@ -16,11 +16,17 @@
 const { adminJson } = require("./venndelo.client.js");
 const HttpError = require("../../../Utils/HttpError.js");
 
+// Rutas confirmadas en el OpenAPI de Venndelo:
+//   https://api.venndelo.com/v1/admin/openapi-json
+// (la base ya incluye /v1/admin; por eso aquí no se repite).
 const PATHS = {
-  walletTopup: "/account/wallet/topup",
-  walletBalance: "/account/wallet/balance",
+  walletTopup: "/wallet/initiate-wallet-topup",
+  walletBalance: "/wallet/get-wallet-balance",
   orders: "/orders",
   orderDetail: "/orders/{id}",
+  orderCancel: "/orders/{id}/cancel",
+  orderQuotation: "/orders/quotation",
+  orderConfirmation: "/orders/{id}/modify-order-confirmation-status",
 };
 
 // Idempotencia: si el llamador trae una clave, se manda tal cual en el header
@@ -65,12 +71,15 @@ const createWalletTopup = async (
 };
 
 // Saldo de la wallet del proveedor.
+// Respuesta documentada: { balance: number, detail: [{ description, amount }] }.
 const getWalletBalance = async (supplier) => {
   const data = await adminJson(supplier, "GET", PATHS.walletBalance);
   const payload = unwrap(data);
   return {
-    balance: payload?.balance ?? null,
-    detail: payload?.detail ?? null,
+    balance: Number.isFinite(Number(payload?.balance))
+      ? Number(payload.balance)
+      : null,
+    detail: Array.isArray(payload?.detail) ? payload.detail : [],
     raw: data,
   };
 };
@@ -85,6 +94,8 @@ const createOrder = async (supplier, payload, { idempotencyKey } = {}) => {
 };
 
 // Lista pedidos (proxy de la paginacion de Venndelo).
+// Params documentados: page_token, page_size, created_min, created_max,
+// status y filter (objeto anidado).
 const listOrders = async (supplier, params = {}) => {
   const data = await adminJson(supplier, "GET", PATHS.orders, { params });
   return { orders: unwrap(data), raw: data };
@@ -92,12 +103,46 @@ const listOrders = async (supplier, params = {}) => {
 
 // Detalle de un pedido por id de Venndelo.
 const getOrder = async (supplier, id) => {
+  return getOrderByPath(supplier, PATHS.orderDetail, id);
+};
+
+const getOrderByPath = async (supplier, template, id) => {
   const orderId = String(id || "").trim();
   if (!orderId) {
     throw new HttpError(400, "Falta el id del pedido de Venndelo");
   }
-  const path = PATHS.orderDetail.replace("{id}", encodeURIComponent(orderId));
+  const path = template.replace("{id}", encodeURIComponent(orderId));
   const data = await adminJson(supplier, "GET", path);
+  return { order: unwrap(data), raw: data };
+};
+
+// Cancela un pedido en Venndelo. Accion irreversible.
+const cancelOrder = async (supplier, id) => {
+  const orderId = String(id || "").trim();
+  if (!orderId) {
+    throw new HttpError(400, "Falta el id del pedido de Venndelo");
+  }
+  const path = PATHS.orderCancel.replace("{id}", encodeURIComponent(orderId));
+  const data = await adminJson(supplier, "POST", path);
+  return { message: unwrap(data), raw: data };
+};
+
+// Cotiza el envio de un pedido sin crearlo.
+const quoteOrder = async (supplier, payload) => {
+  const data = await adminJson(supplier, "POST", PATHS.orderQuotation, {
+    body: payload,
+  });
+  return { quotation: unwrap(data), raw: data };
+};
+
+// Actualiza el estado de confirmacion de un pedido contra entrega.
+const modifyOrderConfirmation = async (supplier, id, payload) => {
+  const orderId = String(id || "").trim();
+  if (!orderId) {
+    throw new HttpError(400, "Falta el id del pedido de Venndelo");
+  }
+  const path = PATHS.orderConfirmation.replace("{id}", encodeURIComponent(orderId));
+  const data = await adminJson(supplier, "POST", path, { body: payload });
   return { order: unwrap(data), raw: data };
 };
 
@@ -108,4 +153,7 @@ module.exports = {
   createOrder,
   listOrders,
   getOrder,
+  cancelOrder,
+  quoteOrder,
+  modifyOrderConfirmation,
 };

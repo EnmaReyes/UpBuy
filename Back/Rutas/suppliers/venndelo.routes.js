@@ -25,9 +25,13 @@ router.get("/sync-history", syncHistory);
 // Wallet del proveedor y pedidos en Venndelo (operacion administrativa).
 router.get("/wallet/balance", accountController.balance);
 router.post("/wallet/topup", accountController.topup);
+// Las rutas fijas van antes de las que llevan parametro.
+router.post("/orders/quotation", accountController.quoteOrder);
 router.get("/orders", accountController.listOrders);
 router.post("/orders", accountController.createOrder);
 router.get("/orders/:id", accountController.getOrder);
+router.post("/orders/:id/cancel", accountController.cancelOrder);
+router.post("/orders/:id/confirmation", accountController.modifyConfirmation);
 
 router.get("/products", listProducts);
 router.get("/products/:id", getProduct);

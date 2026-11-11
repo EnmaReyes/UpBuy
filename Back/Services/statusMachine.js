@@ -52,6 +52,30 @@ const canTransitionFulfillment = (from, to) =>
   (FULFILLMENT_TRANSITIONS[from] || []).includes(to);
 
 // ---------------------------------------------------------------------------
+// Cancelacion por el comprador
+//
+// Se puede cancelar mientras el pedido no haya entrado en preparacion:
+//   - pending_payment: pedido Wompi que aun no paga.
+//   - paid: pedido COD confirmado, todavia sin empacar.
+// Nunca si el dinero ya esta settled/refunded/collected (pago online
+// aprobado o COD ya cobrado). `paid` en el ciclo logistico NO significa
+// "dinero cobrado": por eso la regla mira los dos ciclos.
+// ---------------------------------------------------------------------------
+const CANCELLABLE_FULFILLMENT = new Set([
+  FULFILLMENT_STATUS.PENDING_PAYMENT,
+  FULFILLMENT_STATUS.PAID,
+]);
+const NON_CANCELLABLE_PAYMENT = new Set([
+  PAYMENT_STATE.SETTLED,
+  PAYMENT_STATE.REFUNDED,
+  PAYMENT_STATE.COLLECTED,
+]);
+
+const canCustomerCancel = (order) =>
+  CANCELLABLE_FULFILLMENT.has(order?.fulfillmentStatus) &&
+  !NON_CANCELLABLE_PAYMENT.has(order?.paymentState);
+
+// ---------------------------------------------------------------------------
 // Validacion de transiciones
 //
 // Una transicion invalida se rechaza con 422 (no 400, no 409): el valor es
@@ -372,7 +396,7 @@ const userFacingMessage = (order) => {
   if (f === FULFILLMENT_STATUS.CANCELLED) {
     return p === PAYMENT_STATE.REFUNDED
       ? "Devolución — el dinero fue devuelto"
-      : "Devolución";
+      : "Pedido cancelado";
   }
 
   if (f === FULFILLMENT_STATUS.DELIVERED) {
@@ -402,6 +426,7 @@ module.exports = {
   isCodOrder,
   canTransitionPayment,
   canTransitionFulfillment,
+  canCustomerCancel,
   // validacion
   assertFulfillmentTransition,
   assertPaymentTransition,

@@ -90,9 +90,10 @@ const safeEqual = (a, b) => {
 };
 
 // Firma HMAC-SHA256 del cuerpo. Se acepta el header `x-venndelo-signature` o
-// `x-signature`, en hex o base64.
+// `x-signature`, en hex o base64. Si el middleware capturó `rawBody`, la firma
+// se calcula sobre los bytes exactos recibidos (obligatorio para HMAC).
 // TODO: confirmar contra la doc de Venndelo el header y el algoritmo exactos.
-const verifySignature = ({ body, headers = {} }) => {
+const verifySignature = ({ body, rawBody, headers = {} }) => {
   if (!isConfigured()) return null; // sin secreto: no se puede verificar
 
   const received =
@@ -101,7 +102,12 @@ const verifySignature = ({ body, headers = {} }) => {
     headers["x-webhook-secret"];
   if (!received) return false;
 
-  const raw = typeof body === "string" ? body : JSON.stringify(body || {});
+  const raw =
+    typeof rawBody === "string"
+      ? rawBody
+      : typeof body === "string"
+        ? body
+        : JSON.stringify(body || {});
   const digest = crypto
     .createHmac("sha256", VENNDELO_WEBHOOK_SECRET)
     .update(raw)
@@ -115,8 +121,8 @@ const verifySignature = ({ body, headers = {} }) => {
 };
 
 // POST /api/webhooks/venndelo
-const handleVenndeloWebhook = async ({ body, headers } = {}) => {
-  const signature = verifySignature({ body, headers });
+const handleVenndeloWebhook = async ({ body, rawBody, headers } = {}) => {
+  const signature = verifySignature({ body, rawBody, headers });
   if (signature === false) {
     log.warn("Firma del webhook de Venndelo inválida");
     throw new HttpError(401, "Firma del evento inválida");

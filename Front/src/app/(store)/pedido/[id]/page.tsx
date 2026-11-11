@@ -7,7 +7,10 @@ import { getSession } from "@/services/account/queries";
 import { ApiError } from "@/services/api/client";
 import { formatPrice } from "@/lib/format";
 import { OrderPayment } from "@/components/orders/OrderPayment";
+import { OrderCancel } from "@/components/orders/OrderCancel";
+import { TrackingTimeline } from "@/components/orders/TrackingTimeline";
 import { SafeImage } from "@/components/shared/SafeImage";
+import { safeHttpUrl } from "@/lib/safe-url";
 import {
   FULFILLMENT_LABELS,
   PAYMENT_METHOD_LABELS,
@@ -24,12 +27,10 @@ export const metadata: Metadata = {
 
 type OrderPageProps = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ metodo?: string }>;
 };
 
-export default async function OrderPage({ params, searchParams }: OrderPageProps) {
+export default async function OrderPage({ params }: OrderPageProps) {
   const { id } = await params;
-  const query = await searchParams;
 
   const session = await getSession();
   if (!session) redirect(`/login?next=/pedido/${id}`);
@@ -47,7 +48,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
   const paymentLabel =
     PAYMENT_STATE_LABELS[order.paymentState] ?? order.paymentState;
   const address = order.addressSnapshot ?? null;
-  const requestedCod = Boolean(query.metodo?.startsWith("cod_"));
+  const trackingUrl = safeHttpUrl(order.trackingUrl);
 
   return (
     <div className="bg-background">
@@ -68,17 +69,6 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
 
       <section className="section-y">
         <div className="container-page">
-          {requestedCod && order.paymentMethodCode === "wompi" ? (
-            <p
-              role="alert"
-              className="mb-8 rounded-xl border border-terracotta/30 bg-terracotta/5 p-4 text-sm leading-relaxed text-terracotta-deep"
-            >
-              Elegiste contra entrega, pero el servidor registró el pedido como
-              pago en línea: el endpoint de pedidos todavía no acepta el método
-              de pago. Contacta a la tienda para ajustarlo antes de pagar.
-            </p>
-          ) : null}
-
           <div className="grid gap-8 lg:grid-cols-12 lg:gap-12">
           <div className="flex min-w-0 flex-col gap-6 lg:col-span-7">
             <div className="rounded-xl border border-border bg-card p-6">
@@ -209,6 +199,45 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
                 </div>
               </dl>
 
+              <div className="mt-5 border-t border-border pt-5">
+                <h3 className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                  Seguimiento
+                </h3>
+                <div className="mt-3">
+                  <TrackingTimeline
+                    fulfillmentStatus={order.fulfillmentStatus}
+                    dates={{
+                      createdAt: order.createdAt,
+                      shippedAt: order.shippedAt,
+                      deliveredAt: order.deliveredAt,
+                      cancelledAt: order.cancelledAt,
+                    }}
+                  />
+                </div>
+
+                {order.trackingNumber ? (
+                  <div className="mt-4 rounded-lg border border-border bg-muted/40 p-3">
+                    <p className="text-xs font-semibold text-carbon">
+                      {order.trackingCarrier ?? "Guía de envío"}
+                    </p>
+                    <p className="mt-1 text-xs break-all text-muted-foreground">
+                      {order.trackingNumber}
+                    </p>
+                    {trackingUrl ? (
+                      <a
+                        href={trackingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-terracotta-deep underline-offset-4 hover:underline"
+                      >
+                        Rastrear en el courier
+                        <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
               <div className="mt-5">
                 <OrderPayment
                   orderId={order.id}
@@ -220,6 +249,14 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
               </div>
 
               <div className="mt-5 grid gap-2">
+                {order.canCancel ? <OrderCancel orderId={order.id} /> : null}
+                <Link
+                  href={`/seguimiento/${order.id}`}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border px-5 text-sm font-semibold text-carbon transition-colors hover:border-carbon"
+                >
+                  <Truck className="h-4 w-4" aria-hidden="true" />
+                  Seguir pedido
+                </Link>
                 <Link
                   href="/productos"
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-carbon px-5 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep"

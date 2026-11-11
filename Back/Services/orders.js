@@ -35,6 +35,7 @@ const {
   FULFILLMENT_LABELS,
   PAYMENT_LABELS,
   userFacingMessage,
+  canCustomerCancel,
 } = require("./statusMachine.js");
 const HttpError = require("../Utils/HttpError.js");
 const { assertUuid } = require("../Utils/ids.js");
@@ -322,6 +323,9 @@ const getOrderForUser = async ({ orderId, userId, admin = false, transaction }) 
   if (!admin) {
     json.payments = (json.payments || []).map(({ rawPayload, ...safe }) => safe);
   }
+  // El backend decide si el pedido es cancelable; el front solo pinta el
+  // boton. Asi la regla vive en un solo lugar.
+  json.canCancel = canCustomerCancel(order);
   return json;
 };
 
@@ -372,7 +376,14 @@ const listOrdersForUser = async ({
     distinct: true,
   });
 
-  return { orders: rows, total: count, limit: safeLimit, offset: safeOffset };
+  // `canCancel` en cada fila para que el listado pueda ofrecer la accion sin
+  // duplicar la regla en el front.
+  const orders = rows.map((row) => ({
+    ...row.toJSON(),
+    canCancel: canCustomerCancel(row),
+  }));
+
+  return { orders, total: count, limit: safeLimit, offset: safeOffset };
 };
 
 // Nucleo compartido de creacion de pedidos (checkout web y venta manual):
@@ -545,7 +556,7 @@ const createOrderCore = async ({
           titulo: `Pedido ${full.orderNumber} registrado`,
           texto:
             "Recibimos tu pedido. Te contactaremos para coordinar el pago y la entrega.",
-          to: `/dashboard/pedidos/${full.id}`,
+          to: `/pedido/${full.id}`,
           clave: `pedido:${full.id}:creado`,
         });
       } catch (error) {
@@ -757,12 +768,16 @@ const cancelOrder = async ({ orderId, user }) => {
     }
     if (
       order.paymentState === PAYMENT_STATE.SETTLED ||
-      order.paymentState === PAYMENT_STATE.REFUNDED
+      order.paymentState === PAYMENT_STATE.REFUNDED ||
+      order.paymentState === PAYMENT_STATE.COLLECTED
     ) {
-      throw new HttpError(409, "No se puede cancelar un pedido con pago aprobado");
+      throw new HttpError(409, "No se puede cancelar un pedido con pago aprobado o cobrado");
     }
-    if (order.fulfillmentStatus !== FULFILLMENT_STATUS.PENDING_PAYMENT) {
-      throw new HttpError(409, "Solo se pueden cancelar pedidos pendientes de pago");
+    if (!canCustomerCancel(order)) {
+      throw new HttpError(
+        409,
+        "Solo se pueden cancelar pedidos que aún no están en preparación",
+      );
     }
 
     await releaseOrderStock(order, transaction);
@@ -801,7 +816,7 @@ const cancelOrder = async ({ orderId, user }) => {
         titulo: `Pedido ${full.orderNumber} cancelado`,
         texto:
           "Tu pedido fue cancelado. Si quieres, puedes volver a comprar cuando quieras.",
-        to: `/dashboard/pedidos/${full.id}`,
+        to: `/pedido/${full.id}`,
         clave: `pedido:${full.id}:cancelado`,
       });
     } catch (error) {

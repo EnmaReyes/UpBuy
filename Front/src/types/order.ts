@@ -28,6 +28,16 @@ export type OrderAddressSnapshot = {
   notes?: string | null;
 };
 
+/** Una fila del historial de estados. Cada cambio es inmutable. */
+export type OrderStatusHistoryEntry = {
+  id: string;
+  kind: string;
+  fromStatus: string | null;
+  toStatus: string;
+  note: string | null;
+  createdAt: string;
+};
+
 export type Order = {
   id: string;
   orderNumber: string;
@@ -51,6 +61,17 @@ export type Order = {
   shippingZone: string | null;
   estimatedDeliveryDays: number | null;
   addressSnapshot: OrderAddressSnapshot | null;
+  /** Logística: guía y enlace del courier (pueden faltar). */
+  trackingCarrier: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  cancelledAt: string | null;
+  paymentApprovedAt: string | null;
+  /** Lo decide el backend: el front solo pinta la acción. */
+  canCancel: boolean;
+  history?: OrderStatusHistoryEntry[];
   items: OrderItem[];
   createdAt: string;
   updatedAt: string;
@@ -65,6 +86,11 @@ export type OrderListItem = Pick<
   | "total"
   | "currency"
   | "createdAt"
+  | "canCancel"
+  | "trackingCarrier"
+  | "shippedAt"
+  | "deliveredAt"
+  | "cancelledAt"
 > & { items: OrderItem[] };
 
 /** Ítem que acepta `POST /api/orders`. El precio y el stock los resuelve el
@@ -101,7 +127,7 @@ export type CreateOrderInput = {
 
 export const FULFILLMENT_LABELS: Record<string, string> = {
   pending_payment: "Pendiente de pago",
-  paid: "Pagado",
+  paid: "Confirmado",
   packing: "En preparación",
   shipped: "Enviado",
   delivered: "Entregado",

@@ -71,9 +71,9 @@ test("topup valida que el monto sea mayor que 0 (sin red)", async () => {
   );
 });
 
-test("topup llama a /account/wallet/topup con Bearer y devuelve payment_url", async () => {
+test("topup llama a /wallet/initiate-wallet-topup con Bearer y devuelve payment_url", async () => {
   const calls = mockFetch((url) => {
-    if (url.endsWith("/account/wallet/topup")) {
+    if (url.endsWith("/wallet/initiate-wallet-topup")) {
       return jsonResponse(201, { payment_url: "https://pay.venndelo.test/abc" });
     }
     return jsonResponse(404, {});
@@ -87,7 +87,7 @@ test("topup llama a /account/wallet/topup con Bearer y devuelve payment_url", as
 
   assert.equal(result.payment_url, "https://pay.venndelo.test/abc");
 
-  const call = calls.find((c) => c.url.endsWith("/account/wallet/topup"));
+  const call = calls.find((c) => c.url.endsWith("/wallet/initiate-wallet-topup"));
   assert.ok(call, "debe llamar al endpoint de topup");
   assert.equal(call.options.method, "POST");
   assert.equal(call.options.headers.Authorization, "Bearer access-token-abcdefghijklmnop");
@@ -97,42 +97,100 @@ test("topup llama a /account/wallet/topup con Bearer y devuelve payment_url", as
   assert.equal(body.cancel_url, "https://front/cancelado");
 });
 
-test("balance devuelve balance y detail", async () => {
-  mockFetch((url) => {
-    if (url.endsWith("/account/wallet/balance")) {
-      return jsonResponse(200, { balance: 125000, detail: "COP" });
+test("balance llama a /wallet/get-wallet-balance y devuelve balance y detail", async () => {
+  const calls = mockFetch((url) => {
+    if (url.endsWith("/wallet/get-wallet-balance")) {
+      return jsonResponse(200, {
+        balance: 125000,
+        detail: [{ description: "Ventas", amount: 125000 }],
+      });
     }
     return jsonResponse(404, {});
   });
 
   const result = await account.getWalletBalance(null);
   assert.equal(result.balance, 125000);
-  assert.equal(result.detail, "COP");
+  assert.equal(result.detail[0].description, "Ventas");
+  assert.ok(calls.some((c) => c.url.endsWith("/wallet/get-wallet-balance")));
 });
 
-test("validateOrderPayload rechaza pedidos incompletos", () => {
-  assert.throws(() => service.validateOrderPayload({}), (e) => e.status === 400);
+test("una respuesta HTML (ruta inexistente) se rechaza con 502", async () => {
+  mockFetch(() => ({
+    status: 200,
+    ok: true,
+    headers: { entries: () => [] },
+    text: async () => "<!DOCTYPE html><html></html>",
+  }));
+
+  await assert.rejects(
+    () => account.getWalletBalance(null),
+    (error) => error.status === 502 && /HTML/.test(error.message),
+  );
+});
+
+test("validateOrderPayload usa el esquema real (line_items/billing/shipping)", () => {
+  const valid = {
+    line_items: [{ sku: "A1", quantity: 1 }],
+    billing_info: { first_name: "Ana" },
+    shipping_info: { first_name: "Ana" },
+    payment_method_code: "COD",
+  };
+
+  const payload = service.validateOrderPayload(valid);
+  assert.equal(payload.payment_method_code, "COD");
+  assert.equal(payload.line_items.length, 1);
+
   assert.throws(
-    () => service.validateOrderPayload({ items: [], payment_method_code: "X", customer: {} }),
+    () => service.validateOrderPayload({ ...valid, line_items: [] }),
     (e) => e.status === 400,
   );
   assert.throws(
-    () => service.validateOrderPayload({ items: [{}], customer: {} }),
+    () => service.validateOrderPayload({ ...valid, billing_info: undefined }),
     (e) => e.status === 400,
   );
   assert.throws(
-    () => service.validateOrderPayload({ items: [{}], payment_method_code: "X" }),
+    () => service.validateOrderPayload({ ...valid, shipping_info: [] }),
+    (e) => e.status === 400,
+  );
+  assert.throws(
+    () => service.validateOrderPayload({ ...valid, payment_method_code: "Wompi" }),
     (e) => e.status === 400,
   );
 });
 
-test("validateOrderPayload acepta un pedido minimo", () => {
+test("validateOrderPayload normaliza external_order_id (idempotencia)", () => {
   const payload = service.validateOrderPayload({
-    items: [{ sku: "A1", quantity: 1 }],
-    payment_method_code: "COD_VENDELO",
-    customer: { name: "Ana" },
+    line_items: [{ sku: "A1", quantity: 1 }],
+    billing_info: {},
+    shipping_info: {},
+    payment_method_code: "EXTERNAL_PAYMENT",
+    orderId: "BYG-2026-000001",
   });
-  assert.equal(payload.payment_method_code, "COD_VENDELO");
+  assert.equal(payload.external_order_id, "BYG-2026-000001");
+});
+
+test("validateQuotationPayload no exige billing_info", () => {
+  const base = {
+    line_items: [{ sku: "A1", quantity: 1 }],
+    pickup_info: { city_code: "11001" },
+    shipping_info: { city_code: "05001" },
+    payment_method_code: "COD",
+  };
+  assert.equal(
+    service.validateQuotationPayload(base).payment_method_code,
+    "COD",
+  );
+  assert.throws(
+    () => service.validateQuotationPayload({ ...base, pickup_info: undefined }),
+    (e) => e.status === 400,
+  );
+});
+
+test("lista de pedidos valida el estado y no reenvía parámetros arbitrarios", async () => {
+  await assert.rejects(
+    () => service.listVenndeloOrders({ status: "INVENTADO" }),
+    (e) => e.status === 400,
+  );
 });
 
 test("la firma del webhook acepta HMAC valido y rechaza una invalida", () => {
@@ -149,6 +207,30 @@ test("la firma del webhook acepta HMAC valido y rechaza una invalida", () => {
   );
   assert.equal(
     verifySignature({ body, headers: { "x-venndelo-signature": "deadbeef" } }),
+    false,
+  );
+
+  // Con rawBody se firma el byte exacto recibido (con espacios distintos al
+  // JSON.stringify del objeto).
+  const rawSpaced = '{ "event": "ORDER_CREATED", "order_id": "123" }';
+  const rawSignature = crypto
+    .createHmac("sha256", process.env.VENNDELO_WEBHOOK_SECRET)
+    .update(rawSpaced)
+    .digest("hex");
+  assert.equal(
+    verifySignature({
+      body,
+      rawBody: rawSpaced,
+      headers: { "x-venndelo-signature": rawSignature },
+    }),
+    true,
+  );
+  assert.equal(
+    verifySignature({
+      body,
+      rawBody: rawSpaced,
+      headers: { "x-venndelo-signature": signature },
+    }),
     false,
   );
 });

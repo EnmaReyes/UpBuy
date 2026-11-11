@@ -61,7 +61,7 @@ const notifyStatusChange = async (order, to) => {
       tipo: "pedido",
       titulo: `Pedido ${order.orderNumber}: ${FULFILLMENT_LABELS[to] || to}`,
       texto: "El estado de tu pedido cambió. Toca para ver el detalle.",
-      to: `/dashboard/pedidos/${order.id}`,
+      to: `/pedido/${order.id}`,
       clave: `pedido:${order.id}:${to}`,
     });
   } catch (error) {

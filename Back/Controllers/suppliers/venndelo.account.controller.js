@@ -64,4 +64,50 @@ const getOrder = async (req, res) => {
   }
 };
 
-module.exports = { topup, balance, createOrder, listOrders, getOrder };
+// POST /api/admin/suppliers/venndelo/orders/:id/cancel
+const cancelOrder = async (req, res) => {
+  try {
+    const result = await service.cancelVenndeloOrder(req.params.id);
+    return res.json(result.message);
+  } catch (error) {
+    return sendError(res, error, "No se pudo cancelar el pedido en Venndelo");
+  }
+};
+
+// POST /api/admin/suppliers/venndelo/orders/quotation
+const quoteOrder = async (req, res) => {
+  try {
+    const result = await service.quoteVenndeloOrder(req.body);
+    return res.status(201).json(result.quotation);
+  } catch (error) {
+    return sendError(res, error, "No se pudo cotizar el pedido en Venndelo");
+  }
+};
+
+// POST /api/admin/suppliers/venndelo/orders/:id/confirmation
+const modifyConfirmation = async (req, res) => {
+  try {
+    const result = await service.modifyVenndeloOrderConfirmation(
+      req.params.id,
+      req.body,
+    );
+    return res.status(201).json(result.order);
+  } catch (error) {
+    return sendError(
+      res,
+      error,
+      "No se pudo actualizar la confirmación del pedido en Venndelo",
+    );
+  }
+};
+
+module.exports = {
+  topup,
+  balance,
+  createOrder,
+  listOrders,
+  getOrder,
+  cancelOrder,
+  quoteOrder,
+  modifyConfirmation,
+};

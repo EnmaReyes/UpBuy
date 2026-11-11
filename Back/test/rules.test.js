@@ -16,6 +16,8 @@ const {
   assertPaymentTransition,
   applyFulfillmentSideEffects,
   mapProviderToCanonical,
+  canCustomerCancel,
+  userFacingMessage,
 } = require("../Services/statusMachine.js");
 const { calculateNetProfit } = require("../Services/orderService.js");
 const { findMissingProfileFields } = require("../Services/profile.js");
@@ -193,4 +195,65 @@ test("mapProviderToCanonical entiende Vendelo y Dropi", () => {
     fulfillmentStatus: "delivered",
   });
   assert.deepEqual(mapProviderToCanonical("dropi", "estado_raro"), {});
+});
+
+// ---------------------------------------------------------------------------
+// Extra: cancelacion por el comprador
+// ---------------------------------------------------------------------------
+
+test("canCustomerCancel: Wompi impago y COD confirmado se pueden cancelar", () => {
+  assert.equal(
+    canCustomerCancel({
+      fulfillmentStatus: "pending_payment",
+      paymentState: "unpaid",
+    }),
+    true,
+  );
+  assert.equal(
+    canCustomerCancel({
+      fulfillmentStatus: "paid",
+      paymentState: "pending_collection",
+    }),
+    true,
+  );
+});
+
+test("canCustomerCancel: no se cancela en preparacion, envio ni con dinero cobrado", () => {
+  const casos = [
+    { fulfillmentStatus: "packing", paymentState: "pending_collection" },
+    { fulfillmentStatus: "shipped", paymentState: "pending_collection" },
+    { fulfillmentStatus: "delivered", paymentState: "collected" },
+    { fulfillmentStatus: "paid", paymentState: "settled" },
+    { fulfillmentStatus: "paid", paymentState: "refunded" },
+  ];
+  for (const order of casos) {
+    assert.equal(canCustomerCancel(order), false, JSON.stringify(order));
+  }
+});
+
+test("userFacingMessage distingue cancelado de devolución", () => {
+  assert.equal(
+    userFacingMessage({
+      fulfillmentStatus: "cancelled",
+      paymentState: "pending_collection",
+      paymentMethodCode: "cod_vendelo",
+    }),
+    "Pedido cancelado",
+  );
+  assert.match(
+    userFacingMessage({
+      fulfillmentStatus: "cancelled",
+      paymentState: "refunded",
+      paymentMethodCode: "wompi",
+    }),
+    /devuelto/i,
+  );
+  assert.match(
+    userFacingMessage({
+      fulfillmentStatus: "paid",
+      paymentState: "pending_collection",
+      paymentMethodCode: "cod_vendelo",
+    }),
+    /pagas al recibir/i,
+  );
 });

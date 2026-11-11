@@ -47,6 +47,7 @@ const venndelo = async (req, res) => {
   try {
     const result = await handleVenndeloWebhook({
       body: req.body,
+      rawBody: req.rawBody,
       headers: req.headers,
     });
     return res.status(200).json(result);

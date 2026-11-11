@@ -64,30 +64,72 @@ const getWalletBalance = async () => {
   return account.getWalletBalance(supplier);
 };
 
-// Valida lo minimo indispensable antes de reenviar a Venndelo. El resto del
-// cuerpo se reenvia TAL CUAL: la forma exacta del payload de pedidos no esta
-// documentada en este repo, asi que no se inventan campos.
-// TODO: validar contra doc Venndelo cuando se confirme el esquema.
+// Metodos de pago que acepta Venndelo al crear un pedido (OpenAPI).
+// OJO: no son los metodos del comprador en Upbuy (wompi/cod_vendelo); esto
+// describe quien recauda el dinero en la operacion con el proveedor.
+const VENNDELO_PAYMENT_METHODS = new Set(["COD", "EXTERNAL_PAYMENT"]);
+const VENNDELO_ORDER_STATUSES = new Set([
+  "ANY",
+  "PENDING",
+  "READY",
+  "PREPARING",
+  "SHIPPED",
+  "INCIDENT",
+  "DELIVERED",
+  "RETURNED",
+  "CANCELLED",
+]);
+
+const isPlainObject = (value) =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+// Valida lo minimo indispensable antes de reenviar a Venndelo, segun el
+// esquema documentado `ApiCreateOrderIn`:
+//   { billing_info, shipping_info, line_items, payment_method_code, ... }
+// El resto del cuerpo se reenvia TAL CUAL (notas, descuentos, external_order_id,
+// pickup_info...). No se inventan campos.
 const validateOrderPayload = (body = {}) => {
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
+  if (!isPlainObject(body)) {
     throw new HttpError(400, "El cuerpo del pedido debe ser un objeto");
   }
 
-  if (!Array.isArray(body.items) || body.items.length === 0) {
-    throw new HttpError(400, "El pedido debe incluir al menos un artículo (items)");
+  if (!Array.isArray(body.line_items) || body.line_items.length === 0) {
+    throw new HttpError(
+      400,
+      "El pedido debe incluir al menos un artículo (line_items)",
+    );
+  }
+  if (body.line_items.some((item) => !isPlainObject(item))) {
+    throw new HttpError(400, "Cada elemento de line_items debe ser un objeto");
   }
 
-  const paymentMethodCode =
-    body.payment_method_code || body.paymentMethodCode || null;
-  if (!paymentMethodCode || typeof paymentMethodCode !== "string") {
+  if (!isPlainObject(body.billing_info)) {
+    throw new HttpError(400, "Falta el objeto billing_info");
+  }
+  if (!isPlainObject(body.shipping_info)) {
+    throw new HttpError(400, "Falta el objeto shipping_info");
+  }
+
+  const paymentMethodCode = String(body.payment_method_code || "").trim();
+  if (!paymentMethodCode) {
     throw new HttpError(400, "Falta payment_method_code");
   }
-
-  if (!body.customer || typeof body.customer !== "object") {
-    throw new HttpError(400, "Falta el objeto customer");
+  if (!VENNDELO_PAYMENT_METHODS.has(paymentMethodCode)) {
+    throw new HttpError(
+      400,
+      `payment_method_code inválido: usa ${[...VENNDELO_PAYMENT_METHODS].join(" o ")}`,
+    );
   }
 
-  return { ...body, payment_method_code: paymentMethodCode };
+  const externalOrderId = String(
+    body.external_order_id || body.orderId || body.order_id || "",
+  ).trim();
+
+  return {
+    ...body,
+    payment_method_code: paymentMethodCode,
+    ...(externalOrderId ? { external_order_id: externalOrderId } : {}),
+  };
 };
 
 // POST /orders
@@ -95,19 +137,48 @@ const createVenndeloOrder = async (body, { idempotencyKey } = {}) => {
   const payload = validateOrderPayload(body);
   const supplier = await resolveSupplier();
   const result = await account.createOrder(supplier, payload, {
-    // `orderId` del cliente sirve como clave de idempotencia si no hay header.
-    idempotencyKey: idempotencyKey || payload.orderId || payload.order_id,
+    // `external_order_id` identifica el pedido en Upbuy: sirve de clave de
+    // idempotencia si el llamador no manda el header.
+    idempotencyKey: idempotencyKey || payload.external_order_id,
   });
   log.info("Pedido creado en Venndelo", {
-    clientOrderId: payload.orderId || payload.order_id || null,
+    externalOrderId: payload.external_order_id || null,
   });
   return result;
 };
 
 // GET /orders
+// Venndelo pagina con `page_token` / `page_size`, no con `limit`/`page`.
+// Se aceptan esos nombres documentados y se valida el estado.
 const listVenndeloOrders = async (params = {}) => {
+  const clean = {};
+
+  const pageToken = String(params.page_token || "").trim();
+  if (pageToken) clean.page_token = pageToken;
+
+  const pageSizeRaw = params.page_size ?? params.limit;
+  if (pageSizeRaw !== undefined && pageSizeRaw !== "") {
+    const pageSize = Math.min(Math.max(Number(pageSizeRaw) || 0, 1), 500);
+    clean.page_size = pageSize;
+  }
+
+  for (const key of ["created_min", "created_max"]) {
+    const value = String(params[key] || "").trim();
+    if (value) clean[key] = value;
+  }
+
+  const status = String(params.status || "").trim().toUpperCase();
+  if (status) {
+    if (!VENNDELO_ORDER_STATUSES.has(status)) {
+      throw new HttpError(400, `Estado de pedido inválido: "${status}"`);
+    }
+    clean.status = status;
+  }
+
+  if (isPlainObject(params.filter)) clean.filter = params.filter;
+
   const supplier = await resolveSupplier();
-  return account.listOrders(supplier, params);
+  return account.listOrders(supplier, clean);
 };
 
 // GET /orders/:id
@@ -116,12 +187,74 @@ const getVenndeloOrder = async (id) => {
   return account.getOrder(supplier, id);
 };
 
+// POST /orders/:id/cancel
+const cancelVenndeloOrder = async (id) => {
+  const supplier = await resolveSupplier();
+  const result = await account.cancelOrder(supplier, id);
+  log.info("Pedido cancelado en Venndelo", { venndeloOrderId: id });
+  return result;
+};
+
+// POST /orders/quotation
+// Esquema `ApiOrderQuotationIn`: pickup_info, shipping_info, line_items y
+// payment_method_code (no lleva billing_info).
+const validateQuotationPayload = (body = {}) => {
+  if (!isPlainObject(body)) {
+    throw new HttpError(400, "El cuerpo de la cotización debe ser un objeto");
+  }
+  if (!Array.isArray(body.line_items) || body.line_items.length === 0) {
+    throw new HttpError(400, "La cotización debe incluir line_items");
+  }
+  if (!isPlainObject(body.pickup_info)) {
+    throw new HttpError(400, "Falta el objeto pickup_info");
+  }
+  if (!isPlainObject(body.shipping_info)) {
+    throw new HttpError(400, "Falta el objeto shipping_info");
+  }
+  const paymentMethodCode = String(body.payment_method_code || "").trim();
+  if (!VENNDELO_PAYMENT_METHODS.has(paymentMethodCode)) {
+    throw new HttpError(
+      400,
+      `payment_method_code inválido: usa ${[...VENNDELO_PAYMENT_METHODS].join(" o ")}`,
+    );
+  }
+  return { ...body, payment_method_code: paymentMethodCode };
+};
+
+// POST /orders/quotation
+const quoteVenndeloOrder = async (body) => {
+  const payload = validateQuotationPayload(body);
+  const supplier = await resolveSupplier();
+  return account.quoteOrder(supplier, payload);
+};
+
+// POST /orders/:id/modify-order-confirmation-status
+const modifyVenndeloOrderConfirmation = async (id, body = {}) => {
+  const confirmationStatus = String(body.confirmation_status || "").trim();
+  if (!["CONFIRMED", "REJECTED"].includes(confirmationStatus)) {
+    throw new HttpError(
+      400,
+      "confirmation_status debe ser CONFIRMED o REJECTED",
+    );
+  }
+  const supplier = await resolveSupplier();
+  return account.modifyOrderConfirmation(supplier, id, {
+    ...body,
+    confirmation_status: confirmationStatus,
+  });
+};
+
 module.exports = {
   SLUG,
+  VENNDELO_PAYMENT_METHODS,
   createWalletTopup,
   getWalletBalance,
   createVenndeloOrder,
   listVenndeloOrders,
   getVenndeloOrder,
+  cancelVenndeloOrder,
+  quoteVenndeloOrder,
+  modifyVenndeloOrderConfirmation,
   validateOrderPayload,
+  validateQuotationPayload,
 };

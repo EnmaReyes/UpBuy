@@ -273,6 +273,12 @@ module.exports = {
   VENNDELO_CLIENT_ID: (process.env.VENNDELO_CLIENT_ID || "").trim(),
   VENNDELO_CLIENT_SECRET: (process.env.VENNDELO_CLIENT_SECRET || "").trim(),
   VENNDELO_REFRESH_TOKEN: (process.env.VENNDELO_REFRESH_TOKEN || "").trim(),
+  // Timeout de las llamadas a la API administrativa. El listado de pedidos de
+  // Venndelo puede tardar >12s incluso con page_size=1; 15s se queda corto.
+  VENNDELO_HTTP_TIMEOUT_MS: Math.max(
+    toNumber(process.env.VENNDELO_HTTP_TIMEOUT_MS, 30000),
+    1000,
+  ),
 
   // URLs de retorno del checkout de topup de wallet (opcionales: si estan
   // vacias no se mandan a Venndelo).

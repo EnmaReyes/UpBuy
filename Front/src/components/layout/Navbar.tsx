@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { cn } from "cn";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { AccountButton } from "@/components/layout/AccountButton";
+import { NotificationButton } from "@/components/layout/NotificationButton";
 import { CartButton } from "@/components/cart/CartButton";
 
 // No se incluye "Novedades" ni orden por precio: el backend no expone esos
@@ -84,6 +85,7 @@ export function Navbar() {
               <Search className="h-5 w-5" />
             </IconButton>
             <AccountButton />
+            <NotificationButton />
             <CartButton />
             <button
               type="button"

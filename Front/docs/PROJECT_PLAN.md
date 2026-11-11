@@ -281,12 +281,64 @@ Decisiones y límites:
   backend lo acepta: el pedido nace en `paid` / `pending_collection` y no se
   puede cobrar en línea. Ver `BACKEND_INTEGRATION.md` → «Pedidos».
 
-## 17. Próximo paso
+## 17. FASE 7 — entregado (logística, cancelación y seguimiento)
 
-FASE 7 (logística y proveedores) cuando se apruebe. Antes:
+- `types/order.ts`: el pedido incluye `canCancel`, guía (`trackingCarrier`,
+  `trackingNumber`, `trackingUrl`), fechas (`shippedAt`, `deliveredAt`,
+  `cancelledAt`) e `history`.
+- `services/orders`: `cancelOrder` (cliente) y `getPublicTracking` (lectura
+  pública sin cookies, en `services/orders/tracking.ts`).
+- `components/orders/OrderCancel.tsx`: confirmación en dos pasos y
+  `router.refresh()` tras cancelar. Solo se pinta si `order.canCancel`.
+- `components/orders/TrackingTimeline.tsx`: recorrido compartido
+  (confirmado → preparación → camino → entregado / cancelado) con fechas.
+- `/seguimiento/[id]`: página pública (`noindex`) que pide teléfono **o**
+  correo y muestra estado, recorrido, guía y enlace al courier. Si los datos no
+  coinciden, mensaje genérico; nunca revela si el pedido existe.
+- `/pedido/[id]`: botón «Cancelar pedido», enlace «Seguir pedido», línea de
+  tiempo y guía del courier cuando existe.
+- `/cuenta/pedidos`: enlace secundario «Seguir pedido» sin anidar enlaces.
 
-- `GET /api/orders/:id/tracking?phone=&email=` es público y exige que el
-  teléfono o el correo coincidan.
+Decisiones y límites:
+
+- La regla de cancelación vive en el backend (`canCustomerCancel`). El front
+  no la duplica: solo usa `canCancel`. El `409` del endpoint se muestra tal
+  cual si el estado cambió entre la carga y el clic.
+- COD confirmado (`paid` / `pending_collection`) se puede cancelar mientras no
+  entre en `packing`. Con pago `settled`/`refunded`/`collected` no.
+- El seguimiento público usa el UUID del pedido (no `orderNumber`) y exige
+  teléfono o correo coincidentes. La URL lleva esos datos en la query, por eso
+  la página es `noindex`.
+- No hay panel de proveedores en el front: los estados del courier se ven solo
+  como estado logístico del pedido.
+
+## 18. FASE 8 — entregado (notificaciones)
+
+- `types/notification.ts` + `services/notifications/`:
+  - `queries.ts` (servidor) lee `GET /api/notifications`.
+  - `index.ts` (cliente) expone contador, marcar una/todas y eliminar
+    una/todas, y emite `upbuy:notifications-changed` para refrescar la campana.
+- `components/layout/NotificationButton.tsx`: campana con contador de no
+  leídas en el navbar. Solo aparece si existe el marcador de sesión; se
+  actualiza al navegar, al volver a la pestaña y tras una acción.
+- `/cuenta/notificaciones`: bandeja paginada (`noindex`) con estado, fecha y
+  hora, acciones por aviso y acciones globales con confirmación en línea.
+- `AccountNav`: nueva sección «Notificaciones».
+- Los enlaces `to` se validan con `safeInternalPath`: rutas internas y nunca
+  `/admin/*`, porque el front público no tiene panel administrativo.
+
+Decisiones y límites:
+
+- Se usan solo los endpoints existentes; no se generan notificaciones en el
+  front. El backend ya crea avisos al crear/cancelar/cambiar un pedido.
+- El contador no hace polling: se refresca por navegación, foco de pestaña y
+  evento interno. Evita peticiones innecesarias.
+- El marcador de sesión decide si se muestra la campana; la validez real de la
+  sesión la sigue resolviendo el backend.
+
+## 19. Próximo paso
+
+- Panel administrativo fuera del alcance del front público.
 - Solo `NEXT_PUBLIC_API_URL` es necesaria; el mercado está fijado en
   `src/config/market.config.ts`.
 - El endpoint de newsletter no existe: la Home lo declara como pendiente y no

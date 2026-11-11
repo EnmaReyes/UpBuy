@@ -12,7 +12,11 @@
 //
 // No sabe nada de productos ni de assets: eso vive en venndelo.catalog.js y
 // venndelo.assets.js.
-const { VENNDELO_API_URL, VENNDELO_ADMIN_PATH } = require("../../../config.js");
+const {
+  VENNDELO_API_URL,
+  VENNDELO_ADMIN_PATH,
+  VENNDELO_HTTP_TIMEOUT_MS,
+} = require("../../../config.js");
 const { request } = require("../../../Utils/httpClient.js");
 const HttpError = require("../../../Utils/HttpError.js");
 const auth = require("./venndelo.auth.js");
@@ -50,7 +54,7 @@ const adminRequest = async (
   supplier,
   method,
   path,
-  { params, body, headers, retries, allowRetryOnNonIdempotent } = {},
+  { params, body, headers, retries, allowRetryOnNonIdempotent, timeoutMs } = {},
 ) => {
   const url = buildUrl(path, params);
 
@@ -68,6 +72,7 @@ const adminRequest = async (
       body: isJsonBody ? JSON.stringify(body) : undefined,
       retries,
       allowRetryOnNonIdempotent,
+      timeoutMs: timeoutMs || VENNDELO_HTTP_TIMEOUT_MS,
     });
   };
 
@@ -89,6 +94,14 @@ const adminJson = async (supplier, method, path, options = {}) => {
     throw new HttpError(
       mapStatus(response.status),
       `Venndelo respondió HTTP ${response.status} en ${method} ${path}`,
+    );
+  }
+  // Venndelo sirve su documentación HTML en /v1/admin/*. Un 200 con HTML
+  // significa que la ruta no existe, no que la operación funcionó.
+  if (typeof response.data === "string" && /^\s*</.test(response.data)) {
+    throw new HttpError(
+      502,
+      `Venndelo devolvió HTML en ${method} ${path}: la ruta no existe o cambió`,
     );
   }
   return response.data;

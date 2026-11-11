@@ -159,7 +159,17 @@ app.use(
 
 app.use(compression());
 
-app.use(express.json({ limit: "1mb" }));
+// `verify` conserva el cuerpo crudo: los webhooks con firma HMAC deben
+// calcularse sobre los bytes exactos que envió el proveedor, no sobre un
+// JSON.parse + JSON.stringify que puede cambiar espacios y orden.
+app.use(
+  express.json({
+    limit: "1mb",
+    verify: (req, res, buf) => {
+      req.rawBody = buf.toString("utf8");
+    },
+  }),
+);
 
 app.use(
   cors({

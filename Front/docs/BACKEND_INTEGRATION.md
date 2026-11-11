@@ -66,7 +66,7 @@ catálogo: consume estos endpoints.
 | PUT | `/users/me/addresses/:id/default` | Marcar por defecto | — |
 | GET/POST | `/orders`, `/orders/mine` | Listar/crear pedidos | `limit, offset, status/fulfillmentStatus, paymentState` |
 | GET | `/orders/:id` | Detalle de pedido (dueño o admin) | — |
-| POST | `/orders/:id/cancel` | Cancelar (solo `pending_payment`) | — |
+| POST | `/orders/:id/cancel` | Cancelar si `canCancel` (antes de preparación) | — |
 | POST | `/orders/:id/payment` | Iniciar pago Wompi | — |
 | POST | `/orders/:id/payment/verify` | Verificar pago | `{ transactionId }` |
 | POST | `/payments/intent` | Crear intento de pago | body |
@@ -128,7 +128,7 @@ Reglas:
 
 ### Pedido (Order)
 
-Campos relevantes para UI: `id`, `orderNumber`, `channel`, `fulfillmentStatus`, `paymentState`, `paymentMethodCode`, `currency`, `subtotal`, `shippingCost`, `discountTotal`, `total`, `recipientName`, `email`, `phone`, `address`, `city`, `department`, `postalCode`, `notes`, `shippingZone`, `estimatedDeliveryDays`, `paymentApprovedAt`, `trackingCarrier`, `trackingNumber`, `trackingUrl`, `provider`, `providerStatus`, `providerOutOfSync`, `items[]` (OrderItem con snapshot), `addressSnapshot`, timestamps.
+Campos relevantes para UI: `id`, `orderNumber`, `channel`, `fulfillmentStatus`, `paymentState`, `paymentMethodCode`, `currency`, `subtotal`, `shippingCost`, `discountTotal`, `total`, `recipientName`, `email`, `phone`, `address`, `city`, `department`, `postalCode`, `notes`, `shippingZone`, `estimatedDeliveryDays`, `paymentApprovedAt`, `trackingCarrier`, `trackingNumber`, `trackingUrl`, `shippedAt`, `deliveredAt`, `cancelledAt`, `canCancel`, `provider`, `providerStatus`, `providerOutOfSync`, `items[]` (OrderItem con snapshot), `addressSnapshot`, `history[]`, timestamps.
 
 Estados:
 - `fulfillmentStatus`: `pending_payment → paid → packing → shipped → delivered` (más cancelado).
@@ -214,7 +214,38 @@ Reglas del backend:
   cantidad), 409 (producto agotado) y el resto como texto.
 
 Confirmación: `GET /api/orders/:id` (dueño o admin) devuelve el pedido con
-`items`, `payments` e `history`.
+`items`, `payments`, `history` y `canCancel`.
+
+### Cancelación y seguimiento
+
+- `GET /api/orders/:id` y el listado incluyen `canCancel`. La regla vive en
+  `Back/Services/statusMachine.js` (`canCustomerCancel`): se puede cancelar en
+  `pending_payment` (Wompi impago) o `paid` (COD confirmado), nunca con el
+  dinero `settled`/`refunded`/`collected` ni desde `packing`.
+- `POST /api/orders/:id/cancel` (sesión, dueño) devuelve el pedido actualizado.
+  Si el estado cambió desde que se cargó la ficha responde `409`.
+- `GET /api/orders/:id/tracking?phone=&email=` es **público** y exige el UUID
+  del pedido (no `orderNumber`) más teléfono o correo coincidentes. Responde
+  `404` genérico si no coinciden. Devuelve solo: `orderNumber`,
+  `fulfillmentStatus`/`paymentState` + etiquetas, `message`, `tracking`
+  (carrier/number/url), `estimatedDeliveryDays` y `dates`
+  (createdAt/shippedAt/deliveredAt/cancelledAt). No expone dirección ni
+  contacto.
+- El front lo usa en `/seguimiento/[id]` (`noindex`) y enlaza desde
+  `/pedido/[id]` y `/cuenta/pedidos`.
+
+### Notificaciones
+
+- `GET /api/notifications?limit=&offset=` → `{ notifications, total, unread,
+  limit, offset }`. Cada fila trae `titulo`, `texto`, `tipo` (`pedido` |
+  `cuenta`), `to` (ruta interna o null), `leida`, `createdAt`.
+- `GET /api/notifications/unread-count` → `{ count }`.
+- `PATCH /api/notifications/:id/read`, `PATCH /api/notifications/read-all`,
+  `DELETE /api/notifications/:id` y `DELETE /api/notifications` (204).
+- El front muestra una campana con contador en el navbar (solo si existe el
+  marcador de sesión) y la bandeja en `/cuenta/notificaciones` (`noindex`).
+- Los enlaces `to` se filtran con `safeInternalPath`: solo rutas internas y
+  nunca `/admin/*` (el front público no tiene panel administrativo).
 
 ### Pagos (Wompi)
 
@@ -287,12 +318,12 @@ elegido (respaldo ante un fallback inesperado).
 | Proveedores (lista/estado) | ✅ `/admin/orders/providers` | Admin UI pendiente |
 | Registro/login/logout | ✅ `/auth/*` | ✅ `/login`, `/registro` (social **no** implementado) |
 | Perfil y direcciones | ✅ `/users/me*` | ✅ `/cuenta/perfil`, `/cuenta/direcciones` |
-| Pedidos (crear/listar/detalle) | ✅ `/orders*` | ✅ Crear y confirmar (`/checkout`, `/pedido/[id]`). Listado en UI: FASE 6 |
-| Cancelar pedido | ✅ `/orders/:id/cancel` | Pendiente (FASE 7) |
-| Tracking público | ✅ `/orders/:id/tracking` | Pendiente (FASE 7) |
+| Pedidos (crear/listar/detalle) | ✅ `/orders*` | ✅ Crear, confirmar y listar (`/checkout`, `/pedido/[id]`, `/cuenta/pedidos`) |
+| Cancelar pedido | ✅ `/orders/:id/cancel` + `canCancel` | ✅ `/pedido/[id]` (FASE 7) |
+| Tracking público | ✅ `/orders/:id/tracking` | ✅ `/seguimiento/[id]` (FASE 7) |
 | Pago Wompi | ✅ `/orders/:id/payment`, `/payment/verify`, `/payments/intent` | ✅ `/pedido/[id]` + `/mis-pedidos/[id]` (requiere `WOMPI_*`) |
 | Webhooks Wompi/Vendelo | ✅ firmados | N/A (backend) |
-| Notificaciones | ✅ `/notifications/*` | Pendiente |
+| Notificaciones | ✅ `/notifications/*` | ✅ Campana en navbar + `/cuenta/notificaciones` (FASE 8) |
 | Banners | ❌ Eliminado | La Home usa contenido propio |
 | Campañas email | ❌ Eliminado | Ya no aplica |
 | Admin pedidos/usuarios | ✅ | Admin UI pendiente |

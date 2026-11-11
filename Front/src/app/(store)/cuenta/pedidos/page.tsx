@@ -86,12 +86,15 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             PAYMENT_STATE_LABELS[order.paymentState] ?? order.paymentState;
 
           return (
-            <li key={order.id}>
-              <Link
-                href={`/pedido/${order.id}`}
-                className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-carbon"
-              >
-                <div className="min-w-0">
+            <li
+              key={order.id}
+              className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-carbon"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <Link
+                  href={`/pedido/${order.id}`}
+                  className="min-w-0 flex-1"
+                >
                   <p className="font-heading text-sm font-semibold text-carbon">
                     {order.orderNumber}
                   </p>
@@ -100,7 +103,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                     {order.items.length}{" "}
                     {order.items.length === 1 ? "artículo" : "artículos"}
                   </p>
-                </div>
+                </Link>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-muted px-3 py-1 text-[11px] font-semibold text-carbon">
@@ -112,12 +115,21 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                   <span className="text-sm font-semibold text-carbon [font-variant-numeric:tabular-nums]">
                     {formatPrice(order.total)}
                   </span>
-                  <ChevronRight
-                    className="h-4 w-4 text-muted-foreground"
-                    aria-hidden="true"
-                  />
+                  <Link
+                    href={`/seguimiento/${order.id}`}
+                    className="inline-flex h-8 items-center rounded-full border border-border px-3 text-[11px] font-semibold text-coffee-deep transition-colors hover:border-carbon hover:text-carbon"
+                  >
+                    Seguir pedido
+                  </Link>
+                  <Link
+                    href={`/pedido/${order.id}`}
+                    aria-label={`Ver pedido ${order.orderNumber}`}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-carbon"
+                  >
+                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
                 </div>
-              </Link>
+              </div>
             </li>
           );
         })}

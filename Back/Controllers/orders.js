@@ -63,7 +63,8 @@ const detail = async (req, res) => {
   }
 };
 
-// POST /api/orders/:id/cancel — solo pendiente_pago
+// POST /api/orders/:id/cancel — el dueño (o admin) mientras el pedido no
+// esté en preparación y el dinero no esté aprobado/cobrado.
 const cancel = async (req, res) => {
   try {
     const order = await cancelOrder({

@@ -8,3 +8,11 @@ import type { CreateOrderInput, Order } from "@/types/order";
 export async function createOrder(payload: CreateOrderInput): Promise<Order> {
   return apiSend<Order>("/api/orders", { body: payload });
 }
+
+/** Cancela un pedido propio. El backend decide si aún es cancelable. */
+export async function cancelOrder(id: string): Promise<Order> {
+  return apiSend<Order>(
+    `/api/orders/${encodeURIComponent(id)}/cancel`,
+    { method: "POST" },
+  );
+}
