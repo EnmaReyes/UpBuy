@@ -59,6 +59,14 @@ Tras desplegar, abre `https://<back>.vercel.app/health`. Debe responder
 `{ "ok": true, "db": "up" }`. Si responde 503, revisa `DATABASE_URL` y que Neon
 esté despierto.
 
+Las tablas se crean **automáticamente** en el primer arranque: `ensureBaseSchema`
+crea las tablas base si la base está vacía y `ensureCatalogSchema` /
+`ensureDropshippingSchema` aplican el resto (CHECKs, índices, secuencia,
+semillas). Todo es idempotente.
+
+Para preparar la base a mano antes del primer deploy:
+`DATABASE_URL="postgresql://...@...neon.tech/db?sslmode=require" npm run db:bootstrap`
+
 ---
 
 ## 2. Frontend (`Front/`)

@@ -17,6 +17,7 @@ const adminCategoriesRoutes = require("./Rutas/adminCategories.js");
 const suppliersRoutes = require("./Rutas/suppliers/index.js");
 
 const { sequelize, databaseHost } = require("./DataBase/db.js");
+const { ensureBaseSchema } = require("./DataBase/ensureBaseSchema.js");
 const {
   ensureCatalogSchema,
 } = require("./DataBase/ensureCatalogSchema.js");
@@ -87,6 +88,11 @@ const initializeDatabase = async () => {
   if (!isProduction) {
     await sequelize.sync();
   }
+
+  // Tablas base (usuarios, orders, order_items, ...). En produccion
+  // sequelize.sync() no corre, asi que sin este paso una base nueva no tenia
+  // donde aplicar los ensure* (que solo hacen ALTER/CREATE de lo nuevo).
+  await ensureBaseSchema();
 
   // Catalogo: productos, categorias, imagenes y catalogo de proveedores.
   // Tambien retira el esquema viejo (articulos / price_variants) si esta vacio.

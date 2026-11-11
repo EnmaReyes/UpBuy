@@ -312,9 +312,16 @@ corrida/día):
 En el dashboard, el **Root Directory** del proyecto debe ser `Back`.
 
 `index.js` exporta la app de Express. La base se inicializa una vez por
-instancia en el primer request (`ensureCatalogSchema` +
-`ensureDropshippingSchema`), sin `sequelize.sync()` en producción. En
-producción `index.js` **no** llama a `app.listen()`: Vercel usa el export.
+instancia en el primer request: `ensureBaseSchema` crea las tablas base si la
+base esta vacia (p. ej. un Neon nuevo), y `ensureCatalogSchema` /
+`ensureDropshippingSchema` aplican el resto (CHECKs, indices parciales,
+secuencia, semillas). Todo es idempotente. Sin `sequelize.sync()` en
+produccion.
+
+Para preparar una base Neon a mano antes del primer deploy:
+`node scripts/bootstrapSchema.js` (o `npm run db:bootstrap`) con
+`DATABASE_URL` apuntando a la base. En producción `index.js` **no** llama a
+`app.listen()`: Vercel usa el export.
 
 Plan Pro: cambiar el schedule de `vercel.json` a `*/15 * * * *`. Vercel **no
 lee variables de entorno para el schedule**; `CRON_SCHEDULE` solo documenta lo
