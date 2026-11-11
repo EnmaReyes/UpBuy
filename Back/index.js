@@ -172,7 +172,7 @@ app.use(globalLimiter);
 // arranco (si esto responde y /api/* da 503, el problema es la base).
 app.get("/", (req, res) => {
   res.json({
-    message: "ByGio API funcionando correctamente 🚀",
+    message: "UPBUY API funcionando correctamente 🚀",
   });
 });
 
