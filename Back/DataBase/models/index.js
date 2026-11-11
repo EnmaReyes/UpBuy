@@ -7,14 +7,17 @@
 // Uso: const { Order, OrderItem } = require("../DataBase/models/index.js");
 
 const { sequelize } = require("../db.js");
-const { Articulos } = require("./Articulos.js");
-const { Banner } = require("./Banner.js");
-const { Campaign } = require("./Campaign.js");
+const { Product } = require("./Product.js");
 const { Category } = require("./Category.js");
-const { Dtf } = require("./Dtf.js");
-const { PriceVariant } = require("./PriceVariant.js");
-const { ProductPrice } = require("./ProductPrice.js");
-const { ShippingRate } = require("./ShippingRate.js");
+const { ProductImage } = require("./ProductImage.js");
+const { Supplier } = require("./Supplier.js");
+const { SupplierCredential } = require("./SupplierCredential.js");
+const { SupplierProduct } = require("./SupplierProduct.js");
+const {
+  SupplierProductVariation,
+} = require("./SupplierProductVariation.js");
+const { SupplierProductAsset } = require("./SupplierProductAsset.js");
+const { CatalogSyncRun } = require("./CatalogSyncRun.js");
 const { Usuarios } = require("./Usuarios.js");
 const { Order } = require("./Order.js");
 const { OrderItem } = require("./OrderItem.js");
@@ -27,25 +30,28 @@ const { AuditLog } = require("./AuditLog.js");
 const { SyncLog } = require("./SyncLog.js");
 const enums = require("./enums.js");
 
-// Define las asociaciones nuevas (Requiere los modelos de arriba ya definidos)
+// Define las asociaciones (requiere los modelos de arriba ya definidos).
 require("./associations.js");
 
 module.exports = {
   sequelize,
-  Articulos,
-  Banner,
-  Campaign,
+  // Catalogo
+  Product,
   Category,
-  Dtf,
-  Notificacion,
-  PriceVariant,
-  ProductPrice,
-  ShippingRate,
+  ProductImage,
+  Supplier,
+  SupplierCredential,
+  SupplierProduct,
+  SupplierProductVariation,
+  SupplierProductAsset,
+  CatalogSyncRun,
+  // Comercio
   Usuarios,
   Order,
   OrderItem,
   Payment,
   OrderStatusHistory,
+  Notificacion,
   Address,
   WebhookEvent,
   AuditLog,

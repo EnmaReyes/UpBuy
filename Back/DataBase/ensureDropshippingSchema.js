@@ -104,7 +104,14 @@ const getSchemaState = async (transaction) => {
 
        EXISTS (SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'public' AND table_name = 'notificaciones'
-                  AND column_name = 'orderId')            AS "hasNotificationOrderId"`,
+                  AND column_name = 'orderId')            AS "hasNotificationOrderId",
+
+       -- Indice unico que garantiza la idempotencia de los webhooks. Se
+       -- verifica aparte porque los indices no aparecen en information_schema.
+       EXISTS (SELECT 1 FROM pg_indexes
+                WHERE schemaname = 'public'
+                  AND indexname = 'webhook_events_provider_event_id_unique')
+                                                          AS "hasWebhookUnique"`,
     { transaction },
   );
 
@@ -130,6 +137,7 @@ const needsMigration = (state) => {
     !state.hasWebhookEvents ||
     !state.hasAuditLogs ||
     !state.hasSyncLogs ||
+    !state.hasWebhookUnique ||
     (state.hasPayments && !state.hasPayoutAmount) ||
     (state.hasPayments && !state.hasCollectedAt) ||
     (state.hasPayments && !state.hasSettledAt) ||
@@ -273,6 +281,13 @@ const applySchema = async (transaction, state) => {
   await sequelize.query(
     `CREATE UNIQUE INDEX IF NOT EXISTS webhook_events_provider_event_id_unique
        ON webhook_events (provider, "eventId")`,
+    { transaction },
+  );
+
+  // El indice no unico equivalente es redundante y permitia duplicados en
+  // bases donde la migracion no habia corrido: se retira.
+  await sequelize.query(
+    `DROP INDEX IF EXISTS webhook_events_lookup_idx`,
     { transaction },
   );
 

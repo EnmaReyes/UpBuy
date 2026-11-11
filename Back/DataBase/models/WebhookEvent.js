@@ -75,10 +75,9 @@ const WebhookEvent = sequelize.define(
     timestamps: true,
     updatedAt: false,
     indexes: [
-      // El indice unico real lo crea la migracion (webhook_events_provider
-      // _event_id_unique) porque Sequelize no sabe expresar indices
-      // parciales ni compuestos con este patron.
-      { fields: ["provider", "eventId"], name: "webhook_events_lookup_idx" },
+      // El indice UNICO (provider, eventId) lo crea la migracion
+      // (webhook_events_provider_event_id_unique): Sequelize no lo declara
+      // aqui para no crear uno no unico que anularia la idempotencia.
       { fields: ["processed", "createdAt"], name: "webhook_events_pending_idx" },
     ],
   },

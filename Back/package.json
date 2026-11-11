@@ -11,12 +11,16 @@
     "db:migrate": "node scripts/migrateDropshipping.js",
     "db:check": "node scripts/checkSchema.js",
     "db:verify-migration": "node scripts/verifyDropshippingMigration.js",
+    "db:migrate:catalog": "node scripts/migrateSupplierCatalog.js",
+    "db:verify-catalog": "node scripts/verifySupplierCatalogMigration.js",
+    "venndelo:check": "node scripts/check-venndelo.js",
     "test": "node --test test/*.test.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.21.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",

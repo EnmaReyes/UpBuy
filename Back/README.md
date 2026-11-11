@@ -36,12 +36,17 @@ contener secretos**.
 | `npm start` | Servidor sin watcher |
 | `npm test` | Tests de reglas críticas (node:test) |
 | `npm run db:check` | Verifica el esquema |
-| `npm run db:migrate` | Aplica la migración idempotente |
-| `npm run db:verify-migration` | Prueba destructiva de la migración (15/15) |
+| `npm run db:migrate` | Aplica la migración de dropshipping (pedidos) |
+| `npm run db:verify-migration` | Prueba destructiva de la migración de pedidos |
+| `npm run db:migrate:catalog` | Aplica el esquema de catálogo (`--down` revierte) |
+| `npm run db:verify-catalog` | Verifica el esquema de catálogo |
+| `npm run venndelo:check` | Prueba la conexión real con Venndelo |
 | `npm run db:create` | Crea la base local |
 
-La migración es **idempotente** (`DataBase/ensureDropshippingSchema.js`) y corre
-sola al arrancar. No usa `sequelize-cli`.
+Las migraciones son **idempotentes** (`DataBase/ensureCatalogSchema.js` y
+`DataBase/ensureDropshippingSchema.js`) y corren solas al arrancar. No usan
+`sequelize-cli`. `npm run db:migrate:catalog -- --down` revierte el catálogo
+(destructivo; solo desarrollo).
 
 ---
 
@@ -54,7 +59,18 @@ Back/
   config.js             lectura/validación de variables de entorno
   DataBase/
     models/             modelos Sequelize + enums canónicos
-    ensureDropshippingSchema.js
+    ensureCatalogSchema.js        # productos, categorías, proveedores
+    ensureDropshippingSchema.js   # pedidos, estados, contabilidad
+  integrations/         código específico de cada proveedor (sin Express)
+    suppliers/
+      index.js          registro de proveedores de catálogo
+      credentials.js    cifrado AES-256-GCM de credenciales
+      venndelo/
+        venndelo.auth.js       OAuth 2.0 (refresh + rotación + single-flight)
+        venndelo.client.js     cliente HTTP (Bearer, 401-retry)
+        venndelo.catalog.js    GET /products (paginación por cursor)
+        venndelo.assets.js     imágenes (lectura; escritura bloqueada)
+        venndelo.normalize.js  normalización pura y testeable
   Services/
     statusMachine.js    reglas puras de estados (sin DB)
     orderService.js     transiciones + auditoría + historial
@@ -63,14 +79,23 @@ Back/
     accounting.js       contabilidad por rango
     profile.js          perfil completo + normalización de teléfono
     addresses.js        direcciones del comprador
-    catalog.js          vista unificada articulos + dtfs
-    providers/          adaptadores Vendelo / Dropi
-    syncService.js      sincronización IN/OUT
+    prices.js           resolución de precio del producto
+    pricing.js          armado de líneas del pedido
+    catalog/
+      catalogImport.service.js   importación idempotente del catálogo
+      catalogSync.service.js     sincronización + publicar/despublicar
+      catalogRuns.service.js     corridas + lock anti-concurrencia
+      catalogQuery.service.js    lectura pública/admin + edición
+      categories.service.js      categorías internas
+    suppliers/
+      venndelo.service.js  fachada para el panel
+    providers/          adaptadores Vendelo / Dropi (pedidos)
+    syncService.js      sincronización IN/OUT de pedidos
     webhookEvents.js    idempotencia de webhooks
     wompi.js / vendeloWebhook.js
     cron.js             corrida periódica
-  Controllers/          capa HTTP delgada
-  Rutas/                routers de Express
+  Controllers/          capa HTTP delgada (incluye suppliers/)
+  Rutas/                routers de Express (incluye suppliers/)
   Middlewares/          auth, perfiles, rate limits
   docs/                 ESTADOS.md, PROVEEDORES.md
   test/                 pruebas
@@ -107,7 +132,9 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/api/products` | Catálogo unificado (articulos + dtfs) |
+| GET | `/api/products?q=&category=&featured=&limit=&offset=` | Catálogo publicado (solo activos) |
+| GET | `/api/products/:slug` | Detalle (slug, sku o id) |
+| GET | `/api/categories` | Categorías activas |
 | GET | `/api/orders/:id/tracking?phone=&email=` | Tracking sin sesión |
 | POST | `/api/webhooks/wompi` | Firma de Wompi |
 | POST | `/api/webhooks/vendelo` | Firma HMAC de Vendelo |
@@ -152,6 +179,16 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 | POST | `/api/admin/orders/:id/push` |
 | GET/POST | `/api/admin/orders/:id/payments` |
 | PATCH | `/api/admin/orders/:id/payments/:paymentId` |
+| GET/PATCH | `/api/admin/products` · `/api/admin/products/:id` |
+| GET/POST/PUT/DELETE | `/api/admin/categories` · `/api/admin/categories/:id` |
+| GET | `/api/admin/suppliers` |
+| GET | `/api/admin/suppliers/venndelo/status` |
+| POST | `/api/admin/suppliers/venndelo/test-connection` |
+| GET | `/api/admin/suppliers/venndelo/products` (+ `/:id`) |
+| POST | `/api/admin/suppliers/venndelo/products/:id/publish` (+ `/unpublish`) |
+| POST | `/api/admin/suppliers/venndelo/sync` |
+| GET | `/api/admin/suppliers/venndelo/sync-history` |
+| GET | `/api/cron/sync-catalog` (Bearer `CRON_SECRET`) |
 
 `PATCH .../status` acepta `pushToProvider: true`. Si el push falla, el cambio
 local se mantiene y el pedido queda con `providerOutOfSync = true`.
@@ -180,14 +217,80 @@ Y desglosa COD en `unpaid`, `pending_collection`, `collected` y `settled`.
 
 ---
 
-## 7. Proveedores
+## 6.b Catálogo de proveedores (Venndelo Pro)
+
+El catálogo de Venndelo Pro se importa a PostgreSQL y se publica en la tienda
+por decisión del administrador. Detalle completo en
+[`docs/PROVEEDORES.md`](docs/PROVEEDORES.md).
+
+### Modelos
+
+| Tabla | Qué guarda |
+|---|---|
+| `suppliers` | El proveedor (Venndelo, Dropi…). |
+| `supplier_credentials` | Credenciales cifradas (AES-256-GCM) y refresh token rotado. |
+| `supplier_products` | Producto ORIGINAL del proveedor (idempotente por `supplierId + externalId`). |
+| `supplier_product_variations` | Variación (talla): SKU, precio y **cantidad real**. |
+| `supplier_product_assets` | Imágenes del proveedor (URL exacta, posición 1 = principal). |
+| `products` | Producto PUBLICADO en Upbuy (precio de venta, stock en unidades, estado). |
+| `product_images` | Imágenes del producto publicado (con cache en `products.images`). |
+| `categories` + `product_categories` | Categorías internas (N:M). |
+| `catalog_sync_runs` | Bitácora de cada sincronización. |
+
+### OAuth 2.0
+
+`POST /v1/admin/oauth/token` (form-urlencoded) con `grant_type=refresh_token`,
+`refresh_token`, `client_id` y `client_secret`. La respuesta trae
+`access_token`, `expires_in`, `expires_at` y —solo cuando hay rotación—
+`refresh_token` + `refresh_token_expires_at`.
+
+- `venndelo.auth.getAccessToken()` es la única puerta al token: cachea en
+  memoria, renueva 60 s antes de expirar y usa **single-flight** (N llamadas
+  concurrentes = 1 renovación).
+- Si Venndelo rota el refresh token, se guarda cifrado en
+  `supplier_credentials` (requiere `SUPPLIER_CREDENTIALS_ENCRYPTION_KEY`).
+- Un 401 en una petición renueva el token y reintenta **una vez**.
+- Nunca se escriben tokens completos en los logs.
+
+### Importación y sincronización
+
+- `POST /api/admin/suppliers/venndelo/sync` importa el catálogo original y
+  aplica los cambios a los productos publicados. Es idempotente: correrlo dos
+  veces no duplica nada.
+- Paginación por **cursor** (`page_token` / `next_page_token`; `page_size` ≤ 500).
+- Reglas: el **stock** sigue a las unidades reales del proveedor; el **precio de
+  venta nunca se pisa**; si un producto deja de estar disponible se
+  **desactiva** (no se borra); un producto con pedidos jamás se elimina.
+- La importación **no borra** productos que falten en una página parcial.
+- Concurrencia: un advisory lock de Postgres impide dos corridas a la vez (409).
+
+### Publicar
+
+`POST .../products/:id/publish` crea/actualiza el producto en la tienda
+(sugiere precio con `DEFAULT_MARKUP_PERCENT` si no se envía uno) y
+`.../unpublish` lo archiva. Los assets de productos de proveedor **no se
+modifican** (Venndelo lo prohíbe), solo se leen.
+
+### Agregar otro proveedor
+
+1. Crear `integrations/suppliers/<slug>/` con `auth`, `client` y `catalog`.
+2. Registrarlo en `integrations/suppliers/index.js`.
+3. Insertar su fila en `suppliers` (o sembrarla en `ensureCatalogSchema`).
+4. Añadir sus variables al `.env.example`.
+
+Los servicios de `Services/catalog/` no cambian.
+
+---
+
+## 7. Proveedores de pedidos
 
 Contrato, variables y modo manual de Dropi: [`docs/PROVEEDORES.md`](docs/PROVEEDORES.md).
 
 Resumen:
 
-- **Vendelo**: API. Rutas configurables por `VENDELO_PATH_*` (no confirmadas
-  hasta validarlas con su documentación).
+- **Vendelo** (pedidos, legado): API. Rutas configurables por `VENDELO_PATH_*`
+  (no confirmadas hasta validarlas con su documentación). Sin `VENDELO_API_URL`
+  queda en 503 y no afecta a la tienda.
 - **Dropi**: sin API pública confirmada. Modo **manual** por defecto: registra
   la exportación en `sync_logs` y genera CSV para el panel.
 
@@ -201,10 +304,11 @@ Sin credenciales, el proveedor no se llama: el flujo manual sigue funcionando.
 
 - build de `api/index.js` (`@vercel/node`),
 - rewrites de `/api/*` y del resto del sitio,
-- cron diario `0 12 * * *` (plan Hobby = 1 corrida/día).
+- crons diarios `0 12 * * *` (plan Hobby = 1 corrida/día):
+  `/api/cron/sync-providers` y `/api/cron/sync-catalog`.
 
 `api/index.js` exporta la app de Express. La base se inicializa una vez por
-instancia en el primer request (`ensurePricingSchema` +
+instancia en el primer request (`ensureCatalogSchema` +
 `ensureDropshippingSchema`), sin `sequelize.sync()` en producción.
 
 Plan Pro: cambiar el schedule de `vercel.json` a `*/15 * * * *`. Vercel **no

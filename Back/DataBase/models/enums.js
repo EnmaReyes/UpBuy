@@ -46,12 +46,32 @@ const HISTORY_KIND = {
 
 const HISTORY_KIND_VALUES = Object.values(HISTORY_KIND);
 
+// Tipo de linea de pedido. Tras el refactor a `products` solo existe un tipo
+// de producto vendible; el valor se conserva para no reescribir order_items.
 const PRODUCT_TYPE = {
-  ARTICULO: "articulo",
-  DTF: "dtf",
+  PRODUCT: "product",
 };
 
 const PRODUCT_TYPE_VALUES = Object.values(PRODUCT_TYPE);
+
+// Tipos de tarifa de un producto: la talla define el tipo (basico/oversize);
+// 'unico' es para combos, que no dependen de la talla.
+const ARTICLE_TIPO = {
+  BASICO: "basico",
+  OVERSIZE: "oversize",
+  UNICO: "unico",
+};
+
+const ARTICLE_TIPO_VALUES = Object.values(ARTICLE_TIPO);
+
+// Estado editorial del producto publicado en la tienda.
+const PRODUCT_STATUS = {
+  DRAFT: "draft",
+  ACTIVE: "active",
+  ARCHIVED: "archived",
+};
+
+const PRODUCT_STATUS_VALUES = Object.values(PRODUCT_STATUS);
 
 // Canal por el que entro la venta. 'web' lo asigna el checkout; los demas
 // los registra un administrador para ventas externas (presencial/WhatsApp).
@@ -200,13 +220,54 @@ const COD_PAYMENT_METHOD_CODES = [
   PAYMENT_METHOD_CODE.COD_VENDELO,
 ];
 
-// Proveedor logistico (dropshipping).
+// Proveedor logistico (dropshipping) del ciclo de PEDIDOS. Se mantiene tal
+// cual porque `orders.provider` tiene un CHECK con estos valores y hay que
+// respetar el historico.
 const PROVIDER = {
   VENDELO: "vendelo",
   DROPI: "dropi",
 };
 
 const PROVIDER_VALUES = Object.values(PROVIDER);
+
+// ---------------------------------------------------------------------------
+// Catalogo de proveedores (Fase Venndelo).
+//
+// El catalogo vive en su propia tabla `suppliers` y NO comparte el CHECK de
+// `orders.provider`. El slug identifica al proveedor en toda la integracion.
+// ---------------------------------------------------------------------------
+const SUPPLIER_SLUG = {
+  VENNDELO: "venndelo",
+  DROPI: "dropi",
+};
+
+const SUPPLIER_SLUGS = Object.values(SUPPLIER_SLUG);
+
+// Origen de un producto publicado: de donde salio (proveedor o alta manual).
+const PRODUCT_PROVIDER = {
+  MANUAL: "manual",
+  ...PROVIDER,
+  ...SUPPLIER_SLUG,
+};
+
+const PRODUCT_PROVIDER_VALUES = [...new Set(Object.values(PRODUCT_PROVIDER))];
+
+// Estado de una corrida de sincronizacion de catalogo.
+const CATALOG_SYNC_STATUS = {
+  RUNNING: "running",
+  SUCCESS: "success",
+  ERROR: "error",
+};
+
+const CATALOG_SYNC_STATUS_VALUES = Object.values(CATALOG_SYNC_STATUS);
+
+// Quien disparo la corrida.
+const CATALOG_SYNC_TRIGGER = {
+  MANUAL: "manual",
+  CRON: "cron",
+};
+
+const CATALOG_SYNC_TRIGGER_VALUES = Object.values(CATALOG_SYNC_TRIGGER);
 
 // Quien produjo el cambio de estado. Permite que el auto-sync (cron) no pise
 // un cambio manual del administrador.
@@ -277,6 +338,18 @@ module.exports = {
   HISTORY_KIND_VALUES,
   PRODUCT_TYPE,
   PRODUCT_TYPE_VALUES,
+  ARTICLE_TIPO,
+  ARTICLE_TIPO_VALUES,
+  PRODUCT_STATUS,
+  PRODUCT_STATUS_VALUES,
+  SUPPLIER_SLUG,
+  SUPPLIER_SLUGS,
+  PRODUCT_PROVIDER,
+  PRODUCT_PROVIDER_VALUES,
+  CATALOG_SYNC_STATUS,
+  CATALOG_SYNC_STATUS_VALUES,
+  CATALOG_SYNC_TRIGGER,
+  CATALOG_SYNC_TRIGGER_VALUES,
   SALE_CHANNEL,
   SALE_CHANNEL_VALUES,
   PAYMENT_METHOD,

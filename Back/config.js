@@ -1,5 +1,11 @@
 // config.js
-if (process.env.NODE_ENV !== "production") {
+// UPBUY_SKIP_DOTENV=1 lo usan las pruebas que necesitan controlar el entorno
+// (por ejemplo, las de OAuth con fetch mockeado): evita que .env.local
+// sobrescriba los valores del test con credenciales reales.
+if (
+  process.env.NODE_ENV !== "production" &&
+  process.env.UPBUY_SKIP_DOTENV !== "1"
+) {
   try {
     const dotenv = require("dotenv");
     dotenv.config(); // .env (plantilla versionada, sin secretos)
@@ -13,7 +19,7 @@ if (process.env.NODE_ENV !== "production") {
 const FRONTEND_URL =
   process.env.NODE_ENV === "production"
     ? process.env.FRONTEND_URL
-    : "http://localhost:5173";
+    : "http://localhost:3001";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -46,7 +52,7 @@ const DATABASE_URL =
     const DB_HOST = process.env.DB_HOST || "localhost";
     const DB_USER = process.env.DB_USER || "postgres";
     const DB_PASSWORD = process.env.DB_PASSWORD || "password";
-    const DB_NAME = process.env.DB_NAME || "ByGio";
+    const DB_NAME = process.env.DB_NAME || "upBuy";
     const DB_PORT = process.env.DB_PORT || 5432;
 
     return `postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
@@ -68,7 +74,9 @@ const SUPPORTED_DIALECTS = new Set([
 ]);
 
 const inferDialectFromUrl = (url) => {
-  const raw = String(url || "").trim().toLowerCase();
+  const raw = String(url || "")
+    .trim()
+    .toLowerCase();
   if (raw.startsWith("postgres://") || raw.startsWith("postgresql://")) {
     return "postgres";
   }
@@ -85,7 +93,9 @@ const resolveDialect = (explicit, url) => {
   const fromUrl = inferDialectFromUrl(url);
   if (fromUrl) return fromUrl;
 
-  const raw = String(explicit || "").trim().toLowerCase();
+  const raw = String(explicit || "")
+    .trim()
+    .toLowerCase();
   const normalized = raw === "postgresql" ? "postgres" : raw;
   if (!normalized) return "postgres";
 
@@ -154,9 +164,8 @@ module.exports = {
 
   // API de Wompi (consulta de transacciones). Se puede sobreescribir para
   // pruebas locales. El checkout se sirve siempre desde checkout.wompi.co.
-  WOMPI_BASE_URL: (
-    process.env.WOMPI_BASE_URL || ""
-  ).trim() ||
+  WOMPI_BASE_URL:
+    (process.env.WOMPI_BASE_URL || "").trim() ||
     ((process.env.WOMPI_PUBLIC_KEY || "").includes("_test_")
       ? "https://sandbox.wompi.co/v1"
       : "https://production.wompi.co/v1"),
@@ -197,7 +206,9 @@ module.exports = {
   // Nivel minimo de log: debug | info | warn | error.
   // En produccion el default es "info".
   LOG_LEVEL: (() => {
-    const raw = String(process.env.LOG_LEVEL || "").trim().toLowerCase();
+    const raw = String(process.env.LOG_LEVEL || "")
+      .trim()
+      .toLowerCase();
     return ["debug", "info", "warn", "error"].includes(raw)
       ? raw
       : isProduction
@@ -214,8 +225,14 @@ module.exports = {
   //
   // VENDELO_API_URL y VENDELO_TOKEN vacios = el proveedor no esta conectado:
   // las rutas que lo necesitan responden 503 y el flujo manual sigue igual.
+  //
+  // VENDELO_OAUTH_URL + VENDELO_CLIENT_ID + VENDELO_CLIENT_SECRET +
+  // VENDELO_REFRESH_TOKEN se usan solo para obtener/renovar el token
+  // (ver test-venndelo.js). Una vez tienes el token, guardalo en
+  // VENDELO_TOKEN y el adaptador lo usa como Bearer.
   // ---------------------------------------------------------------------
   VENDELO_API_URL: (process.env.VENDELO_API_URL || "").trim(),
+  // Token de acceso (Bearer) para llamar a la API de Vendelo.
   VENDELO_TOKEN: (process.env.VENDELO_TOKEN || "").trim(),
   // Llave de pago de Vendelo (para el checkout hosted del proveedor).
   VENDELO_PAYMENT_KEY: (process.env.VENDELO_PAYMENT_KEY || "").trim(),
@@ -223,6 +240,71 @@ module.exports = {
   // Secreto para verificar la firma del webhook de pagos de Vendelo.
   // Vacio = el endpoint /api/webhooks/vendelo responde 503.
   VENDELO_WEBHOOK_SECRET: (process.env.VENDELO_WEBHOOK_SECRET || "").trim(),
+
+  // Flujo OAuth de Vendelo (solo para obtener/renovar el token de acceso).
+  // Estos valores no se usan directamente en el adaptador de API.
+  VENDELO_OAUTH_URL: (process.env.VENDELO_OAUTH_URL || "").trim(),
+  VENDELO_CLIENT_ID: (process.env.VENDELO_CLIENT_ID || "").trim(),
+  VENDELO_CLIENT_SECRET: (process.env.VENDELO_CLIENT_SECRET || "").trim(),
+  VENDELO_REFRESH_TOKEN: (process.env.VENDELO_REFRESH_TOKEN || "").trim(),
+
+  // ---------------------------------------------------------------------
+  // Venndelo Pro API (catalogo de proveedores).
+  //
+  // OJO: NO confundir con las variables VENDELO_* de arriba, que son del
+  // adaptador de PEDIDOS (especulativo y hoy sin configurar). Estas VENNDELO_*
+  // (con doble N) son de la API administrativa real:
+  //
+  //   base:      https://api.venndelo.com/v1/admin
+  //   auth:      POST /oauth/token  (refresh_token, form-urlencoded)
+  //   catalogo:  GET  /products     (paginacion por cursor)
+  //
+  // Vacio = Venndelo no configurado: las rutas de catalogo responden 503 y el
+  // resto de la tienda sigue funcionando.
+  // ---------------------------------------------------------------------
+  VENNDELO_API_URL: (process.env.VENNDELO_API_URL || "https://api.venndelo.com").trim(),
+  // Ruta de la API administrativa, relativa a VENNDELO_API_URL.
+  VENNDELO_ADMIN_PATH: (process.env.VENNDELO_ADMIN_PATH || "/v1/admin").trim(),
+  VENNDELO_OAUTH_URL: (
+    process.env.VENNDELO_OAUTH_URL ||
+    `${(process.env.VENNDELO_API_URL || "https://api.venndelo.com").replace(/\/+$/, "")}${(
+      process.env.VENNDELO_ADMIN_PATH || "/v1/admin"
+    ).replace(/\/+$/, "")}/oauth/token`
+  ).trim(),
+  VENNDELO_CLIENT_ID: (process.env.VENNDELO_CLIENT_ID || "").trim(),
+  VENNDELO_CLIENT_SECRET: (process.env.VENNDELO_CLIENT_SECRET || "").trim(),
+  VENNDELO_REFRESH_TOKEN: (process.env.VENNDELO_REFRESH_TOKEN || "").trim(),
+
+  // Clave AES-256-GCM (base64, 32 bytes) para cifrar las credenciales que se
+  // persisten en supplier_credentials. Sin ella, la rotacion del refresh token
+  // NO se guarda en la base (solo funciona con VENNDELO_REFRESH_TOKEN del
+  // entorno). _PREVIOUS permite rotar la clave sin perder acceso.
+  SUPPLIER_CREDENTIALS_ENCRYPTION_KEY: (
+    process.env.SUPPLIER_CREDENTIALS_ENCRYPTION_KEY || ""
+  ).trim(),
+  SUPPLIER_CREDENTIALS_ENCRYPTION_KEY_PREVIOUS: (
+    process.env.SUPPLIER_CREDENTIALS_ENCRYPTION_KEY_PREVIOUS || ""
+  ).trim(),
+
+  // ---------------------------------------------------------------------
+  // Sincronizacion del catalogo
+  // ---------------------------------------------------------------------
+  CATALOG_SYNC_ENABLED: toBool(process.env.CATALOG_SYNC_ENABLED, true),
+  // Tamano de pagina del proveedor (Venndelo admite hasta 500).
+  CATALOG_SYNC_PAGE_SIZE: Math.min(
+    Math.max(toNumber(process.env.CATALOG_SYNC_PAGE_SIZE, 500), 1),
+    500,
+  ),
+  // ANY | OWN_STOCK | DROPSHIP. Por defecto DROPSHIP: solo productos de la
+  // bodega virtual del proveedor.
+  CATALOG_SYNC_SUPPLY_MODEL: (() => {
+    const raw = String(process.env.CATALOG_SYNC_SUPPLY_MODEL || "DROPSHIP")
+      .trim()
+      .toUpperCase();
+    return ["ANY", "OWN_STOCK", "DROPSHIP"].includes(raw) ? raw : "DROPSHIP";
+  })(),
+  // Referencia del schedule desplegado (el real vive en vercel.json).
+  CATALOG_SYNC_SCHEDULE: (process.env.CATALOG_SYNC_SCHEDULE || "0 12 * * *").trim(),
 
   // Dropi no tiene API publica confirmada. Con DROPI_API_URL y DROPI_TOKEN
   // vacios el adaptador funciona en modo MANUAL: el pedido se registra y se
@@ -232,7 +314,9 @@ module.exports = {
   DROPI_TOKEN: (process.env.DROPI_TOKEN || "").trim(),
   // Proveedor por defecto cuando el pedido no dice de donde viene.
   DROPI_DEFAULT_PROVIDER: (() => {
-    const raw = String(process.env.DROPI_DEFAULT_PROVIDER || "").trim().toLowerCase();
+    const raw = String(process.env.DROPI_DEFAULT_PROVIDER || "")
+      .trim()
+      .toLowerCase();
     return ["vendelo", "dropi"].includes(raw) ? raw : "vendelo";
   })(),
 

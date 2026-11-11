@@ -79,9 +79,11 @@ const run = async () => {
         );
       }
 
+      // allowNull === undefined: atributo autogenerado (p. ej. la tabla
+      // intermedia de un belongsToMany). No es una decision del modelo.
       const modelNotNull = attr.allowNull === false;
       const dbNotNull = dbCol.is_nullable === "NO";
-      if (modelNotNull !== dbNotNull) {
+      if (attr.allowNull !== undefined && modelNotNull !== dbNotNull) {
         issues.push(
           `⚠️ ${columnName}: allowNull=${attr.allowNull} pero la base es ${dbCol.is_nullable}`,
         );

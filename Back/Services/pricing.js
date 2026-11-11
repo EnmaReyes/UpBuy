@@ -1,30 +1,19 @@
-const {
-  Articulos,
-  Dtf,
-  Category,
-} = require("../DataBase/models/index.js");
+const { Product } = require("../DataBase/models/index.js");
 const HttpError = require("../Utils/HttpError.js");
 const {
   articleTipo,
   resolvePrice,
   COMBO_TIPO,
   aplicarDescuento,
-  decorateArticle,
-  decorateDtf,
+  buildPriceSnapshot,
+  PRODUCT_TYPES,
 } = require("./prices.js");
 
 // El precio y la disponibilidad SIEMPRE se resuelven en el backend.
-// Lo que envie el cliente (cost, precio, total) se ignora por completo.
+// Lo que envíe el cliente (cost, precio, total) se ignora por completo.
 
 const MAX_ITEMS = 50;
 const MAX_QUANTITY = 20;
-
-// El frontend envia "basic" | "oversize"; en la BD el tipo es "basico".
-const DTF_TIPO_MAP = {
-  basic: "basico",
-  basico: "basico",
-  oversize: "oversize",
-};
 
 const toArray = (value) => {
   if (Array.isArray(value)) return value;
@@ -56,204 +45,90 @@ const parseQuantity = (quantity) => {
   return parsed;
 };
 
-const buildPriceSnapshot = (price, productType, tipo, kind) => ({
-  source: price.source,
-  priceVariantId: price.priceVariantId,
-  productPriceId: price.productPriceId,
-  productType,
-  tipo,
-  kind,
-  precio: Number(price.precio),
-  precioAnterior: price.precioAnterior ?? null,
-  capturedAt: new Date().toISOString(),
-});
-
-// ------------------------------- Articulos -------------------------------
-const resolveArticle = async (item, transaction) => {
+// ----------------------------- Productos --------------------------------
+const resolveProduct = async (item, transaction) => {
   const quantity = parseQuantity(item.quantity);
 
-  const articulo = await Articulos.findByPk(item.productId, {
+  const product = await Product.findByPk(item.productId, {
     transaction,
-    lock: transaction.LOCK.UPDATE,
+    ...(transaction ? { lock: transaction.LOCK.UPDATE } : {}),
   });
 
-  if (!articulo) {
+  if (!product) {
     throw new HttpError(404, "El producto ya no existe");
   }
-  if (!articulo.stock) {
-    throw new HttpError(409, `"${articulo.title}" está agotado`);
+  if (!product.active) {
+    throw new HttpError(409, `"${product.name}" no está disponible`);
+  }
+  if (Number(product.stock) < quantity) {
+    throw new HttpError(409, `"${product.name}" está agotado`);
   }
 
-  const sizes = toArray(articulo.sizes);
-  const oversize = Boolean(articulo.oversize);
+  const oversize = Boolean(product.oversize);
   let size = null;
 
-  if (!oversize) {
+  if (!oversize && !product.combo) {
     const requested = String(item.size || "").trim();
     if (!requested) {
-      throw new HttpError(400, `Selecciona una talla para "${articulo.title}"`);
+      throw new HttpError(400, `Selecciona una talla para "${product.name}"`);
     }
-    if (!sizes.includes(requested)) {
-      throw new HttpError(400, `Talla inválida para "${articulo.title}"`);
+    const sizes = toArray(product.sizes).map((s) => String(s));
+    if (sizes.length > 0 && !sizes.includes(requested)) {
+      throw new HttpError(
+        400,
+        `La talla "${requested}" no está disponible para "${product.name}"`,
+      );
     }
     size = requested;
   }
 
-  // Un combo es un articulo con un precio distinto. El monto vive en
-  // product_prices (kind = "combo"), no en la tabla de articulos.
-  const kind = articulo.combo ? "combo" : "unit";
-  const tipo = articulo.combo ? COMBO_TIPO : articleTipo(articulo);
+  const kind = product.combo ? "combo" : "unit";
+  const tipo = product.combo ? COMBO_TIPO : articleTipo(product);
 
   const price = await resolvePrice({
-    productType: "articulo",
-    productId: articulo.id,
+    productId: product.id,
     tipo,
     kind,
     transaction,
   });
 
-  if (!price) {
-    throw new HttpError(
-      409,
-      articulo.combo
-        ? "El combo no tiene un precio configurado"
-        : "El producto no tiene un precio configurado",
-    );
-  }
-
-  // unitPrice es el precio FINAL con descuento (si aplica); el desglose
-  // completo queda congelado en priceSnapshot para que un cambio posterior
-  // del porcentaje no altere este pedido.
-  const resultado = articulo.combo
-    ? aplicarDescuento(Number(price.precio), 0)
-    : aplicarDescuento(Number(price.precio), articulo.descuentoPorcentaje);
+  const resultado = aplicarDescuento(price.precio, product.descuentoPorcentaje);
   const unitPrice = resultado.precioFinal;
   const snapshot = {
-    ...buildPriceSnapshot(price, "articulo", tipo, kind),
+    ...buildPriceSnapshot(price, "product", tipo, kind),
     precioOriginal: resultado.precioOriginal,
     precioFinal: resultado.precioFinal,
     descuentoPorcentaje: resultado.descuentoPorcentaje,
     descuentoUnitario: resultado.descuentoUnitario,
   };
-  const decorated = await decorateArticle(articulo, transaction);
 
   return {
     line: {
-      productType: "articulo",
-      productId: articulo.id,
-      variantId: price.productPriceId || price.priceVariantId || null,
-      title: articulo.title,
-      imageUrl: firstImage(articulo.img),
+      productType: PRODUCT_TYPES[0],
+      productId: product.id,
+      variantId: null,
+      title: product.name,
+      imageUrl: firstImage(product.images),
       size,
       oversize,
       shirtColor: null,
       shirtName: null,
       dtfSize: null,
       unitPrice,
+      unitCost: Number(product.cost) || 0,
+      providerSku: product.providerSku || null,
+      nameSnapshot: product.name,
       quantity,
       lineTotal: unitPrice * quantity,
-      productSnapshot: decorated,
+      productSnapshot: { ...product.toJSON() },
       priceSnapshot: snapshot,
-    },
-    // El descuento de articulo ya viene incluido en unitPrice/lineTotal y en
-    // el subtotal; NO se suma a discountTotal para no restarlo dos veces.
-    // discountTotal queda reservado al descuento manual en COP (ventas manuales).
-    discount: 0,
-  };
-};
-
-// --------------------------------- DTF ----------------------------------
-// El DTF se vende SIEMPRE montado en una camiseta (regla de negocio): el
-// diseno suelto, sin franela, todavia no se comercializa. La franela se
-// guarda como snapshot en la linea del pedido.
-const resolveDtf = async (item, transaction, { requireShirt = false } = {}) => {
-  const quantity = parseQuantity(item.quantity);
-
-  // El lock se toma solo sobre "dtfs": Postgres no permite FOR UPDATE con
-  // un LEFT JOIN (la categoria se consulta aparte).
-  const dtf = await Dtf.findByPk(item.productId, {
-    transaction,
-    lock: transaction.LOCK.UPDATE,
-  });
-
-  if (!dtf) {
-    throw new HttpError(404, "El diseño DTF ya no existe");
-  }
-  if (!dtf.stock) {
-    throw new HttpError(409, "El diseño DTF está agotado");
-  }
-
-  const tipo = DTF_TIPO_MAP[String(item.dtfSize || "").trim().toLowerCase()];
-  if (!tipo) {
-    throw new HttpError(400, "Selecciona el tamaño del DTF");
-  }
-
-  const shirtColor = item.shirtColor
-    ? String(item.shirtColor).trim().slice(0, 50)
-    : "";
-  const shirtName = item.shirtName
-    ? String(item.shirtName).trim().slice(0, 100)
-    : "";
-
-  if (requireShirt && (!shirtColor || !shirtName)) {
-    throw new HttpError(
-      400,
-      "Selecciona la franela del diseño DTF (no vendemos el diseño suelto)",
-    );
-  }
-
-  const category = await Category.findByPk(dtf.categoryId, { transaction });
-  const price = await resolvePrice({
-    productType: "dtf",
-    productId: dtf.id,
-    tipo,
-    kind: "unit",
-    transaction,
-  });
-
-  if (!price) {
-    throw new HttpError(409, "El diseño DTF no tiene un precio configurado");
-  }
-
-  const unitPrice = Number(price.precio);
-  if (unitPrice <= 0) {
-    throw new HttpError(409, "El diseño DTF no tiene un precio válido");
-  }
-
-  const categoryName = category?.name || "Sin categoría";
-  const decorated = await decorateDtf(dtf, transaction);
-
-  return {
-    line: {
-      productType: "dtf",
-      productId: dtf.id,
-      variantId: price.productPriceId || price.priceVariantId || null,
-      title: `Diseño DTF · ${categoryName}`,
-      imageUrl: dtf.img || null,
-      size: null,
-      oversize: tipo === "oversize",
-      shirtColor: shirtColor || null,
-      shirtName: shirtName || null,
-      dtfSize: tipo,
-      unitPrice,
-      quantity,
-      lineTotal: unitPrice * quantity,
-      productSnapshot: {
-        ...decorated,
-        category: category ? category.toJSON() : null,
-      },
-      priceSnapshot: buildPriceSnapshot(price, "dtf", tipo, "unit"),
     },
     discount: 0,
   };
 };
 
 // ------------------------------ Carrito ---------------------------------
-const buildOrderLines = async (
-  items,
-  transaction,
-  { requireDtfShirt = false } = {},
-) => {
+const buildOrderLines = async (items, transaction) => {
   if (!Array.isArray(items) || items.length === 0) {
     throw new HttpError(400, "El carrito está vacío");
   }
@@ -268,7 +143,7 @@ const buildOrderLines = async (
   for (const rawItem of items) {
     const item = rawItem || {};
     const productType = String(
-      item.productType || item.type || "",
+      item.productType || item.type || "product",
     ).toLowerCase();
     const productId = item.productId || item.id;
 
@@ -276,17 +151,11 @@ const buildOrderLines = async (
       throw new HttpError(400, "Falta el producto en uno de los ítems");
     }
 
-    let resolved = null;
-
-    if (productType === "articulo" || productType === "article") {
-      resolved = await resolveArticle({ ...item, productId }, transaction);
-    } else if (productType === "dtf") {
-      resolved = await resolveDtf({ ...item, productId }, transaction, {
-        requireShirt: requireDtfShirt,
-      });
-    } else {
+    if (!PRODUCT_TYPES.includes(productType) && productType !== "article") {
       throw new HttpError(400, "Tipo de producto inválido");
     }
+
+    const resolved = await resolveProduct({ ...item, productId }, transaction);
 
     lines.push(resolved.line);
     subtotal += resolved.line.lineTotal;
@@ -296,4 +165,4 @@ const buildOrderLines = async (
   return { lines, subtotal, discountTotal };
 };
 
-module.exports = { buildOrderLines, DTF_TIPO_MAP, firstImage };
+module.exports = { buildOrderLines, firstImage, resolveProduct };

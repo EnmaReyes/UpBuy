@@ -3,10 +3,6 @@
 // Se definen en un solo lugar para evitar el problema de los modelos
 // actuales (asociaciones como efecto secundario del orden de importacion).
 // Los modelos nuevos NO se importan entre si; solo este archivo los cruza.
-//
-// Las asociaciones historicas (Usuarios<->Articulos, Usuarios<->Banner,
-// Category<->Dtf) siguen en sus propios archivos para no cambiar
-// comportamiento existente.
 
 const { Usuarios } = require("./Usuarios.js");
 const { Order } = require("./Order.js");
@@ -18,6 +14,17 @@ const { Address } = require("./Address.js");
 const { WebhookEvent } = require("./WebhookEvent.js");
 const { AuditLog } = require("./AuditLog.js");
 const { SyncLog } = require("./SyncLog.js");
+const { Product } = require("./Product.js");
+const { Category } = require("./Category.js");
+const { ProductImage } = require("./ProductImage.js");
+const { Supplier } = require("./Supplier.js");
+const { SupplierCredential } = require("./SupplierCredential.js");
+const { SupplierProduct } = require("./SupplierProduct.js");
+const {
+  SupplierProductVariation,
+} = require("./SupplierProductVariation.js");
+const { SupplierProductAsset } = require("./SupplierProductAsset.js");
+const { CatalogSyncRun } = require("./CatalogSyncRun.js");
 
 // ------------------------------- Pedidos -------------------------------
 Usuarios.hasMany(Order, {
@@ -68,8 +75,7 @@ OrderStatusHistory.belongsTo(Usuarios, {
   as: "changedBy",
 });
 
-// Los precios ya no cuelgan de un DTF: se resuelven desde price_variants
-// (tarifa global) y product_prices (excepciones/combos). Los pedidos guardan
+// El precio de venta vive en el modelo Product (price). Los pedidos guardan
 // su propio priceSnapshot, por eso OrderItem no tiene asociacion de precio.
 
 // Notificaciones por usuario
@@ -142,6 +148,130 @@ SyncLog.belongsTo(Order, {
 // sueltos porque el pedido se puede resolver DESPUES del evento (o nunca,
 // si el evento no es de Upbuy). Se indexa igual por proveedor y fecha.
 
+// ------------------------------- Proveedores -------------------------------
+// Un proveedor tiene una credencial, muchos productos originales y muchas
+// corridas de sincronizacion.
+Supplier.hasOne(SupplierCredential, {
+  foreignKey: "supplierId",
+  as: "credential",
+});
+
+SupplierCredential.belongsTo(Supplier, {
+  foreignKey: "supplierId",
+  as: "supplier",
+});
+
+Supplier.hasMany(SupplierProduct, {
+  foreignKey: "supplierId",
+  as: "products",
+});
+
+SupplierProduct.belongsTo(Supplier, {
+  foreignKey: "supplierId",
+  as: "supplier",
+});
+
+Supplier.hasMany(CatalogSyncRun, {
+  foreignKey: "supplierId",
+  as: "syncRuns",
+});
+
+CatalogSyncRun.belongsTo(Supplier, {
+  foreignKey: "supplierId",
+  as: "supplier",
+});
+
+// ------------------------- Catalogo original -------------------------------
+// Cada producto del proveedor tiene variaciones (talla/precio/stock) e
+// imagenes propias.
+SupplierProduct.hasMany(SupplierProductVariation, {
+  foreignKey: "supplierProductId",
+  as: "variations",
+  onDelete: "CASCADE",
+});
+
+SupplierProductVariation.belongsTo(SupplierProduct, {
+  foreignKey: "supplierProductId",
+  as: "supplierProduct",
+});
+
+SupplierProduct.hasMany(SupplierProductAsset, {
+  foreignKey: "supplierProductId",
+  as: "assets",
+  onDelete: "CASCADE",
+});
+
+SupplierProductAsset.belongsTo(SupplierProduct, {
+  foreignKey: "supplierProductId",
+  as: "supplierProduct",
+});
+
+// ------------------------- Catalogo publicado ------------------------------
+// El producto publicado apunta al proveedor y al producto original del que
+// salio. Si el producto del proveedor desaparece, el publicado SOBREVIVE
+// (SET NULL), porque puede tener pedidos.
+Supplier.hasMany(Product, {
+  foreignKey: "supplierId",
+  as: "publishedProducts",
+});
+
+Product.belongsTo(Supplier, {
+  foreignKey: "supplierId",
+  as: "supplier",
+});
+
+SupplierProduct.hasMany(Product, {
+  foreignKey: "supplierProductId",
+  as: "publishedProducts",
+});
+
+Product.belongsTo(SupplierProduct, {
+  foreignKey: "supplierProductId",
+  as: "supplierProduct",
+});
+
+Product.hasMany(ProductImage, {
+  foreignKey: "productId",
+  as: "gallery",
+  onDelete: "CASCADE",
+});
+
+ProductImage.belongsTo(Product, {
+  foreignKey: "productId",
+  as: "product",
+});
+
+// Categorias: N:M. La tabla intermedia la crea la migracion
+// (ensureCatalogSchema.js) con las FKs en cascada.
+Product.belongsToMany(Category, {
+  through: "product_categories",
+  as: "categories",
+  foreignKey: "productId",
+  otherKey: "categoryId",
+  timestamps: false,
+});
+
+Category.belongsToMany(Product, {
+  through: "product_categories",
+  as: "products",
+  foreignKey: "categoryId",
+  otherKey: "productId",
+  timestamps: false,
+});
+
+// El autor del producto (usuario que lo publico).
+Usuarios.hasMany(Product, {
+  foreignKey: "uid",
+  as: "productosPublicados",
+  sourceKey: "id",
+});
+
+Product.belongsTo(Usuarios, {
+  foreignKey: "uid",
+  as: "author",
+  targetKey: "id",
+});
+
 module.exports = {
   Usuarios,
   Order,
@@ -153,4 +283,13 @@ module.exports = {
   WebhookEvent,
   AuditLog,
   SyncLog,
+  Product,
+  Category,
+  ProductImage,
+  Supplier,
+  SupplierCredential,
+  SupplierProduct,
+  SupplierProductVariation,
+  SupplierProductAsset,
+  CatalogSyncRun,
 };

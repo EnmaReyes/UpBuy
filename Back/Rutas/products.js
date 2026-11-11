@@ -1,9 +1,10 @@
 const express = require("express");
-const { list } = require("../Controllers/products.js");
+const { list, detail } = require("../Controllers/catalog.controller.js");
 
 const router = express.Router();
 
-// Publico: el catalogo se puede ver sin sesion.
+// Catalogo publico (sin sesion). Solo productos publicados y activos.
 router.get("/", list);
+router.get("/:slug", detail);
 
 module.exports = router;

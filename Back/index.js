@@ -1,27 +1,28 @@
 const express = require("express");
 
-const postRoutes = require("./Rutas/posts.js");
 const authRoutes = require("./Rutas/auth.js");
 const userRoutes = require("./Rutas/user.js");
 const usersRoutes = require("./Rutas/users.js");
 const notificationsRoutes = require("./Rutas/notifications.js");
-const campaignsRoutes = require("./Rutas/campaigns.js");
-const bannerRoutes = require("./Rutas/banner.js");
-const dtfRoutes = require("./Rutas/dtf.js");
-const categoryRoutes = require("./Rutas/category.js");
 const ordersRoutes = require("./Rutas/orders.js");
-const shippingRoutes = require("./Rutas/shipping.js");
 const adminOrdersRoutes = require("./Rutas/adminOrders.js");
 const adminUsersRoutes = require("./Rutas/adminUsers.js");
-const pricesRoutes = require("./Rutas/prices.js");
 const paymentsRoutes = require("./Rutas/payments.js");
 const webhooksRoutes = require("./Rutas/webhooks.js");
-const productsRoutes = require("./Rutas/products.js");
 const cronRoutes = require("./Rutas/cron.js");
+const productsRoutes = require("./Rutas/products.js");
+const categoriesRoutes = require("./Rutas/categories.js");
+const adminProductsRoutes = require("./Rutas/adminProducts.js");
+const adminCategoriesRoutes = require("./Rutas/adminCategories.js");
+const suppliersRoutes = require("./Rutas/suppliers/index.js");
 
 const { sequelize, databaseHost } = require("./DataBase/db.js");
-const { ensurePricingSchema } = require("./DataBase/ensurePricing.js");
-const { ensureDropshippingSchema } = require("./DataBase/ensureDropshippingSchema.js");
+const {
+  ensureCatalogSchema,
+} = require("./DataBase/ensureCatalogSchema.js");
+const {
+  ensureDropshippingSchema,
+} = require("./DataBase/ensureDropshippingSchema.js");
 
 // Carga todos los modelos y asociaciones antes de cualquier consulta.
 require("./DataBase/models/index.js");
@@ -76,7 +77,7 @@ const connectWithRetry = async () => {
 };
 
 // Autenticacion + esquema. En produccion NO se usa sequelize.sync(): el
-// esquema se aplica solo con ensurePricingSchema() y
+// esquema se aplica solo con ensureCatalogSchema() y
 // ensureDropshippingSchema(), que son idempotentes y no hacen nada cuando
 // ya esta todo al dia.
 const initializeDatabase = async () => {
@@ -87,11 +88,12 @@ const initializeDatabase = async () => {
     await sequelize.sync();
   }
 
-  await ensurePricingSchema();
+  // Catalogo: productos, categorias, imagenes y catalogo de proveedores.
+  // Tambien retira el esquema viejo (articulos / price_variants) si esta vacio.
+  await ensureCatalogSchema();
 
-  // Dropshipping: estados canonicos, proveedores, contabilidad y auditoria.
-  // Va despues de ensurePricingSchema porque los pedidos ya tienen las
-  // columnas de precio que este primer paso garantiza.
+  // Dropshipping: estados canonicos, proveedores de pedidos, contabilidad y
+  // auditoria.
   await ensureDropshippingSchema();
 
   console.log("✅ Base de datos inicializada");
@@ -214,25 +216,24 @@ app.use(async (req, res, next) => {
 });
 
 // Rutas
-app.use("/api/posts", postRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 // API canonica del comprador: /api/users/me (+ direcciones).
 app.use("/api/users", usersRoutes);
 app.use("/api/notifications", notificationsRoutes);
-app.use("/api/admin/campaigns", campaignsRoutes);
-app.use("/api/banner", bannerRoutes);
-app.use("/api/dtf", dtfRoutes);
-app.use("/api/category", categoryRoutes);
 app.use("/api/orders", ordersRoutes);
-app.use("/api/shipping", shippingRoutes);
+// Catalogo publico: productos publicados y categorias activas.
+app.use("/api/products", productsRoutes);
+app.use("/api/categories", categoriesRoutes);
 app.use("/api/admin/orders", adminOrdersRoutes);
 app.use("/api/admin/users", adminUsersRoutes);
-app.use("/api/prices", pricesRoutes);
+// Catalogo administrativo y proveedores.
+app.use("/api/admin/products", adminProductsRoutes);
+app.use("/api/admin/categories", adminCategoriesRoutes);
+app.use("/api/admin/suppliers", suppliersRoutes);
 app.use("/api/payments", paymentsRoutes);
 // Webhooks canonicos: /api/webhooks/wompi y /api/webhooks/vendelo.
 app.use("/api/webhooks", webhooksRoutes);
-app.use("/api/products", productsRoutes);
 // Tareas periodicas: /api/cron/sync-providers (Bearer CRON_SECRET).
 app.use("/api/cron", cronRoutes);
 
@@ -259,7 +260,7 @@ if (!isProduction) {
 
 // Cierre ordenado: libera conexiones y el servidor HTTP.
 const gracefulShutdown = async (signal) => {
-  console.log(` ${signal} recibido, cerrando ordenadamente...`);
+  console.log(`${signal} recibido, cerrando ordenadamente...`);
   try {
     if (server) server.close();
     await sequelize.close();

@@ -5,8 +5,7 @@ const {
   OrderItem,
   Payment,
   OrderStatusHistory,
-  Articulos,
-  Dtf,
+  Product,
   Usuarios,
 } = require("../DataBase/models/index.js");
 const {
@@ -16,8 +15,6 @@ const {
   PAYMENT_STATE_VALUES,
   PAYMENT_METHOD_CODE,
   STATUS_SOURCE,
-  // PAYMENT_STATUS es el ciclo del INTENTO de pago (tabla payments), mas
-  // rico que el ciclo canonico del dinero del pedido. No confundir.
   PAYMENT_STATUS,
   PAYMENT_STATUS_VALUES,
   HISTORY_KIND,
@@ -25,9 +22,9 @@ const {
   SALE_CHANNEL_VALUES,
   PAYMENT_METHOD_VALUES,
   STOCK_RESERVATION_MINUTES,
+  DELIVERY_DAYS,
 } = require("../DataBase/models/enums.js");
 const { buildOrderLines } = require("./pricing.js");
-const { quoteShipping, deliveryDaysForZone } = require("./shipping.js");
 const {
   buildAddressSnapshot,
   applyAccountingTotals,
@@ -132,14 +129,15 @@ const generateOrderNumber = async (transaction) => {
   return `BYG-${new Date().getFullYear()}-${numero}`;
 };
 
-const productModel = (productType) =>
-  productType === "articulo" ? Articulos : Dtf;
+const productModel = () => Product;
 
-// Libera el stock reservado por un pedido (solo si la reserva esta activa).
+// El stock son UNIDADES reales: reservar/librar mueve la cantidad, no un flag.
 //
-// Con stock booleano la reserva esta desactivada: el pedido nunca bloqueo el
-// producto, asi que no hay nada que devolver. Escribir stock = true aqui
-// "reviviria" productos que un administrador marco como agotados.
+// El UPDATE es atomico y condicional (stock >= cantidad): si otro pedido se
+// adelanto, `affected` es 0 y el pedido falla en lugar de vender de mas.
+
+// Devuelve las unidades reservadas por un pedido (cancelacion o reserva
+// vencida). Solo aplica si la reserva estuvo activa.
 const releaseOrderStock = async (order, transaction) => {
   if (!STOCK_RESERVATION_ENABLED) return;
 
@@ -150,19 +148,26 @@ const releaseOrderStock = async (order, transaction) => {
 
   for (const item of items) {
     const Model = productModel(item.productType);
-    await Model.update(
-      { stock: true },
-      { where: { id: item.productId }, transaction },
+    await sequelize.query(
+      `UPDATE "products" SET stock = stock + :qty
+        WHERE id = :id`,
+      {
+        replacements: { qty: Number(item.quantity) || 0, id: item.productId },
+        transaction,
+      },
     );
   }
 };
 
-// Devuelve el producto al catalogo cuando la compra queda pagada.
+// Confirma la venta cuando el pago se aprueba.
 //
-// Regla de negocio: mientras el stock sea booleano, una compra aprobada deja
-// el producto disponible otra vez (stock = true) en lugar de sacarlo del
-// catalogo. No confundir con releaseOrderStock, que deshace una RESERVA.
+//   - Con la reserva ACTIVA las unidades YA se descontaron al crear el pedido,
+//     asi que aqui no hay nada que hacer (no se pueden descontar dos veces).
+//   - Sin reserva, este es el primer descuento real de stock (la venta ocurre
+//     al aprobarse el pago).
 const restoreOrderStock = async (order, transaction) => {
+  if (STOCK_RESERVATION_ENABLED) return;
+
   const items = await OrderItem.findAll({
     where: { orderId: order.id },
     transaction,
@@ -171,24 +176,26 @@ const restoreOrderStock = async (order, transaction) => {
   for (const item of items) {
     const Model = productModel(item.productType);
     await Model.update(
-      { stock: true },
+      { stock: sequelize.literal(`GREATEST(stock - ${Number(item.quantity) || 0}, 0)`) },
       { where: { id: item.productId }, transaction },
     );
   }
 };
 
-// Reserva el stock de cada producto del pedido. Los productos ya estan
-// bloqueados y validados (stock = true) dentro de la misma transaccion.
-//
-// El UPDATE es condicional (stock = true): si otro pedido se le adelanto, la
-// fila ya no cumple la condicion, `affected` es 0 y el pedido falla en lugar
-// de vender dos veces el mismo producto (control de sobreventa).
+// Reserva las unidades de cada producto del pedido dentro de la misma
+// transaccion del checkout (control de sobreventa).
 const reserveOrderStock = async (lines, transaction) => {
   for (const line of lines) {
-    const Model = productModel(line.productType);
-    const [affected] = await Model.update(
-      { stock: false },
-      { where: { id: line.productId, stock: true }, transaction },
+    const qty = Number(line.quantity) || 0;
+    const [affected] = await Product.update(
+      { stock: sequelize.literal(`stock - ${qty}`) },
+      {
+        where: {
+          id: line.productId,
+          stock: { [Op.gte]: qty },
+        },
+        transaction,
+      },
     );
 
     if (affected === 0) {
@@ -200,13 +207,13 @@ const reserveOrderStock = async (lines, transaction) => {
   }
 };
 
-// Detecta productos del pedido que ya no estan disponibles cuando entra el
-// pago. Con stock booleano un pago aprobado devuelve el producto al catalogo
-// (restoreOrderStock); si el administrador lo habia marcado agotado, esa
-// marca se perderia en silencio. Esto lo convierte en una alerta visible.
+// Detecta productos del pedido que ya no tienen unidades cuando entra el
+// pago. Sin reserva, el stock solo se descuenta al aprobar el pago: si otro
+// pedido consumio las unidades, aqui queda una alerta visible en lugar de un
+// stock negativo.
 //
-// Con la reserva activa no hay nada que detectar: el propio pedido dejo el
-// stock en false al reservarlo.
+// Con la reserva activa no hay nada que detectar: el propio pedido ya dejo
+// las unidades descontadas al reservarlas.
 const detectStockConflicts = async (order, transaction) => {
   if (STOCK_RESERVATION_ENABLED) return [];
 
@@ -231,7 +238,7 @@ const detectStockConflicts = async (order, transaction) => {
         title: item.title,
         motivo: "eliminado",
       });
-    } else if (!producto.stock) {
+    } else if (Number(producto.stock) <= 0) {
       conflicts.push({
         productType: item.productType,
         productId: item.productId,
@@ -402,32 +409,23 @@ const createOrderCore = async ({
       : validateShipping(shipping);
 
     const { lines, subtotal, discountTotal: computedDiscount } =
-      await buildOrderLines(items, transaction, {
-        // La franela solo se exige en el checkout web. Las ventas manuales del
-        // administrador siguen aceptando el diseno como se registro antes.
-        requireDtfShirt: !manual,
-      });
+      await buildOrderLines(items, transaction);
 
     let shippingCost = 0;
-    let shippingZone = null;
+    let shippingZone = "nacional";
 
     if (!isPickup) {
-      const quote = await quoteShipping({
-        department: shippingData.department,
-        city: shippingData.city,
-        lat: shipping?.lat,
-        lng: shipping?.lng,
-        transaction,
-      });
-      shippingCost = quote.cost;
-      shippingZone = quote.zone;
+      // Tarifa de envío simple: zona nacional fija.
+      // Se puede extender con cálculo por distancia desde la bodega.
+      shippingCost = 0;
+      shippingZone = "nacional";
     }
 
-    // Snapshot del plazo prometido. En recogida (pickup) no hay envio, por
-    // eso queda null.
+    // Snapshot del plazo prometido. En recogida (pickup) no hay envío, por
+    // eso queda null. Zona nacional = 10 días hábiles.
     const estimatedDeliveryDays = isPickup
       ? null
-      : deliveryDaysForZone(shippingZone);
+      : DELIVERY_DAYS.NACIONAL;
 
     // subtotal ya incluye los descuentos: unitPrice es el precio final.
     const discount = parseDiscount(manualDiscount, subtotal);

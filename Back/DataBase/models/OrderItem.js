@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const { PRODUCT_TYPE_VALUES } = require("./enums.js");
 
 // Linea de pedido. Guarda una copia del producto para que el pedido no
-// cambie si despues se edita el articulo/DTF o se borra del catalogo.
+// cambie si despues se edita o se borra el producto del catalogo.
 const OrderItem = sequelize.define(
   "OrderItem",
   {
@@ -26,7 +26,7 @@ const OrderItem = sequelize.define(
       onDelete: "CASCADE",
     },
 
-    // 'articulo' | 'dtf'
+    // Tipo de producto de la linea. Hoy solo 'product'.
     productType: {
       type: DataTypes.STRING(20),
       allowNull: false,
@@ -84,6 +84,29 @@ const OrderItem = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
       validate: { min: 0 },
+    },
+    // Costo unitario que pago al proveedor por este item (pesos COP).
+    unitCost: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      validate: { min: 0 },
+    },
+    // SKU del producto en el sistema del proveedor (para hacer match al sync).
+    providerSku: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    // Producto original del proveedor del que salio la linea (sin FK: la
+    // trazabilidad no debe impedir borrar el catalogo externo).
+    supplierProductId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    // Nombre congelado del producto en el momento de la compra.
+    nameSnapshot: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
     },
     quantity: {
       type: DataTypes.INTEGER,

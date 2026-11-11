@@ -46,7 +46,20 @@ Reglas:
 ## 2. Variables de entorno
 
 ```bash
-# Vendelo
+# --- Venndelo Pro (CATÁLOGO) ---
+VENNDELO_API_URL=https://api.venndelo.com
+VENNDELO_ADMIN_PATH=/v1/admin
+VENNDELO_OAUTH_URL=https://api.venndelo.com/v1/admin/oauth/token
+VENNDELO_CLIENT_ID=
+VENNDELO_CLIENT_SECRET=
+VENNDELO_REFRESH_TOKEN=
+SUPPLIER_CREDENTIALS_ENCRYPTION_KEY=          # base64 32 bytes (AES-256-GCM)
+CATALOG_SYNC_ENABLED=true
+CATALOG_SYNC_PAGE_SIZE=500
+CATALOG_SYNC_SUPPLY_MODEL=DROPSHIP            # ANY | OWN_STOCK | DROPSHIP
+CATALOG_SYNC_SCHEDULE=0 12 * * *              # documentación (real: vercel.json)
+
+# --- Vendelo / Dropi (PEDIDOS, legado) ---
 VENDELO_API_URL=          # base, ej. https://api.vendelo.co
 VENDELO_TOKEN=            # Bearer token
 VENDELO_PAYMENT_KEY=      # checkout hosted (si se usa)
@@ -141,7 +154,7 @@ Si el push falla:
 
 ---
 
-## 6. Agregar un proveedor nuevo
+## 6. Agregar un proveedor nuevo (pedidos)
 
 1. Crear `Services/providers/<nombre>.client.js` cumpliendo el contrato.
 2. Registrarlo en `CLIENTS` de `Services/providers/index.js`.
@@ -151,3 +164,92 @@ Si el push falla:
 5. Añadir las variables al `.env.example`.
 
 No hay que tocar `syncService`, `orderService` ni las rutas.
+
+---
+
+# Venndelo Pro (catálogo)
+
+Integración de CATÁLOGO del proveedor Venndelo Pro. Es independiente del
+adaptador de pedidos "Vendelo" de arriba (variables `VENNDELO_*` con doble N).
+
+## 7. Código
+
+```
+integrations/suppliers/
+  index.js           registro de proveedores de catálogo (contrato común)
+  credentials.js     cifrado AES-256-GCM
+  venndelo/
+    venndelo.auth.js       OAuth2 (refresh, rotación, single-flight)
+    venndelo.client.js     cliente HTTP (Bearer, 401-retry)
+    venndelo.catalog.js    GET /products y /products/:id (cursor)
+    venndelo.assets.js     imágenes (lectura; escritura bloqueada)
+    venndelo.normalize.js  normalización pura
+Services/catalog/    importación, sincronización, corridas, consulta
+Services/suppliers/venndelo.service.js   fachada del panel
+```
+
+Contrato del registro:
+
+```js
+{
+  slug, name,
+  isConfigured(),
+  auth:    { getAccessToken(supplier), getStatus(supplier), invalidate(supplier) },
+  client:  { checkAuth(supplier) },
+  catalog: { listPage(supplier, opts), iteratePages(supplier, opts, onPage),
+             getProduct(supplier, id) },
+  assets:  { listAssets(product), assertAssetsMutable(product) },
+}
+```
+
+## 8. Endpoints confirmados (OpenAPI oficial)
+
+| Método | Ruta | Notas |
+|---|---|---|
+| POST | `/v1/admin/oauth/token` | form-urlencoded; rota el refresh token |
+| GET | `/v1/admin/check-auth` | prueba de autenticación |
+| GET | `/v1/admin/products` | `page_token`, `page_size` (≤500), `supply_model`, `sku`, `created_min/max` |
+| GET | `/v1/admin/products/{id}` | detalle |
+| POST/PUT/DELETE | `/v1/admin/products[/{id}]` | escritura (no se usa: los productos son de proveedor) |
+| POST/PUT/DELETE | `/v1/admin/products/{id}/assets[/{asset_id}]` | imágenes en base64; **solo productos propios** |
+
+Paginación por **cursor**: `next_page_token` vacío = última página. El producto
+trae `variations[]` (con `quantity` y `price` reales) y `assets[]` (posición 1 =
+principal, `url` exacta del proveedor). **No hay endpoint de categorías**: las
+categorías de Upbuy son internas.
+
+## 9. Flujo
+
+1. `POST /api/admin/suppliers/venndelo/sync` → importa `supplier_products` +
+   variaciones + assets (idempotente por `supplierId + externalId`).
+2. `POST /api/admin/suppliers/venndelo/products/:id/publish` → crea el producto
+   publicado (`products`) con precio sugerido o el que envíe el admin.
+3. La sincronización aplica cambios de stock/descripción/imágenes, **desactiva**
+   lo no disponible y **nunca** pisa precio ni campos editados por el admin
+   (`products.manualOverrides`).
+4. Automatización: `GET /api/cron/sync-catalog` (Bearer `CRON_SECRET`).
+
+Estados de la corrida en `catalog_sync_runs`: `running`, `success`, `error`.
+
+### Credenciales (importante)
+
+Venndelo **rota el refresh token**. Cuando lo hace, el nuevo token se guarda
+cifrado en `supplier_credentials` y desde ese momento esa fila es la fuente de
+verdad (el `VENNDELO_REFRESH_TOKEN` del entorno queda obsoleto).
+
+- **No borres `supplier_credentials`** ni reviertas el esquema de catálogo sin
+  un backup: perderías el token rotado. El script
+  `db:migrate:catalog -- --down` se niega a borrar si hay credenciales
+  guardadas (requiere `--force`).
+- Si rotas `SUPPLIER_CREDENTIALS_ENCRYPTION_KEY`, pon la anterior en
+  `SUPPLIER_CREDENTIALS_ENCRYPTION_KEY_PREVIOUS` para poder descifrar lo
+  guardado y volver a cifrarlo.
+
+## 10. Agregar otro proveedor de catálogo
+
+1. Crear `integrations/suppliers/<slug>/` con `auth`, `client` y `catalog`.
+2. Registrarlo en `integrations/suppliers/index.js`.
+3. Insertar su fila en `suppliers` (o sembrarla en `ensureCatalogSchema.js`).
+4. Añadir sus variables al `.env.example`.
+
+`Services/catalog/*` no se toca: habla el contrato común.
