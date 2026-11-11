@@ -26,7 +26,7 @@ cierra la conexión con los proveedores por API. El catálogo vive en
 ## 2. Backend reutilizable (Back/)
 
 - Node.js 18+ / Express 4 / Sequelize 6 / PostgreSQL (Neon).
-- Desplegado en Vercel (`api/index.js` exporta la app).
+- Desplegado en Vercel (zero-config: `index.js` exporta la app de Express).
 - Autenticación: JWT en cookie `httpOnly` (`access_token`, 12h), `sameSite`/`secure` según entorno. Roles: `admin`.
 - CORS con `FRONTEND_URL` (dev: `http://localhost:5173`).
 - Pagos: Wompi Web Checkout + webhook firmado.

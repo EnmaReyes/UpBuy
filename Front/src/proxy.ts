@@ -6,10 +6,13 @@ import { NextResponse, type NextRequest } from "next/server";
 // comprueba únicamente que exista la cookie de sesión para redirigir temprano
 // y evitar renderizar la cuenta. La validación real (firma y expiración) la
 // hace el backend en cada petición, y la página de cuenta vuelve a comprobarlo.
+//
+// Next.js 16 renombró el archivo `middleware.ts` a `proxy.ts` y la función
+// exportada de `middleware` a `proxy` (el anterior está deprecado).
 
 const PROTECTED_PREFIXES = ["/cuenta", "/checkout"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSessionCookie = Boolean(request.cookies.get("access_token")?.value);
 

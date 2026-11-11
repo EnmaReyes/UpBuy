@@ -54,8 +54,7 @@ Las migraciones son **idempotentes** (`DataBase/ensureCatalogSchema.js` y
 
 ```
 Back/
-  index.js              app de Express + bootstrap de la base
-  api/index.js          entry point de Vercel
+  index.js              app de Express (entry point de Vercel) + bootstrap de la base
   config.js             lectura/validación de variables de entorno
   DataBase/
     models/             modelos Sequelize + enums canónicos
@@ -300,16 +299,22 @@ Sin credenciales, el proveedor no se llama: el flujo manual sigue funcionando.
 
 ## 8. Despliegue (Vercel)
 
-`vercel.json`:
+Vercel detecta este proyecto como una app **Express** sin configuración extra
+(zero-config): `index.js` exporta la app y Vercel la empaqueta como una sola
+Vercel Function. Por eso ya **no** se usan `builds` ni la carpeta `api/`.
 
-- build de `api/index.js` (`@vercel/node`),
-- rewrites de `/api/*` y del resto del sitio,
-- crons diarios `0 12 * * *` (plan Hobby = 1 corrida/día):
-  `/api/cron/sync-providers` y `/api/cron/sync-catalog`.
+`vercel.json` solo declara los crons diarios `0 12 * * *` (plan Hobby = 1
+corrida/día):
 
-`api/index.js` exporta la app de Express. La base se inicializa una vez por
+- `/api/cron/sync-providers`
+- `/api/cron/sync-catalog`
+
+En el dashboard, el **Root Directory** del proyecto debe ser `Back`.
+
+`index.js` exporta la app de Express. La base se inicializa una vez por
 instancia en el primer request (`ensureCatalogSchema` +
-`ensureDropshippingSchema`), sin `sequelize.sync()` en producción.
+`ensureDropshippingSchema`), sin `sequelize.sync()` en producción. En
+producción `index.js` **no** llama a `app.listen()`: Vercel usa el export.
 
 Plan Pro: cambiar el schedule de `vercel.json` a `*/15 * * * *`. Vercel **no
 lee variables de entorno para el schedule**; `CRON_SCHEDULE` solo documenta lo
