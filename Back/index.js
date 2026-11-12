@@ -36,7 +36,7 @@ const { FRONTEND_URL, TRUST_PROXY } = require("./config.js");
 const { globalLimiter } = require("./Middlewares/rateLimits.js");
 const { notFound, errorHandler } = require("./Middlewares/errors.js");
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 const isProduction = process.env.NODE_ENV === "production";
 const debugDb = process.env.DB_DEBUG === "true";
 

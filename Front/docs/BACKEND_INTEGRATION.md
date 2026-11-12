@@ -356,13 +356,10 @@ NEXT_PUBLIC_API_URL=http://localhost:3000   # backend (sin barra final)
 Plantilla versionada: `Front/.env.example`. El valor real va en `Front/.env.local`
 (ignorado por git).
 
-El backend usa `FRONTEND_URL` para CORS (dev: `http://localhost:5173`); al pasar
-a Next.js hay que actualizar `FRONTEND_URL` en `Back/.env.local` al puerto real
-del frontend.
+El backend usa `FRONTEND_URL` para CORS. En desarrollo `Back/config.js` ya
+apunta a `http://localhost:3001`, que es el puerto fijo del frontend
+(`npm run dev` en `Front/package.json` usa `next dev -p 3001`). En producción
+se define `FRONTEND_URL` como variable de entorno.
 
-**Nota de entorno (FASE 2):** en esta máquina el puerto 3000 lo ocupa otro
-proceso, así que el frontend Next de desarrollo corre en
-`http://localhost:3001`. `Back/.env.local` debe declarar
-`FRONTEND_URL=http://localhost:3001` antes de que la FASE 3 consuma la API
-desde el navegador. Alternativa: detener el proceso que ocupa el 3000 y dejar
-Next en el puerto por defecto.
+**Convención de puertos:** frontend en `3001`, API en `3000`. El backend fija
+`PORT=3000` en `Back/.env.local`; en Vercel la plataforma inyecta `PORT`.

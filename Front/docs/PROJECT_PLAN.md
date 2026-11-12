@@ -28,7 +28,7 @@ cierra la conexión con los proveedores por API. El catálogo vive en
 - Node.js 18+ / Express 4 / Sequelize 6 / PostgreSQL (Neon).
 - Desplegado en Vercel (zero-config: `index.js` exporta la app de Express).
 - Autenticación: JWT en cookie `httpOnly` (`access_token`, 12h), `sameSite`/`secure` según entorno. Roles: `admin`.
-- CORS con `FRONTEND_URL` (dev: `http://localhost:5173`).
+- CORS con `FRONTEND_URL` (dev: `http://localhost:3001`).
 - Pagos: Wompi Web Checkout + webhook firmado.
 - Proveedores: Vendelo (API, si hay credenciales) y Dropi (modo manual por defecto).
 - Cron diario `0 12 * * *` (`/api/cron/sync-providers` con `Bearer CRON_SECRET`).
