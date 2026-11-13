@@ -17,6 +17,9 @@
     "db:verify-migration": "node scripts/verifyDropshippingMigration.js",
     "db:migrate:catalog": "node scripts/migrateSupplierCatalog.js",
     "db:verify-catalog": "node scripts/verifySupplierCatalogMigration.js",
+    "db:migrate:admin": "node scripts/migrateAdminSecurity.js",
+    "db:grant-admin": "node scripts/grantAdmin.js",
+    "security:prune": "node scripts/pruneSecurityLogs.js",
     "venndelo:check": "node scripts/check-venndelo.js",
     "test": "node --test test/*.test.js"
   },

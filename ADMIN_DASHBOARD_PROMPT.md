@@ -440,10 +440,10 @@ No repetir aquí las decisiones: seguirlas.
 | Subfase | Contenido | Riesgo que cierra |
 |---|---|---|
 | ADM-S0 | Dueño en rutas del comprador; sacar `admin` del JWT; Origin + CSRF; JWT HS256 con `iss/aud/sub`; secreto fuerte | F-01, F-02, F-05 — **implementado 2026-11-13** |
-| ADM-S1 | `role` + permisos + `admin_sessions` + `auth_events`; revocación; `grantAdmin.js` | F-04, F-06, F-08 |
-| ADM-S2 | MFA TOTP obligatorio, códigos de respaldo, login en dos pasos | F-03, F-09 |
-| ADM-S3 | Step-up para acciones destructivas; `/api/admin/admins` solo superadmin; último superadmin protegido | F-10 |
-| ADM-S4 | Opcional: `__Host-` cookie, rotación, IP allowlist, alertas | F-07, F-11, F-12 |
+| ADM-S1 | `role` + permisos + `admin_sessions` + `auth_events`; revocación; `grantAdmin.js` | F-04, F-06, F-08 — **implementado 2026-11-13** |
+| ADM-S2 | MFA TOTP obligatorio, códigos de respaldo, login en dos pasos | F-03, F-09 — **implementado 2026-11-13** |
+| ADM-S3 | Step-up para acciones destructivas; `/api/admin/admins` solo superadmin; último superadmin protegido | F-10 — **implementado 2026-11-13** |
+| ADM-S4 | Opcional: `__Host-` cookie, rotación, IP allowlist, alertas | F-07, F-11, F-12 — **implementado 2026-11-13** |
 
 **Backend mínimo de ADM-S0 (no negociable):**
 
@@ -477,7 +477,7 @@ step-up. Se integra en ADM-1, no se adelanta aquí.
 
 ---
 
-### FASE ADM-1 — Acceso, backend mínimo y shell
+### FASE ADM-1 — Acceso, backend mínimo y shell (implementado 2026-11-13)
 
 **Objetivo:** un admin real entra a `/admin`, ve su perfil y un dashboard
 básico; un usuario normal no puede.
@@ -524,7 +524,7 @@ básico; un usuario normal no puede.
 
 ---
 
-### FASE ADM-2 — Pedidos: lista, filtros y detalle
+### FASE ADM-2 — Pedidos: lista, filtros y detalle (implementado 2026-11-13)
 
 **Objetivo:** operar pedidos de punta a punta sin salir del panel.
 
@@ -922,9 +922,10 @@ ADM-0; esto es el mapa que cada fase ejecutará.
 | ADM-S0 | `Middleware/auth.js`, `Middlewares/requireTrustedOrigin.js` `[N]`, `Controllers/orders.js`, `Services/orders.js`, `Controllers/auth.js`, `config.js`, `index.js`, `.env.example`, `test/auth.admin.test.js` `[N]` | `src/services/api/client.ts` (cabecera CSRF en mutaciones) |
 | ADM-S1 | `DataBase/ensureAdminSecuritySchema.js` `[N]`, `DataBase/models/AdminSession.js` `[N]`, `DataBase/models/AuthEvent.js` `[N]`, `Services/permissions.js` `[N]`, `Services/adminSessions.js` `[N]`, `Middleware/auth.js`, `Services/notifications.js`, `scripts/grantAdmin.js` `[N]`, `scripts/migrateAdminSecurity.js` `[N]`, `Rutas/adminAdmins.js` `[N]`, `index.js`, `test/auth.admin.test.js` | — |
 | ADM-S2 | `Services/mfa.js` `[N]`, `Controllers/auth.js`, `Rutas/auth.js`, `Middlewares/rateLimits.js`, `config.js`, `.env.example`, `test/auth.admin.test.js` | `src/app/(auth)/login/page.tsx`, `src/app/admin/perfil/seguridad/page.tsx` `[N]`, `src/components/auth/AdminMfaForm.tsx` `[N]` |
-| ADM-S3 | `Middlewares/requireStepUp.js` `[N]`, `Services/permissions.js`, `Rutas/adminAdmins.js`, `test/auth.admin.test.js` | `src/components/admin/StepUpDialog.tsx` `[N]` |
-| ADM-1 | `Controllers/adminMe.js` `[N]`, `Services/adminDashboard.js` `[N]`, `Rutas/adminMe.js` `[N]`, `index.js`, `test/admin.me.test.js` `[N]` | `src/app/admin/layout.tsx` `[N]`, `src/app/admin/page.tsx` `[N]`, `src/app/admin/perfil/page.tsx` `[N]`, `src/components/admin/{AdminShell,AdminSidebar,AdminTopbar}.tsx` `[N]`, `src/services/admin/{me,dashboard}.ts` `[N]`, `src/types/admin.ts` `[N]`, `src/proxy.ts`, `src/lib/safe-url.ts` |
-| ADM-2 | `Rutas/adminOrders.js`, `Controllers/adminOrders.js`, `Services/orders.js`, `test/admin.orders.test.js` `[N]` | `src/app/admin/pedidos/page.tsx` `[N]`, `src/app/admin/pedidos/[id]/page.tsx` `[N]`, `src/components/admin/orders/*` `[N]`, `src/services/admin/orders.ts` `[N]` |
+| ADM-S3 | `Middlewares/requireStepUp.js` `[N]`, `Services/permissions.js`, `Rutas/adminAdmins.js`, `test/auth.admin.test.js` | `src/components/admin/StepUpDialog.tsx` `[N]` | **implementado 2026-11-13** |
+| ADM-S4 | `Services/sessionCookie.js` `[N]`, `Services/securityAlerts.js` `[N]`, `Services/securityLogs.js` `[N]`, `Middlewares/requireAdminIp.js` `[N]`, `Controllers/adminAudit.js` `[N]`, `Rutas/adminAudit.js` `[N]`, `scripts/pruneSecurityLogs.js` `[N]`, `Controllers/auth.js`, `Services/adminSessions.js`, `config.js`, `.env.example`, `test/auth.admin.test.js` | `src/proxy.ts` | **implementado 2026-11-13** |
+| ADM-1 | `Controllers/adminMe.js` `[N]`, `Services/adminDashboard.js` `[N]`, `Rutas/adminMe.js` `[N]`, `index.js`, `test/admin.me.test.js` `[N]` | `src/app/admin/layout.tsx` `[N]`, `src/app/admin/page.tsx` `[N]`, `src/app/admin/perfil/page.tsx` `[N]`, `src/components/admin/{AdminShell,AdminSidebar,AdminTopbar}.tsx` `[N]`, `src/components/auth/AdminMfaForm.tsx` `[N]`, `src/services/admin/{me,dashboard}.ts` `[N]`, `src/types/admin.ts` `[N]`, `src/proxy.ts`, `src/lib/safe-url.ts` | **implementado 2026-11-13** |
+| ADM-2 | `Services/adminOrders.js`, `Controllers/adminOrders.js`, `Rutas/adminOrders.js`, `test/admin.orders.test.js` `[N]` | `src/app/admin/pedidos/page.tsx` `[N]`, `src/app/admin/pedidos/[id]/page.tsx` `[N]`, `src/components/admin/orders/*` `[N]`, `src/services/admin/orders.ts` `[N]`, `src/services/admin/orders.actions.ts` `[N]`, `src/types/admin.ts`, `src/components/admin/AdminSidebar.tsx` | **implementado 2026-11-13** |
 | ADM-3 | `Rutas/adminOrders.js`, `Services/orderImport.js` `[N]`, `test/admin.orders.import.test.js` `[N]` | `src/app/admin/pedidos/nuevo/page.tsx` `[N]`, `src/components/admin/orders/ImportCsv.tsx` `[N]` |
 | ADM-4 | `Rutas/suppliers/*`, `Controllers/adminSuppliers.js` `[N]`, `test/admin.suppliers.test.js` `[N]` | `src/app/admin/proveedores/page.tsx` `[N]`, `src/components/admin/providers/*` `[N]`, `src/services/admin/providers.ts` `[N]` |
 | ADM-5 | `Services/notifications.js`, `Rutas/adminOrders.js` (recientes) | `src/components/admin/orders/PurchaseAlerts.tsx` `[N]`, `src/hooks/useAdminOrderStream.ts` `[N]` |

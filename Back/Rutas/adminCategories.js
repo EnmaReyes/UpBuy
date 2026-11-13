@@ -1,5 +1,9 @@
 const express = require("express");
-const { requireAuth, requireAdmin } = require("../Middleware/auth.js");
+const {
+  requireAuth,
+  requireAdminSession,
+  requirePermission,
+} = require("../Middleware/auth.js");
 const {
   listAdmin,
   create,
@@ -9,11 +13,13 @@ const {
 
 const router = express.Router();
 
-router.use(requireAuth, requireAdmin);
+router.use(requireAuth, requireAdminSession);
+
+const canWriteCatalog = requirePermission("catalog.write");
 
 router.get("/", listAdmin);
-router.post("/", create);
-router.put("/:id", update);
-router.delete("/:id", remove);
+router.post("/", canWriteCatalog, create);
+router.put("/:id", canWriteCatalog, update);
+router.delete("/:id", canWriteCatalog, remove);
 
 module.exports = router;

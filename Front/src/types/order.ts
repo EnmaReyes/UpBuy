@@ -139,6 +139,7 @@ export const PAYMENT_STATE_LABELS: Record<string, string> = {
   pending_collection: "Pago contra entrega",
   collected: "Cobrado",
   settled: "Pagado",
+  refunded: "Reembolsado",
 };
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {

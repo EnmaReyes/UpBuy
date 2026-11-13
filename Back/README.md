@@ -172,6 +172,7 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 | GET | `/api/admin/orders/providers` |
 | POST | `/api/admin/orders/manual` |
 | GET | `/api/admin/orders/:id` |
+| GET | `/api/admin/orders/:id/sync-history` |
 | PATCH | `/api/admin/orders/:id/status` |
 | PATCH | `/api/admin/orders/:id/tracking` |
 | POST | `/api/admin/orders/:id/sync` |
@@ -187,7 +188,164 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 | POST | `/api/admin/suppliers/venndelo/products/:id/publish` (+ `/unpublish`) |
 | POST | `/api/admin/suppliers/venndelo/sync` |
 | GET | `/api/admin/suppliers/venndelo/sync-history` |
+| GET | `/api/admin/admins/sessions` |
+| POST | `/api/admin/admins/sessions/revoke-all` |
+| DELETE | `/api/admin/admins/sessions/:id` |
+| GET | `/api/admin/me` |
+| GET | `/api/admin/dashboard/summary` |
 | GET | `/api/cron/sync-catalog` (Bearer `CRON_SECRET`) |
+
+#### Perfil y resumen del panel (ADM-1)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/admin/me` | `{ id, email, username, name, lastName, phone, image, role, permissions, mfaEnabled, session: { expiresAt, mfaAt } }`, sin campos sensibles |
+| GET | `/api/admin/dashboard/summary?periodo=mes` | `stats` + `sales` + `accounting` del mes + `recentOrders` (5) + `providers` en una sola llamada |
+
+`/api/admin/me` exige sesión administrativa; el resumen exige además
+`orders.read`. El rol y los permisos se leen de la base en cada petición
+(`requireAdminSession`) y nunca del JWT.
+
+#### Detalle de pedido y sincronización (ADM-2)
+
+`GET /api/admin/orders/:id` agrega a la respuesta del pedido:
+
+- `providerSync`: `provider`, `providerOrderId`, `outOfSync`, `manualOverride`,
+  `lastSyncAt`, `lastSyncOk`, `lastSyncDirection`, `lastSyncError` y el estado
+  **mapeado** (`fulfillmentStatus`/`paymentState` + etiquetas). El valor crudo
+  `providerStatus` nunca sale al cliente.
+- `lastSyncAt` / `lastSyncOk` en la raíz, tomados del último `SyncLog`.
+- `allowedTransitions`: transiciones válidas desde `fulfillmentStatus`, con
+  `requiresTracking` (`shipped`) y `requiresStepUp` (`cancelled`). El front no
+  duplica la máquina de estados.
+
+`GET /api/admin/orders/:id/sync-history` devuelve `{ logs }` (máx. 20, del más
+reciente al más antiguo) con `direction`, `attempt`, `ok`, `error` y
+`createdAt`; no incluye los payloads crudos del proveedor. Exige `orders.read`.
+
+#### Roles, permisos y sesiones (ADM-S1)
+
+La fuente de verdad del rol es `usuarios.role` (`customer`, `support`,
+`admin`, `superadmin`). La columna legacy `admin` se mantiene sincronizada.
+Los permisos se derivan del rol en `Services/permissions.js`:
+
+| Permiso | support | admin | superadmin |
+|---|:---:|:---:|:---:|
+| `orders.read`, `users.read` | ✅ | ✅ | ✅ |
+| `orders.write`, `orders.refund`, `catalog.write`, `users.write` | — | ✅ | ✅ |
+| `campaigns.read`, `campaigns.send`, `providers.manage` | — | ✅ | ✅ |
+| `admins.manage`, `audit.read` | — | — | ✅ |
+
+Cada petición a `/api/admin/*` pasa por `requireAdminSession`, que revalida
+contra la base el rol, la cuenta activa, `tokenVersion` y la sesión (`sid`)
+registrada en `admin_sessions`. Logout, cambio de rol y `revoke-all` revocan
+la sesión de inmediato; el token no espera a expirar.
+
+#### MFA obligatorio para administradores (ADM-S2)
+
+Con `ADMIN_MFA_REQUIRED=true` (default en producción), todo rol del panel
+(`support`, `admin`, `superadmin`) necesita TOTP. El login es en dos pasos:
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/api/auth/login` | Contraseña correcta → `202 { mfaRequired, challengeId }` (admin con MFA) o `403 { code: "ADMIN_MFA_SETUP_REQUIRED", enrollmentTicket }` |
+| POST | `/api/auth/admin/mfa` | `{ challengeId, code }` → cookie de sesión |
+| POST | `/api/auth/admin/mfa/setup` | `{ enrollmentTicket }` → `otpauthUrl`, `secret` y 10 códigos de respaldo (una sola vez) |
+| POST | `/api/auth/admin/mfa/enroll` | `{ enrollmentTicket, code }` → activa MFA y emite cookie |
+
+- El secreto TOTP se guarda cifrado con AES-256-GCM
+  (`ADMIN_MFA_ENCRYPTION_KEY`, base64 de 32 bytes). La clave anterior se puede
+  mantener en `ADMIN_MFA_ENCRYPTION_KEY_PREVIOUS` para rotar sin perder acceso.
+- Los códigos de respaldo se guardan con bcrypt y son de un solo uso.
+- El reto expira a los `ADMIN_MFA_CHALLENGE_MINUTES` (10) y se bloquea tras
+  `ADMIN_MFA_MAX_ATTEMPTS` (5) intentos fallidos.
+- `requireAdminSession` exige `mfaEnabled` y que la sesión tenga `mfaAt`.
+  El login social (Google/Facebook) pasa por el mismo flujo: no hay atajo.
+- Los eventos `mfa`, `mfa_setup`, `mfa_enroll` quedan en `auth_events`.
+
+#### Step-up y gobierno de administradores (ADM-S3)
+
+Las acciones destructivas exigen un segundo factor **reciente**
+(`admin_sessions.mfaAt` dentro de `ADMIN_STEP_UP_MINUTES`, 10 por defecto):
+
+| Acción | Permiso | Ruta protegida |
+|---|---|---|
+| Reembolso / anulación de pago | `orders.refund` | `PATCH /api/admin/orders/:id/payments/:paymentId` |
+| Cancelación de pedido | `orders.write` | `PATCH /api/admin/orders/:id/status` cuando el destino es `cancelled` |
+| Despublicar producto | `catalog.write` | `PATCH /api/admin/products/:id` con `active: false` o `status != "active"` |
+| Cambiar rol o estado de un admin | `admins.manage` | `PATCH /api/admin/admins/:id` |
+| Envío de campañas | `campaigns.send` | Se aplicará al crear las rutas de ADM-7 |
+
+Si el segundo factor no es reciente, la API responde
+`403 { code: "STEP_UP_REQUIRED", action, maxAgeMinutes }`. El panel pide el
+código y lo valida con:
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/api/auth/admin/step-up` | `{ code }` (TOTP o código de respaldo) refresca `mfaAt` de la sesión actual |
+
+Gestión de administradores (solo `superadmin`, permiso `admins.manage`):
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/admin/admins?q=&limit=&offset=` | Lista cuentas con rol del panel |
+| PATCH | `/api/admin/admins/:id` | `{ role?, disabled? }`; revoca sesiones y audita el cambio |
+
+- Nadie puede cambiar su propio rol ni desactivar su propia cuenta
+  (`409 SELF_ADMIN_CHANGE`).
+- No se puede degradar ni desactivar al último superadmin activo
+  (`409 LAST_SUPERADMIN`).
+- Todo cambio incrementa `tokenVersion`, cierra las sesiones del afectado y
+  queda en `audit_logs` (`admin_role_changed`, `admin_disabled_changed`,
+  `admin_updated`) y `auth_events` (`admin_updated`, `step_up`).
+
+Bootstrap del primer superadmin (escribe en `audit_logs`):
+
+```bash
+cd Back
+node scripts/grantAdmin.js --email=correo@dominio.com --role=superadmin --confirm
+```
+
+Migración manual del esquema (también corre al arrancar la API):
+
+```bash
+cd Back
+npm run db:migrate:admin
+```
+
+#### Endurecimiento de sesión, IP y auditoría (ADM-S4)
+
+- **Cookie `__Host-`**: en producción la sesión viaja en
+  `__Host-upbuy_session` (`Secure`, `Path=/`, sin `Domain`), que ningún
+  subdominio puede sobrescribir. Fuera de producción se mantiene
+  `access_token`. Durante la transición el backend lee **ambas** cookies y el
+  logout limpia las dos; `Front/src/proxy.ts` también acepta las dos. El nombre
+  se puede forzar con `SESSION_COOKIE_NAME` (coordinado con el front).
+- **Rotación de sesión**: al validar el step-up se crea una sesión nueva,
+  se revoca la anterior y se reemite el JWT/cookie
+  (`rotateAdminSession`). Un código interceptado no reutiliza el `sid` viejo.
+- **IP allowlist**: `ADMIN_IP_ALLOWLIST` (IPs exactas y CIDR IPv4/IPv6
+  separadas por comas, vacío = sin restricción) protege `/api/admin`,
+  `/api/auth/admin/*` y el login de un administrador. Si la IP no está
+  permitida responde `403 { code: "ADMIN_IP_NOT_ALLOWED" }` antes de tocar la
+  base. La IP se toma de `req.ip`, que respeta `TRUST_PROXY`.
+- **Alertas por intentos fallidos**: `SECURITY_ALERTS_ENABLED` (default true)
+  avisa a los admins cuando una cuenta o IP acumula
+  `ADMIN_ALERT_FAILED_ATTEMPTS` (5) fallos en
+  `ADMIN_ALERT_WINDOW_MINUTES` (15). Las notificaciones son idempotentes por
+  ventana y nunca incluyen códigos, contraseñas ni tokens.
+- **Revisión y retención de `auth_events`** (solo `superadmin`,
+  `audit.read`):
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/admin/audit/events?event=&result=&userId=&from=&to=&limit=&offset=` | Eventos de autenticación paginados (máx. 200) |
+| POST | `/api/admin/audit/prune` | `{ olderThanDays? }` (mínimo 7); exige step-up `admins.manage` |
+
+La limpieza manual por CLI es `npm run security:prune -- --days=90 [--confirm]`.
+Sin `--confirm` solo cuenta lo que borraría. `AUTH_EVENTS_RETENTION_DAYS` (90)
+define la retención; `0` la desactiva. **Solo borra `auth_events`**: los
+`audit_logs` de negocio se conservan.
 
 `PATCH .../status` acepta `pushToProvider: true`. Si el push falla, el cambio
 local se mantiene y el pedido queda con `providerOutOfSync = true`.

@@ -1,4 +1,5 @@
 const { FRONTEND_URLS } = require("../config.js");
+const { hasSessionCookie } = require("../Services/sessionCookie.js");
 
 // ---------------------------------------------------------------------------
 // Proteccion CSRF para peticiones con cookie de sesion.
@@ -42,8 +43,8 @@ const isTrustedOrigin = (origin) =>
 const requireTrustedOrigin = (req, res, next) => {
   if (!MUTATING_METHODS.has(req.method)) return next();
 
-  const hasSessionCookie = Boolean(req.cookies?.access_token);
-  if (!hasSessionCookie) return next();
+  const hasCookie = hasSessionCookie(req);
+  if (!hasCookie) return next();
 
   const origin = req.get ? req.get("origin") : req.headers?.origin;
   if (origin && !isTrustedOrigin(origin)) {

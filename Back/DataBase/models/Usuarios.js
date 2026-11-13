@@ -42,6 +42,62 @@ const Usuarios = sequelize.define(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+
+    // ---------------------------------------------------------------------
+    // Rol y seguridad de la cuenta (ADM-S1).
+    //
+    // `role` es la fuente de verdad; `admin` queda como columna legacy
+    // sincronizada mientras dure la transicion. Los permisos se derivan del
+    // rol en Services/permissions.js.
+    // ---------------------------------------------------------------------
+    role: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: "customer",
+      validate: {
+        isIn: [["customer", "support", "admin", "superadmin"]],
+      },
+    },
+
+    // Cuenta desactivada: no puede iniciar sesion ni operar el panel.
+    disabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+
+    // Se incrementa al cerrar todas las sesiones por cambio de contrasena o
+    // de rol: los JWT con una version anterior dejan de servir.
+    tokenVersion: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+
+    // Reservadas para ADM-S2 (MFA TOTP). Por ahora solo se almacenan.
+    mfaEnabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    mfaSecretEncrypted: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    mfaEnrolledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+
+    lastLoginAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    lastLoginIp: {
+      type: DataTypes.STRING(64),
+      allowNull: true,
+    },
+
     image: {
       type: DataTypes.TEXT,
     },

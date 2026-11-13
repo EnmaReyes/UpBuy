@@ -1,6 +1,6 @@
 const { Usuarios } = require("../DataBase/models/Usuarios.js");
 const { OAuth2Client } = require("google-auth-library");
-const { issueSession } = require("./auth.js");
+const { issueSession, beginAdminLogin } = require("./auth.js");
 const {
   GOOGLE_CLIENT_ID,
   FACEBOOK_APP_ID,
@@ -71,7 +71,10 @@ const googleLogin = async (req, res) => {
       }
     }
 
-    return issueSession(res, user);
+    // Los administradores pasan por el mismo segundo factor que el login local.
+    if (await beginAdminLogin(req, res, user)) return res;
+
+    return await issueSession(res, user, req);
   } catch (error) {
     console.error("Error en login con Google:", error.message);
     return res.status(500).json("Error interno del servidor");
@@ -166,7 +169,10 @@ const facebookLogin = async (req, res) => {
       });
     }
 
-    return issueSession(res, user);
+    // Los administradores pasan por el mismo segundo factor que el login local.
+    if (await beginAdminLogin(req, res, user)) return res;
+
+    return await issueSession(res, user, req);
   } catch (error) {
     console.error("Error en login con Facebook:", error.message);
     return res.status(500).json("Error interno del servidor");

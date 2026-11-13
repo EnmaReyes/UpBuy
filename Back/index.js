@@ -7,6 +7,9 @@ const notificationsRoutes = require("./Rutas/notifications.js");
 const ordersRoutes = require("./Rutas/orders.js");
 const adminOrdersRoutes = require("./Rutas/adminOrders.js");
 const adminUsersRoutes = require("./Rutas/adminUsers.js");
+const adminAdminsRoutes = require("./Rutas/adminAdmins.js");
+const adminMeRoutes = require("./Rutas/adminMe.js");
+const adminAuditRoutes = require("./Rutas/adminAudit.js");
 const paymentsRoutes = require("./Rutas/payments.js");
 const webhooksRoutes = require("./Rutas/webhooks.js");
 const cronRoutes = require("./Rutas/cron.js");
@@ -18,6 +21,9 @@ const suppliersRoutes = require("./Rutas/suppliers/index.js");
 
 const { sequelize, databaseHost } = require("./DataBase/db.js");
 const { ensureBaseSchema } = require("./DataBase/ensureBaseSchema.js");
+const {
+  ensureAdminSecuritySchema,
+} = require("./DataBase/ensureAdminSecuritySchema.js");
 const {
   ensureCatalogSchema,
 } = require("./DataBase/ensureCatalogSchema.js");
@@ -37,6 +43,7 @@ const { globalLimiter } = require("./Middlewares/rateLimits.js");
 const {
   requireTrustedOrigin,
 } = require("./Middlewares/requireTrustedOrigin.js");
+const { requireAdminIp } = require("./Middlewares/requireAdminIp.js");
 const { notFound, errorHandler } = require("./Middlewares/errors.js");
 
 const port = process.env.PORT || 3001;
@@ -96,6 +103,10 @@ const initializeDatabase = async () => {
   // sequelize.sync() no corre, asi que sin este paso una base nueva no tenia
   // donde aplicar los ensure* (que solo hacen ALTER/CREATE de lo nuevo).
   await ensureBaseSchema();
+
+  // Seguridad administrativa: rol, permisos, sesiones revocables y
+  // auditoria de autenticacion (ADM-S1).
+  await ensureAdminSecuritySchema();
 
   // Catalogo: productos, categorias, imagenes y catalogo de proveedores.
   // Tambien retira el esquema viejo (articulos / price_variants) si esta vacio.
@@ -190,6 +201,11 @@ app.use(cookieParser());
 // aplica. Ver Middlewares/requireTrustedOrigin.js.
 app.use(requireTrustedOrigin);
 
+// Lista opcional de IPs para el panel (ADM-S4). Si ADMIN_IP_ALLOWLIST esta
+// vacia no hace nada; si tiene valores, bloquea antes de tocar la base.
+app.use("/api/admin", requireAdminIp);
+app.use("/api/auth/admin", requireAdminIp);
+
 // Las respuestas del panel nunca se cachean.
 app.use("/api/admin", (req, res, next) => {
   res.set("Cache-Control", "no-store");
@@ -256,8 +272,11 @@ app.use("/api/orders", ordersRoutes);
 // Catalogo publico: productos publicados y categorias activas.
 app.use("/api/products", productsRoutes);
 app.use("/api/categories", categoriesRoutes);
+app.use("/api/admin", adminMeRoutes);
 app.use("/api/admin/orders", adminOrdersRoutes);
 app.use("/api/admin/users", adminUsersRoutes);
+app.use("/api/admin/admins", adminAdminsRoutes);
+app.use("/api/admin/audit", adminAuditRoutes);
 // Catalogo administrativo y proveedores.
 app.use("/api/admin/products", adminProductsRoutes);
 app.use("/api/admin/categories", adminCategoriesRoutes);

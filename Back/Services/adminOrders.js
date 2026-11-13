@@ -5,11 +5,13 @@ const {
   OrderItem,
   Payment,
   OrderStatusHistory,
+  SyncLog,
   Usuarios,
 } = require("../DataBase/models/index.js");
 const {
   FULFILLMENT_STATUS,
   FULFILLMENT_STATUS_VALUES,
+  FULFILLMENT_TRANSITIONS,
   PAYMENT_STATE,
   PAYMENT_STATE_VALUES,
   PAYMENT_STATUS,
@@ -25,7 +27,11 @@ const {
   transitionFulfillment,
   applyAccountingTotals,
 } = require("./orderService.js");
-const { FULFILLMENT_LABELS } = require("./statusMachine.js");
+const {
+  FULFILLMENT_LABELS,
+  PAYMENT_LABELS,
+  mapProviderToCanonical,
+} = require("./statusMachine.js");
 const { pushCurrentStatus } = require("./syncService.js");
 const HttpError = require("../Utils/HttpError.js");
 const { assertUuid } = require("../Utils/ids.js");
@@ -165,7 +171,12 @@ const listOrdersAdmin = async ({
   });
 
   return {
-    orders: rows,
+    // El estado crudo del proveedor no se expone ni en la lista.
+    orders: rows.map((order) => {
+      const data = order.toJSON();
+      delete data.providerStatus;
+      return data;
+    }),
     total: count,
     limit: safeLimit,
     offset: safeOffset,
@@ -185,6 +196,96 @@ const getOrderAdmin = async (orderId) => {
     throw new HttpError(404, "Pedido no encontrado");
   }
   return order;
+};
+
+// ---------------------------------------------------------------------------
+// Sincronizacion y vista de detalle (ADM-2)
+//
+// El panel nunca recibe el estado crudo del proveedor. `providerSync` traduce
+// ese estado a los canonicos con `mapProviderToCanonical` y resume la ultima
+// corrida de `SyncLog`. Las transiciones permitidas tambien se calculan aqui:
+// el front no duplica la maquina de estados.
+// ---------------------------------------------------------------------------
+
+const SYNC_HISTORY_LIMIT = 20;
+
+const serializeSyncLog = (log) => ({
+  id: log.id,
+  provider: log.provider,
+  direction: log.direction,
+  attempt: log.attempt,
+  ok: Boolean(log.ok),
+  error: log.error ? String(log.error).slice(0, 500) : null,
+  createdAt: log.createdAt,
+});
+
+// GET /api/admin/orders/:id/sync-history
+const listOrderSyncHistory = async (orderId) => {
+  assertUuid(orderId, "pedido");
+
+  const logs = await SyncLog.findAll({
+    where: { orderId },
+    order: [["createdAt", "DESC"]],
+    limit: SYNC_HISTORY_LIMIT,
+  });
+
+  return logs.map(serializeSyncLog);
+};
+
+const allowedFulfillmentTransitions = (fulfillmentStatus) =>
+  (FULFILLMENT_TRANSITIONS[fulfillmentStatus] || []).map((value) => ({
+    value,
+    label: FULFILLMENT_LABELS[value] || value,
+    requiresTracking: value === FULFILLMENT_STATUS.SHIPPED,
+    requiresStepUp: value === FULFILLMENT_STATUS.CANCELLED,
+  }));
+
+// Convierte el pedido (instancia o plano) en la respuesta del panel.
+const decorateAdminOrder = (order, syncLogs = []) => {
+  const data =
+    typeof order?.toJSON === "function" ? order.toJSON() : { ...(order || {}) };
+
+  // El estado crudo jamas sale al cliente.
+  delete data.providerStatus;
+
+  const lastLog = syncLogs[0] || null;
+  const mapped =
+    data.provider && order?.providerStatus
+      ? mapProviderToCanonical(data.provider, order.providerStatus)
+      : {};
+
+  data.providerSync = {
+    provider: data.provider || null,
+    providerOrderId: data.providerOrderId || null,
+    outOfSync: Boolean(data.providerOutOfSync),
+    manualOverride: Boolean(data.manualOverride),
+    lastSyncAt: lastLog?.createdAt ?? null,
+    lastSyncOk: lastLog ? Boolean(lastLog.ok) : null,
+    lastSyncDirection: lastLog?.direction ?? null,
+    lastSyncError: lastLog && !lastLog.ok ? lastLog.error || null : null,
+    fulfillmentStatus: mapped.fulfillmentStatus || null,
+    fulfillmentLabel: mapped.fulfillmentStatus
+      ? FULFILLMENT_LABELS[mapped.fulfillmentStatus] || mapped.fulfillmentStatus
+      : null,
+    paymentState: mapped.paymentState || null,
+    paymentLabel: mapped.paymentState
+      ? PAYMENT_LABELS[mapped.paymentState] || mapped.paymentState
+      : null,
+  };
+
+  data.lastSyncAt = data.providerSync.lastSyncAt;
+  data.lastSyncOk = data.providerSync.lastSyncOk;
+  data.allowedTransitions = allowedFulfillmentTransitions(
+    data.fulfillmentStatus,
+  );
+
+  return data;
+};
+
+const getOrderAdminDetail = async (orderId) => {
+  const order = await getOrderAdmin(orderId);
+  const syncLogs = await listOrderSyncHistory(order.id);
+  return decorateAdminOrder(order, syncLogs);
 };
 
 // PATCH /api/admin/orders/:id/status
@@ -308,9 +409,9 @@ const changeOrderStatus = async ({
     });
   }
 
-  const result = await getOrderAdmin(orderId);
+  const result = await getOrderAdminDetail(orderId);
   if (providerPush) {
-    result.dataValues.providerPush = providerPush;
+    result.providerPush = providerPush;
   }
   return result;
 };
@@ -352,7 +453,7 @@ const updateTracking = async ({
   order.trackingNumber = number;
   await order.save();
 
-  return getOrderAdmin(orderId);
+  return getOrderAdminDetail(orderId);
 };
 
 // GET /api/admin/orders/stats — resumen para el tablero
@@ -557,6 +658,10 @@ function formatBucketLabel(d, bucket) {
 module.exports = {
   listOrdersAdmin,
   getOrderAdmin,
+  getOrderAdminDetail,
+  listOrderSyncHistory,
+  decorateAdminOrder,
+  allowedFulfillmentTransitions,
   changeOrderStatus,
   updateTracking,
   orderStats,

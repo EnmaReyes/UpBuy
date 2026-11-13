@@ -1,12 +1,21 @@
 const {
   listOrdersAdmin,
-  getOrderAdmin,
+  getOrderAdminDetail,
+  listOrderSyncHistory,
   changeOrderStatus,
   updateTracking,
   orderStats,
   salesByPeriod,
 } = require("../Services/adminOrders.js");
-const { createManualOrder } = require("../Services/orders.js");
+const {
+  createManualOrder,
+  previewManualOrder,
+} = require("../Services/orders.js");
+const {
+  analyzeCsv,
+  importCsv,
+  assertSize,
+} = require("../Services/orderImport.js");
 const { getAccounting } = require("../Services/accounting.js");
 const {
   syncOrderById,
@@ -94,6 +103,57 @@ const createManual = async (req, res) => {
   }
 };
 
+// POST /api/admin/orders/manual/preview
+//
+// Calcula el total de una venta manual SIN escribir nada. Es lo que el panel
+// muestra mientras el administrador arma el pedido: el precio sale del
+// catalogo, nunca del navegador.
+const previewManual = async (req, res) => {
+  try {
+    const { items, discount, deliveryType } = req.body || {};
+
+    const preview = await previewManualOrder({
+      items,
+      manualDiscount: discount ?? 0,
+      deliveryType,
+    });
+
+    return res.status(200).json(preview);
+  } catch (error) {
+    return sendError(res, error, "No se pudo calcular el total");
+  }
+};
+
+// POST /api/admin/orders/import
+//
+// Importa ventas desde un CSV (text/csv). Con ?dryRun=1 solo analiza el
+// archivo: devuelve los errores por fila SIN escribir nada.
+//
+// Body: el CSV crudo (Content-Type: text/csv).
+const importCsvHandler = async (req, res) => {
+  try {
+    const text = typeof req.body === "string" ? req.body : "";
+    assertSize(text);
+
+    const dryRun = String(req.query.dryRun || "") === "1";
+
+    if (dryRun) {
+      const analysis = await analyzeCsv(text);
+      return res.status(200).json({
+        dryRun: true,
+        summary: analysis.summary,
+        errors: analysis.errors,
+        warnings: analysis.warnings,
+      });
+    }
+
+    const result = await importCsv({ text, adminId: req.user.id });
+    return res.status(201).json({ dryRun: false, ...result });
+  } catch (error) {
+    return sendError(res, error, "No se pudo importar el archivo");
+  }
+};
+
 // GET /api/admin/orders/stats
 const stats = async (req, res) => {
   try {
@@ -107,10 +167,20 @@ const stats = async (req, res) => {
 // GET /api/admin/orders/:id
 const detail = async (req, res) => {
   try {
-    const order = await getOrderAdmin(req.params.id);
+    const order = await getOrderAdminDetail(req.params.id);
     return res.status(200).json(order);
   } catch (error) {
     return sendError(res, error, "No se pudo cargar el pedido");
+  }
+};
+
+// GET /api/admin/orders/:id/sync-history
+const syncHistory = async (req, res) => {
+  try {
+    const logs = await listOrderSyncHistory(req.params.id);
+    return res.status(200).json({ logs });
+  } catch (error) {
+    return sendError(res, error, "No se pudo cargar el historial de sincronización");
   }
 };
 
@@ -243,7 +313,7 @@ const registerPaymentHandler = async (req, res) => {
     });
 
     // Se devuelve el pedido completo para que el panel se actualice de una.
-    return res.status(201).json(await getOrderAdmin(order.id));
+    return res.status(201).json(await getOrderAdminDetail(order.id));
   } catch (error) {
     return sendError(res, error, "No se pudo registrar el pago");
   }
@@ -268,7 +338,7 @@ const changePayment = async (req, res) => {
       note,
     });
 
-    return res.status(200).json(await getOrderAdmin(order.id));
+    return res.status(200).json(await getOrderAdminDetail(order.id));
   } catch (error) {
     return sendError(res, error, "No se pudo actualizar el pago");
   }
@@ -278,6 +348,7 @@ module.exports = {
   list,
   stats,
   detail,
+  syncHistory,
   changeStatus,
   tracking,
   sales,
@@ -286,6 +357,8 @@ module.exports = {
   sync,
   push,
   createManual,
+  previewManual,
+  importCsv: importCsvHandler,
   payments,
   registerPaymentHandler,
   changePayment,

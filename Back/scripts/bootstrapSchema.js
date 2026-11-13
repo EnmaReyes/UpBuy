@@ -16,7 +16,8 @@
 // En Windows PowerShell:
 //   $env:DATABASE_URL="postgresql://..."; node scripts/bootstrapSchema.js
 //
-// Orden: base -> catalogo -> dropshipping. Sale con codigo 1 si algo falla.
+// Orden: base -> seguridad admin -> catalogo -> dropshipping. Sale con codigo
+// 1 si algo falla.
 
 const path = require("path");
 require("dotenv").config();
@@ -27,6 +28,9 @@ require("dotenv").config({
 
 const { sequelize } = require("../DataBase/db.js");
 const { ensureBaseSchema } = require("../DataBase/ensureBaseSchema.js");
+const {
+  ensureAdminSecuritySchema,
+} = require("../DataBase/ensureAdminSecuritySchema.js");
 const { ensureCatalogSchema } = require("../DataBase/ensureCatalogSchema.js");
 const {
   ensureDropshippingSchema,
@@ -36,11 +40,15 @@ const run = async () => {
   await sequelize.authenticate();
 
   const base = await ensureBaseSchema();
+  const admin = await ensureAdminSecuritySchema();
   const catalog = await ensureCatalogSchema();
   const dropshipping = await ensureDropshippingSchema();
 
   const aplicado =
-    base.migrated || catalog.migrated || dropshipping.migrated;
+    base.migrated ||
+    admin.migrated ||
+    catalog.migrated ||
+    dropshipping.migrated;
 
   console.log(
     aplicado

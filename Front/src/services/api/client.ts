@@ -19,6 +19,8 @@ export class ApiError extends Error {
   readonly status: number | null;
   /** Código del backend cuando lo envía (p. ej. `PROFILE_INCOMPLETE`). */
   readonly code: string | null;
+  /** Campos extra del cuerpo de error (p. ej. `enrollmentTicket`). */
+  readonly details: Record<string, unknown> | null;
 
   constructor(
     message: string,
@@ -26,13 +28,20 @@ export class ApiError extends Error {
       kind,
       status = null,
       code = null,
-    }: { kind: ApiErrorKind; status?: number | null; code?: string | null },
+      details = null,
+    }: {
+      kind: ApiErrorKind;
+      status?: number | null;
+      code?: string | null;
+      details?: Record<string, unknown> | null;
+    },
   ) {
     super(message);
     this.name = "ApiError";
     this.kind = kind;
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 
   get isNotFound(): boolean {
@@ -70,16 +79,18 @@ function buildUrl(path: string, query?: Query): string {
 }
 
 // El backend responde `"texto"` o `{ message, code }` según la ruta.
-async function readError(
-  response: Response,
-): Promise<{ message: string; code: string | null }> {
+async function readError(response: Response): Promise<{
+  message: string;
+  code: string | null;
+  details: Record<string, unknown> | null;
+}> {
   const fallback = `El servidor respondió ${response.status}`;
 
   try {
     const payload: unknown = await response.json();
 
     if (typeof payload === "string" && payload.trim()) {
-      return { message: payload, code: null };
+      return { message: payload, code: null, details: null };
     }
 
     if (payload && typeof payload === "object") {
@@ -87,12 +98,12 @@ async function readError(
       const message =
         typeof record.message === "string" ? record.message : fallback;
       const code = typeof record.code === "string" ? record.code : null;
-      return { message, code };
+      return { message, code, details: record };
     }
 
-    return { message: fallback, code: null };
+    return { message: fallback, code: null, details: null };
   } catch {
-    return { message: fallback, code: null };
+    return { message: fallback, code: null, details: null };
   }
 }
 
@@ -116,8 +127,13 @@ export async function apiFetch<T>(
   }
 
   if (!response.ok) {
-    const { message, code } = await readError(response);
-    throw new ApiError(message, { kind: "http", status: response.status, code });
+    const { message, code, details } = await readError(response);
+    throw new ApiError(message, {
+      kind: "http",
+      status: response.status,
+      code,
+      details,
+    });
   }
 
   try {
@@ -132,14 +148,35 @@ export async function apiFetch<T>(
 type SendOptions = {
   method?: "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
+  /**
+   * Cuerpo de texto plano (CSV). Se envía tal cual, con el `contentType`
+   * indicado. El backend lo usa para la importación de ventas.
+   */
+  text?: string;
+  contentType?: string;
 };
 
 /** Petición con sesión: envía y recibe la cookie `access_token`. */
 export async function apiSend<T>(
   path: string,
-  { method = "POST", body }: SendOptions = {},
+  { method = "POST", body, text, contentType }: SendOptions = {},
 ): Promise<T> {
   const url = buildUrl(path);
+
+  const isText = typeof text === "string";
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    // CSRF: el backend exige esta cabecera en toda mutacion con cookie de
+    // sesion. Al no ser una cabecera "simple", el navegador hace preflight
+    // y CORS solo lo autoriza para el origen del frontend.
+    "X-Upbuy-CSRF": "1",
+  };
+
+  if (isText) {
+    headers["Content-Type"] = contentType ?? "text/plain; charset=utf-8";
+  } else if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
 
   let response: Response;
   try {
@@ -147,15 +184,8 @@ export async function apiSend<T>(
       method,
       credentials: "include",
       cache: "no-store",
-      headers: {
-        Accept: "application/json",
-        // CSRF: el backend exige esta cabecera en toda mutacion con cookie de
-        // sesion. Al no ser una cabecera "simple", el navegador hace preflight
-        // y CORS solo lo autoriza para el origen del frontend.
-        "X-Upbuy-CSRF": "1",
-        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers,
+      body: isText ? text : body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
     throw new ApiError("No se pudo conectar con el servidor", {
@@ -164,11 +194,59 @@ export async function apiSend<T>(
   }
 
   if (!response.ok) {
-    const { message, code } = await readError(response);
-    throw new ApiError(message, { kind: "http", status: response.status, code });
+    const { message, code, details } = await readError(response);
+    throw new ApiError(message, {
+      kind: "http",
+      status: response.status,
+      code,
+      details,
+    });
   }
 
   if (response.status === 204) return undefined as T;
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new ApiError("La respuesta del servidor no es válida", {
+      kind: "parse",
+    });
+  }
+}
+
+/**
+ * Lectura con sesión (GET). Mismo contrato que `apiSend`, pero sin CSRF:
+ * las lecturas no mutan nada. Se usa para las lecturas del panel que
+ * necesitan cookie (catálogo administrativo, etc.).
+ */
+export async function apiGet<T>(
+  path: string,
+  { query }: { query?: Query } = {},
+): Promise<T> {
+  const url = buildUrl(path, query);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+  } catch {
+    throw new ApiError("No se pudo conectar con el servidor", {
+      kind: "network",
+    });
+  }
+
+  if (!response.ok) {
+    const { message, code, details } = await readError(response);
+    throw new ApiError(message, {
+      kind: "http",
+      status: response.status,
+      code,
+      details,
+    });
+  }
 
   try {
     return (await response.json()) as T;

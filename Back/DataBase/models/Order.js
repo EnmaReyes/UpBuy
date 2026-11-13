@@ -60,6 +60,15 @@ const Order = sequelize.define(
       validate: { isIn: [SALE_CHANNEL_VALUES] },
     },
 
+    // Referencia de la venta en el sistema externo (CSV, panel del
+    // proveedor, cuaderno). Es la clave de idempotencia: el par
+    // (channel, externalRef) no se repite, asi que reimportar el mismo
+    // archivo no duplica pedidos. Null en los pedidos web.
+    externalRef: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+    },
+
     // Metodo de pago de las ventas manuales (efectivo, Nequi, ...). Null en
     // los pedidos web, que se cobran por Wompi.
     paymentMethod: {
@@ -367,6 +376,14 @@ const Order = sequelize.define(
       },
       { fields: ["channel"], name: "orders_channel_idx" },
       { fields: ["createdAt"], name: "orders_created_at_idx" },
+      // Idempotencia de la importacion CSV: el par (channel, externalRef) es
+      // unico. En Postgres los NULL no chocan entre si, asi que los pedidos
+      // web (externalRef NULL) pueden ser todos.
+      {
+        fields: ["channel", "externalRef"],
+        name: "orders_channel_external_ref_idx",
+        unique: true,
+      },
     ],
   },
 );

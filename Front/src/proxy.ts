@@ -10,17 +10,26 @@ import { NextResponse, type NextRequest } from "next/server";
 // Next.js 16 renombró el archivo `middleware.ts` a `proxy.ts` y la función
 // exportada de `middleware` a `proxy` (el anterior está deprecado).
 
-const PROTECTED_PREFIXES = ["/cuenta", "/checkout"];
+const PROTECTED_PREFIXES = ["/cuenta", "/checkout", "/admin"];
+
+// ADM-S4: en produccion la cookie se llama `__Host-upbuy_session`. Se mantiene
+// `access_token` como respaldo durante la transicion de despliegue.
+const SESSION_COOKIE_NAMES = ["__Host-upbuy_session", "access_token"];
+
+const hasSessionCookie = (request: NextRequest) =>
+  SESSION_COOKIE_NAMES.some((name) =>
+    Boolean(request.cookies.get(name)?.value),
+  );
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hasSessionCookie = Boolean(request.cookies.get("access_token")?.value);
+  const hasCookie = hasSessionCookie(request);
 
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 
-  if (isProtected && !hasSessionCookie) {
+  if (isProtected && !hasCookie) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = `?next=${encodeURIComponent(pathname)}`;

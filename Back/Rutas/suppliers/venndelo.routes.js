@@ -1,5 +1,9 @@
 const express = require("express");
-const { requireAuth, requireAdmin } = require("../../Middleware/auth.js");
+const {
+  requireAuth,
+  requireAdminSession,
+  requirePermission,
+} = require("../../Middleware/auth.js");
 const {
   status,
   testConnection,
@@ -14,8 +18,12 @@ const accountController = require("../../Controllers/suppliers/venndelo.account.
 
 const router = express.Router();
 
-// Toda la seccion exige sesion + rol admin (revalidado contra la base).
-router.use(requireAuth, requireAdmin);
+// Toda la seccion exige sesion revocable + permiso de gestion de proveedores.
+router.use(
+  requireAuth,
+  requireAdminSession,
+  requirePermission("providers.manage"),
+);
 
 // Rutas fijas antes de las que llevan parametro.
 router.get("/status", status);

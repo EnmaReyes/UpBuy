@@ -159,7 +159,7 @@ cuerpo que se agregue en el panel (campañas, importación).
 **Impacto:** una contraseña filtrada, reutilizada o adivinada da control total
 del catálogo, pedidos, pagos, clientes y campañas. El panel multiplica el daño.
 
-**Corrección:** MFA TOTP obligatorio para `role in ('admin','superadmin')`:
+**Corrección:** MFA TOTP obligatorio para `role in ('support','admin','superadmin')`:
 
 - Primer login de un admin sin MFA: no se emite cookie; se emite un ticket de
   enrolamiento de 10 min.
@@ -167,7 +167,8 @@ del catálogo, pedidos, pagos, clientes y campañas. El panel multiplica el dañ
   bcrypt, un solo uso).
 - Login: contraseña correcta → `202 { mfaRequired: true, challengeId }` →
   `POST /api/auth/admin/mfa` con TOTP o código de respaldo → cookie.
-- Rate limit específico (5 intentos / 15 min por cuenta) y auditoría.
+- Rate limit específico en `/api/auth/admin/mfa*` (10 peticiones / 15 min) y
+  bloqueo del reto a los 5 intentos fallidos; todo queda en `auth_events`.
 - Sin MFA configurado y `ADMIN_MFA_REQUIRED=true` (default en producción):
   `/api/admin/*` responde 403 `ADMIN_MFA_SETUP_REQUIRED`.
 
@@ -515,31 +516,108 @@ vez. Es intencional: cierra F-01 de inmediato.
 
 ### ADM-S1 — Rol, permisos y sesiones (2–3 días)
 
+**Estado: implementado el 2026-11-13.**
+
 - `role` + permisos + `admin_sessions` + `auth_events`.
 - `requireAdminSession` y `requirePermission`.
-- Revocación en logout, cambio de contraseña y cambio de rol.
+- Revocación en logout y cambio de rol; `tokenVersion` deja lista la
+  revocación por cambio de contraseña.
 - `grantAdmin.js` y migración.
 - Endpoints de sesiones activas.
 
-### ADM-S2 — MFA TOTP (2–3 días)
+Detalle de la implementación:
 
-- Enrolamiento, verificación, códigos de respaldo, rate limit, auditoría.
-- Login admin en dos pasos.
+- `DataBase/ensureAdminSecuritySchema.js` (idempotente, advisory lock):
+  columnas `role`, `disabled`, `tokenVersion`, `mfaEnabled`,
+  `mfaSecretEncrypted`, `mfaEnrolledAt`, `lastLoginAt`, `lastLoginIp`; tablas
+  `admin_sessions`, `auth_events` (ADM-S1) y `admin_mfa_challenges`,
+  `admin_backup_codes` (ADM-S2); CHECK de roles, backfill
+  `admin=true → role='admin'` y sincronización de la columna legacy `admin`.
+- `Services/permissions.js`: mapa estático rol → permisos (4.2).
+- `Services/adminSessions.js`: creación, vigencia (2 h idle / 8 h absolutas),
+  `touch`, revocación individual y masiva, y `recordAuthEvent`.
+- `Middleware/auth.js`: `requireAdminSession` (rol actual, `disabled`,
+  `tokenVersion` y `sid` vivo) + `requirePermission`. `requireAdmin` queda como
+  alias para no romper rutas existentes.
+- `Controllers/auth.js`: el JWT de admin lleva `sid` y `ver`; el login registra
+  `lastLoginAt/lastLoginIp` y eventos; el logout revoca la sesión.
+- `Rutas/adminAdmins.js`: `GET /api/admin/admins/sessions`,
+  `POST .../revoke-all`, `DELETE .../sessions/:id` (sesiones propias).
+- Permisos aplicados a las rutas: `orders.read/write/refund`,
+  `catalog.write`, `users.read`, `providers.manage`.
+- `scripts/grantAdmin.js` y `scripts/migrateAdminSecurity.js`.
+
+**Efecto de despliegue:** los tokens de admin emitidos antes de ADM-S1 no
+llevan `sid`, así que dejan de servir para `/api/admin/*`. Es intencional:
+obliga a un login nuevo que ya crea una sesión revocable. Los tokens de los
+compradores siguen funcionando igual.
+
+### ADM-S2 — MFA TOTP (implementado 2026-11-13)
+
+- `Services/mfa.js`: TOTP RFC 6238 (SHA1, 6 dígitos, paso 30 s, ventana ±1),
+  cifrado AES-256-GCM del secreto, códigos de respaldo bcrypt de un solo uso,
+  retos con bloqueo y ticket de enrolamiento JWT (audiencia `upbuy-mfa`).
+- `Controllers/auth.js`: login en dos pasos (`202` con `challengeId`, o `403`
+  `ADMIN_MFA_SETUP_REQUIRED` con `enrollmentTicket`), `verifyAdminMfa`,
+  `setupAdminMfa`, `enrollAdminMfa`. El login social usa el mismo camino.
+- `Middleware/auth.js`: `requireAdminSession` exige `mfaEnabled` y
+  `session.mfaAt` cuando `ADMIN_MFA_REQUIRED=true`.
+- `Rutas/auth.js` + `Middlewares/rateLimits.js`: `/api/auth/admin/mfa`,
+  `/admin/mfa/setup`, `/admin/mfa/enroll` con `adminMfaLimiter`.
+- `ensureAdminSecuritySchema.js`: tablas idempotentes `admin_mfa_challenges` y
+  `admin_backup_codes`.
+- `config.js` / `.env.example`: `ADMIN_MFA_REQUIRED`,
+  `ADMIN_MFA_ENCRYPTION_KEY`, `..._PREVIOUS`, `ADMIN_MFA_CHALLENGE_MINUTES`,
+  `ADMIN_MFA_MAX_ATTEMPTS`, `ADMIN_MFA_ISSUER`.
+- Tests: `test/mfa.test.js` (vectores TOTP, cifrado, códigos de respaldo,
+  bloqueo, login completo, `mfaAt` y migración idempotente).
 - `ADMIN_MFA_REQUIRED=true` en producción.
-- Tests de TOTP (con reloj fijo) y recuperación.
 
-### ADM-S3 — Step-up y gobierno de admins (1–2 días)
+### ADM-S3 — Step-up y gobierno de admins (implementado 2026-11-13)
 
-- Step-up para reembolsos, cancelaciones, campañas, roles y despublicar.
-- `/api/admin/admins` solo `superadmin`.
-- Protección del último superadmin.
-- UI de seguridad en `/admin/perfil/seguridad`.
+- `Middlewares/requireStepUp.js`: ventana de `ADMIN_STEP_UP_MINUTES` (10) sobre
+  `admin_sessions.mfaAt`; responde `403 STEP_UP_REQUIRED` con `action` y
+  `maxAgeMinutes`, y vuelve a comprobar el permiso de la acción.
+- `Services/permissions.js`: mapa `STEP_UP_ACTIONS` (reembolsos, cancelaciones,
+  campañas, roles y despublicar) y reglas puras `evaluateAdminChange` (nadie se
+  autodegrada; nunca se queda sin superadmin activo).
+- `POST /api/auth/admin/step-up { code }`: valida TOTP o código de respaldo,
+  refresca `mfaAt` de la sesión, registra `step_up` y no ejecuta la acción.
+- Rutas con step-up: cambio de pago/reembolso, cancelación de pedido,
+  despublicación de producto y `PATCH /api/admin/admins/:id`.
+- `/api/admin/admins`: `GET` (lista, solo `admins.manage`) y `PATCH /:id`
+  (`{ role?, disabled? }`, solo superadmin). Los cambios revocan sesiones,
+  incrementan `tokenVersion` y quedan en `audit_logs` y `auth_events`.
+- `ADMIN_STEP_UP_MINUTES` documentado en `.env.example`.
+- Tests en `test/auth.admin.test.js`: mapa de acciones, step-up ausente/fresco/
+  vencido, permiso insuficiente, último superadmin y autodegradación.
 
-### ADM-S4 — Endurecimiento opcional (1 día)
+### ADM-S4 — Endurecimiento (implementado 2026-11-13)
 
-- `__Host-` cookie, rotación de sesión, lista de IPs permitidas
-  (`ADMIN_IP_ALLOWLIST`), alertas por intentos fallidos.
-- Revisión de logs y retención.
+- `Services/sessionCookie.js`: cookie `__Host-upbuy_session` en producción
+  (`Secure`, `Path=/`, sin `Domain`); `access_token` fuera de producción.
+  `readSessionToken` acepta ambas durante la transición y el logout limpia las
+  dos. `SESSION_COOKIE_NAME` permite forzar el nombre.
+- `Services/adminSessions.js`: `rotateAdminSession` crea una sesión nueva y
+  revoca la anterior. `POST /api/auth/admin/step-up` la usa: reemite el JWT y
+  la cookie dentro de la misma respuesta.
+- `Middlewares/requireAdminIp.js`: `ADMIN_IP_ALLOWLIST` acepta IPs exactas y
+  CIDR IPv4/IPv6; vacía = sin restricción. Se monta en `/api/admin` y
+  `/api/auth/admin`, y el login de un admin también la comprueba. Responde
+  `403 ADMIN_IP_NOT_ALLOWED`.
+- `Services/securityAlerts.js`: avisa a los admins al acumular
+  `ADMIN_ALERT_FAILED_ATTEMPTS` fallos en `ADMIN_ALERT_WINDOW_MINUTES`.
+  Idempotente por `(evento, cuenta/IP, ventana, admin)`; nunca guarda secretos.
+- `Services/securityLogs.js` + `Controllers/adminAudit.js` +
+  `Rutas/adminAudit.js`: `GET /api/admin/audit/events` (paginado, `audit.read`)
+  y `POST /api/admin/audit/prune` (`{ olderThanDays? }`, mínimo 7, step-up
+  `admins.manage`). `scripts/pruneSecurityLogs.js` (`npm run security:prune`)
+  hace la limpieza manual con `--confirm`.
+- `AUTH_EVENTS_RETENTION_DAYS` (90) define la retención de `auth_events`; `0`
+  la desactiva. Los `audit_logs` de negocio no se tocan.
+- `Front/src/proxy.ts` lee `__Host-upbuy_session` y `access_token`.
+- Tests en `test/auth.admin.test.js`: lectura de ambas cookies, parseo de IPs y
+  CIDR, umbral de alertas, retención desactivada y rotación de sesión.
 
 Cada subfase termina con `cd Back && npm test` verde y un resumen. No se avanza
 sin aprobación.

@@ -90,10 +90,12 @@ const deleteAll = async (userId) => {
   await Notificacion.destroy({ where: { userId } });
 };
 
-// Helper reutilizable: crea la misma notificación para cada administrador
-// (`admin: true`). `claveForAdmin(adminId)` mantiene la idempotencia por
-// administrador. Se ejecuta fuera de cualquier transacción y nunca debe
-// tumbar la operación principal que la invoca.
+// Helper reutilizable: crea la misma notificación para cada administrador.
+// El rol es la fuente de verdad (ADM-S1); se acepta `admin: true` como
+// respaldo mientras dure la transicion de la columna legacy.
+// `claveForAdmin(adminId)` mantiene la idempotencia por administrador. Se
+// ejecuta fuera de cualquier transacción y nunca debe tumbar la operación
+// principal que la invoca.
 const notifyAdmins = async ({
   tipo = "pedido",
   titulo,
@@ -104,7 +106,12 @@ const notifyAdmins = async ({
   if (!titulo) return;
 
   const admins = await Usuarios.findAll({
-    where: { admin: true },
+    where: {
+      [Op.or]: [
+        { role: { [Op.in]: ["admin", "superadmin"] } },
+        { admin: true },
+      ],
+    },
     attributes: ["id"],
   });
 

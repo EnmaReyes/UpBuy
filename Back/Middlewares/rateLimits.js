@@ -83,11 +83,28 @@ const paymentLimiter = crearLimite({
   message: "Demasiados intentos de pago. Espera unos minutos.",
 });
 
+// MFA administrativo: el segundo paso es corto y adivinable por fuerza bruta
+// (6 digitos), asi que tiene un limite mas estricto que el login normal.
+const adminMfaLimiter = crearLimite({
+  windowMs: 15 * MINUTE,
+  limit: 10,
+  message: "Demasiados intentos de verificación. Espera unos minutos.",
+});
+
 // Wompi reintenta eventos: el limite es alto a proposito. Solo evita que un
 // tercero use el endpoint como ariete.
 const webhookLimiter = crearLimite({
   windowMs: MINUTE,
   limit: 120,
+});
+
+// Importacion CSV del panel: escribe muchos pedidos de golpe, asi que el
+// limite es por archivo (no por fila). Frena el bucle de importaciones.
+const importLimiter = crearLimite({
+  windowMs: 10 * MINUTE,
+  limit: 20,
+  message:
+    "Demasiadas importaciones seguidas. Espera unos minutos antes de volver a intentarlo.",
 });
 
 module.exports = {
@@ -97,5 +114,7 @@ module.exports = {
   orderLimiter,
   paymentLimiter,
   webhookLimiter,
+  adminMfaLimiter,
+  importLimiter,
   porUsuarioOIp,
 };

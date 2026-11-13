@@ -14,6 +14,10 @@ const { Address } = require("./Address.js");
 const { WebhookEvent } = require("./WebhookEvent.js");
 const { AuditLog } = require("./AuditLog.js");
 const { SyncLog } = require("./SyncLog.js");
+const { AdminSession } = require("./AdminSession.js");
+const { AuthEvent } = require("./AuthEvent.js");
+const { AdminMfaChallenge } = require("./AdminMfaChallenge.js");
+const { AdminBackupCode } = require("./AdminBackupCode.js");
 const { Product } = require("./Product.js");
 const { Category } = require("./Category.js");
 const { ProductImage } = require("./ProductImage.js");
@@ -142,6 +146,60 @@ Order.hasMany(SyncLog, {
 SyncLog.belongsTo(Order, {
   foreignKey: "orderId",
   as: "order",
+});
+
+// ------------------- Seguridad administrativa (ADM-S1) ---------------------
+// Sesiones revocables y eventos de autenticacion del usuario.
+Usuarios.hasMany(AdminSession, {
+  foreignKey: "userId",
+  as: "adminSessions",
+  sourceKey: "id",
+  onDelete: "CASCADE",
+});
+
+AdminSession.belongsTo(Usuarios, {
+  foreignKey: "userId",
+  as: "user",
+  targetKey: "id",
+});
+
+Usuarios.hasMany(AuthEvent, {
+  foreignKey: "userId",
+  as: "authEvents",
+  sourceKey: "id",
+});
+
+AuthEvent.belongsTo(Usuarios, {
+  foreignKey: "userId",
+  as: "user",
+  targetKey: "id",
+});
+
+// Retos de MFA y codigos de respaldo (ADM-S2).
+Usuarios.hasMany(AdminMfaChallenge, {
+  foreignKey: "userId",
+  as: "mfaChallenges",
+  sourceKey: "id",
+  onDelete: "CASCADE",
+});
+
+AdminMfaChallenge.belongsTo(Usuarios, {
+  foreignKey: "userId",
+  as: "user",
+  targetKey: "id",
+});
+
+Usuarios.hasMany(AdminBackupCode, {
+  foreignKey: "userId",
+  as: "backupCodes",
+  sourceKey: "id",
+  onDelete: "CASCADE",
+});
+
+AdminBackupCode.belongsTo(Usuarios, {
+  foreignKey: "userId",
+  as: "user",
+  targetKey: "id",
 });
 
 // Los eventos de webhook no tienen relacion con el pedido: se guardan
@@ -283,6 +341,10 @@ module.exports = {
   WebhookEvent,
   AuditLog,
   SyncLog,
+  AdminSession,
+  AuthEvent,
+  AdminMfaChallenge,
+  AdminBackupCode,
   Product,
   Category,
   ProductImage,

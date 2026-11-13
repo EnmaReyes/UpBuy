@@ -137,7 +137,14 @@ const listAdmin = async ({ q, status, provider, limit = 24, offset = 0 } = {}) =
 
   const where = {};
   const search = String(q || "").trim();
-  if (search) where.name = { [Op.iLike]: `%${search}%` };
+  if (search) {
+    // El panel busca por nombre o por SKU (propio o del proveedor).
+    where[Op.or] = [
+      { name: { [Op.iLike]: `%${search}%` } },
+      { sku: { [Op.iLike]: `%${search}%` } },
+      { providerSku: { [Op.iLike]: `%${search}%` } },
+    ];
+  }
   if (status) where.status = String(status);
   if (provider) where.provider = String(provider);
 
@@ -151,10 +158,22 @@ const listAdmin = async ({ q, status, provider, limit = 24, offset = 0 } = {}) =
   });
 
   return {
-    products: rows.map((row) => ({
-      ...row.toJSON(),
-      available: Boolean(row.active) && Number(row.stock) > 0,
-    })),
+    products: rows.map((row) => {
+      const json = row.toJSON ? row.toJSON() : row;
+      // `price` es el precio base; `precio` es el que se cobra (con el
+      // descuento del producto). El panel de ventas necesita el que se cobra.
+      const resultado = aplicarDescuento(
+        Number(json.price) || 0,
+        json.descuentoPorcentaje,
+      );
+
+      return {
+        ...json,
+        precio: resultado.precioFinal,
+        precioOriginal: resultado.precioOriginal,
+        available: Boolean(row.active) && Number(row.stock) > 0,
+      };
+    }),
     total: count,
     limit: safeLimit,
     offset: safeOffset,

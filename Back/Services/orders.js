@@ -409,6 +409,24 @@ const createOrderCore = async ({
   actorUserId = null,
   notify = true,
   manual = false,
+  // Referencia externa (idempotencia de la importacion CSV).
+  externalRef = null,
+  // Costo proveedor del pedido (lo que UpBuy pago por el producto).
+  providerCost = 0,
+  // Guia y transportadora (importacion CSV de pedidos ya despachados).
+  trackingNumber = null,
+  trackingCarrier = null,
+  // Fecha de la venta. Por defecto es el momento de la creacion.
+  createdAt = null,
+  // No reserva stock (importacion de ventas ya ocurridas).
+  skipStockReservation = false,
+  // Conserva tal cual el estado de cumplimiento recibido (importacion CSV):
+  // un pago aprobado no debe promoverlo a "paid" por su cuenta.
+  preserveFulfillmentStatus = false,
+  // Nota que queda en el historial logistico.
+  historyNote = null,
+  // Opciones de construccion de lineas (importacion CSV).
+  pricingOptions = {},
 }) => {
   const transaction = await sequelize.transaction();
 
@@ -421,7 +439,7 @@ const createOrderCore = async ({
       : validateShipping(shipping);
 
     const { lines, subtotal, discountTotal: computedDiscount } =
-      await buildOrderLines(items, transaction);
+      await buildOrderLines(items, transaction, pricingOptions);
 
     let shippingCost = 0;
     let shippingZone = "nacional";
@@ -453,9 +471,27 @@ const createOrderCore = async ({
 
     // La reserva de stock solo se aplica si esta habilitada. Con stock
     // booleano queda apagada (ver STOCK_RESERVATION_ENABLED).
-    if (STOCK_RESERVATION_ENABLED) {
+    //
+    // `skipStockEffects` la usa la importacion CSV: registra ventas que ya
+    // ocurrieron, noeducta el inventario vigente del catalogo.
+    if (STOCK_RESERVATION_ENABLED && !skipStockReservation) {
       await reserveOrderStock(lines, transaction);
     }
+
+    // Marcas de tiempo segun el estado con el que nace el pedido.
+    const shippedAt =
+      initialFulfillmentStatus === FULFILLMENT_STATUS.SHIPPED ||
+      initialFulfillmentStatus === FULFILLMENT_STATUS.DELIVERED
+        ? createdAt || new Date()
+        : null;
+    const deliveredAt =
+      initialFulfillmentStatus === FULFILLMENT_STATUS.DELIVERED
+        ? createdAt || new Date()
+        : null;
+    const cancelledAt =
+      initialFulfillmentStatus === FULFILLMENT_STATUS.CANCELLED
+        ? createdAt || new Date()
+        : null;
 
     const order = await Order.create(
       {
@@ -465,6 +501,10 @@ const createOrderCore = async ({
         paymentMethod,
         paymentMethodCode,
         provider,
+        externalRef: externalRef || null,
+        providerCost: Number(providerCost) || 0,
+        trackingNumber: trackingNumber || null,
+        trackingCarrier: trackingCarrier || null,
         fulfillmentStatus: initialFulfillmentStatus,
         paymentState: initialPaymentState,
         currency: "COP",
@@ -482,10 +522,19 @@ const createOrderCore = async ({
         notes: notes ? trim(notes).slice(0, 1000) : shippingData.notes,
         shippingZone,
         estimatedDeliveryDays,
+        shippedAt,
+        deliveredAt,
+        cancelledAt,
+        // La fecha de la venta: en la importacion CSV es la fecha del
+        // archivo, no el momento de la importacion.
+        ...(createdAt ? { createdAt, updatedAt: createdAt } : {}),
         paymentApprovedAt:
-          initialPaymentState === PAYMENT_STATE.SETTLED ? new Date() : null,
+          initialPaymentState === PAYMENT_STATE.SETTLED
+            ? createdAt || new Date()
+            : null,
         stockReservedUntil:
           STOCK_RESERVATION_ENABLED &&
+          !skipStockReservation &&
           initialFulfillmentStatus === FULFILLMENT_STATUS.PENDING_PAYMENT
             ? new Date(Date.now() + STOCK_RESERVATION_MINUTES * 60 * 1000)
             : null,
@@ -510,29 +559,37 @@ const createOrderCore = async ({
         fromStatus: null,
         toStatus: initialFulfillmentStatus,
         changedByUserId: actorUserId,
-        note: manual
-          ? `Venta registrada manualmente (canal: ${channel}).`
-          : STOCK_RESERVATION_ENABLED
-            ? `Pedido creado. Stock reservado por ${STOCK_RESERVATION_MINUTES} minutos.`
-            : "Pedido creado.",
+        note: historyNote
+          ? trim(historyNote).slice(0, 1000)
+          : manual
+            ? `Venta registrada manualmente (canal: ${channel}).`
+            : STOCK_RESERVATION_ENABLED
+              ? `Pedido creado. Stock reservado por ${STOCK_RESERVATION_MINUTES} minutos.`
+              : "Pedido creado.",
       },
       { transaction },
     );
 
-    if (manual && initialPaymentState === PAYMENT_STATE.SETTLED) {
-      // La venta manual nace pagada: se registra el pago en la tabla payments
-      // (fuente unica de verdad, igual que Wompi mas adelante). registerPayment
-      // escribe tambien el historial de pago y devuelve el stock al catalogo.
+    const paymentStatusForState = PAYMENT_STATUS_BY_STATE[initialPaymentState];
+
+    if (manual && paymentStatusForState) {
+      // La venta manual nace con el dinero en algun punto del ciclo: se
+      // registra el pago en la tabla payments (fuente unica de verdad, igual
+      // que Wompi mas adelante). registerPayment escribe tambien el historial
+      // de pago.
       const { registerPayment } = require("./payments.js");
       await registerPayment({
         orderId: order.id,
-        status: PAYMENT_STATUS.APROBADO,
+        status: paymentStatusForState,
         paymentMethodType: paymentMethod,
         actorUserId,
         note: paymentMethod
           ? `Pago registrado manualmente (método: ${paymentMethod}).`
           : "Pago registrado manualmente.",
         transaction,
+        paymentState: initialPaymentState,
+        skipStockEffects: skipStockReservation,
+        promoteFulfillment: !preserveFulfillmentStatus,
       });
     }
 
@@ -687,6 +744,63 @@ const createOrder = async ({
   });
 };
 
+// ---------------------------------------------------------------------------
+// Previsualizacion de una venta manual (ADM-3).
+//
+// Calcula el total SIN escribir nada: es lo que el panel muestra mientras el
+// administrador arma el pedido. El precio sale del catalogo (nunca del
+// navegador) y aplican las mismas reglas de la creacion, para que lo que se ve
+// sea lo que se guarda.
+// ---------------------------------------------------------------------------
+const previewManualOrder = async ({
+  items,
+  manualDiscount = 0,
+  deliveryType = "envio",
+  pricingOptions = {},
+}) => {
+  const { lines, subtotal, discountTotal: computedDiscount } =
+    await buildOrderLines(items, undefined, pricingOptions);
+
+  const discount = parseDiscount(manualDiscount, subtotal);
+  const discountTotal = computedDiscount + discount;
+  const shippingCost = 0;
+  const total = subtotal - discount + shippingCost;
+
+  if (total < 0) {
+    throw new HttpError(400, "El total del pedido es inválido");
+  }
+
+  return {
+    lines: lines.map((line) => ({
+      productId: line.productId,
+      title: line.title,
+      size: line.size,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      lineTotal: line.lineTotal,
+    })),
+    subtotal,
+    shippingCost,
+    discountTotal,
+    total,
+    currency: "COP",
+    pickup: deliveryType === "pickup",
+  };
+};
+
+// Estado canonico del dinero -> estado del intento de pago que lo registra.
+// El pago es la fuente unica de verdad: cada estado canonico del dinero se
+// apoya en una fila de la tabla payments.
+//
+// "pending_collection" y "unpaid" NO generan fila: el dinero todavia no se
+// movio (es el caso de un COD por cobrar). Es el mismo criterio que usa el
+// ciclo de vida de los pedidos de la tienda.
+const PAYMENT_STATUS_BY_STATE = {
+  [PAYMENT_STATE.SETTLED]: PAYMENT_STATUS.APROBADO,
+  [PAYMENT_STATE.COLLECTED]: PAYMENT_STATUS.APROBADO,
+  [PAYMENT_STATE.REFUNDED]: PAYMENT_STATUS.ANULADO,
+};
+
 // Venta externa registrada por un administrador (sin usuario de tienda).
 const createManualOrder = async ({
   adminId,
@@ -698,6 +812,16 @@ const createManualOrder = async ({
   paymentStatus,
   deliveryType,
   manualDiscount,
+  externalRef = null,
+  providerCost = 0,
+  initialFulfillmentStatus = null,
+  initialPaymentState = null,
+  trackingNumber = null,
+  trackingCarrier = null,
+  createdAt = null,
+  historyNote = null,
+  skipStockReservation = false,
+  pricingOptions = {},
 }) => {
   const safeChannel = SALE_CHANNEL_VALUES.includes(channel)
     ? channel
@@ -723,13 +847,36 @@ const createManualOrder = async ({
   // liquidado (settled). Si no, el pedido queda pendiente de pago.
   const yaEstaPagado = safePaymentStatus === PAYMENT_STATUS.APROBADO;
 
-  const initialFulfillmentStatus = yaEstaPagado
-    ? FULFILLMENT_STATUS.PAID
-    : FULFILLMENT_STATUS.PENDING_PAYMENT;
+  // El importador CSV puede fijar los estados canonicos (trae la foto de una
+  // venta que ya ocurrio). El panel manual usa los de aqui.
+  const estados =
+    initialFulfillmentStatus && initialPaymentState
+      ? {
+          fulfillmentStatus: initialFulfillmentStatus,
+          paymentState: initialPaymentState,
+          explicit: true,
+        }
+      : yaEstaPagado
+        ? {
+            fulfillmentStatus: FULFILLMENT_STATUS.PAID,
+            paymentState: PAYMENT_STATE.SETTLED,
+            explicit: false,
+          }
+        : {
+            fulfillmentStatus: FULFILLMENT_STATUS.PENDING_PAYMENT,
+            paymentState: PAYMENT_STATE.UNPAID,
+            explicit: false,
+          };
 
-  const initialPaymentState = yaEstaPagado
-    ? PAYMENT_STATE.SETTLED
-    : PAYMENT_STATE.UNPAID;
+  const fulfillmentStatus = estados.fulfillmentStatus;
+  const paymentState = estados.paymentState;
+
+  if (!FULFILLMENT_STATUS_VALUES.includes(fulfillmentStatus)) {
+    throw new HttpError(400, "Estado de cumplimiento inválido");
+  }
+  if (!PAYMENT_STATE_VALUES.includes(paymentState)) {
+    throw new HttpError(400, "Estado de pago inválido");
+  }
 
   return createOrderCore({
     userId: null,
@@ -738,10 +885,21 @@ const createManualOrder = async ({
     notes,
     channel: safeChannel,
     deliveryType: deliveryType === "pickup" ? "pickup" : "envio",
-    initialFulfillmentStatus,
-    initialPaymentState,
+    initialFulfillmentStatus: fulfillmentStatus,
+    initialPaymentState: paymentState,
     paymentMethod: safePaymentMethod,
     manualDiscount,
+    externalRef,
+    providerCost,
+    trackingNumber,
+    trackingCarrier,
+    createdAt,
+    historyNote,
+    skipStockReservation,
+    preserveFulfillmentStatus: Boolean(
+      fulfillmentStatus && paymentState && estados.explicit,
+    ),
+    pricingOptions,
     actorUserId: adminId,
     notify: false,
     manual: true,
@@ -907,6 +1065,7 @@ const getPublicTracking = async ({ orderId, phone, email }) => {
 module.exports = {
   createOrder,
   createManualOrder,
+  previewManualOrder,
   cancelOrder,
   getOrderForUser,
   listOrdersForUser,

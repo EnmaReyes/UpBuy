@@ -28,6 +28,10 @@ const { Address } = require("./Address.js");
 const { WebhookEvent } = require("./WebhookEvent.js");
 const { AuditLog } = require("./AuditLog.js");
 const { SyncLog } = require("./SyncLog.js");
+const { AdminSession } = require("./AdminSession.js");
+const { AuthEvent } = require("./AuthEvent.js");
+const { AdminMfaChallenge } = require("./AdminMfaChallenge.js");
+const { AdminBackupCode } = require("./AdminBackupCode.js");
 const enums = require("./enums.js");
 
 // Define las asociaciones (requiere los modelos de arriba ya definidos).
@@ -56,5 +60,9 @@ module.exports = {
   WebhookEvent,
   AuditLog,
   SyncLog,
+  AdminSession,
+  AuthEvent,
+  AdminMfaChallenge,
+  AdminBackupCode,
   ...enums,
 };

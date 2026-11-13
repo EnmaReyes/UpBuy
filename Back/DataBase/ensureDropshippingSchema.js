@@ -77,6 +77,9 @@ const getSchemaState = async (transaction) => {
        EXISTS (SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'public' AND table_name = 'orders'
                   AND column_name = 'addressSnapshot')    AS "hasAddressSnapshot",
+        EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = 'public' AND table_name = 'orders'
+                  AND column_name = 'externalRef')       AS "hasExternalRef",
 
        EXISTS (SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'public' AND table_name = 'orders'
@@ -133,6 +136,7 @@ const needsMigration = (state) => {
     !state.hasProviderOutOfSync ||
     !state.hasNetProfit ||
     !state.hasAddressSnapshot ||
+    !state.hasExternalRef ||
     !state.hasAddresses ||
     !state.hasWebhookEvents ||
     !state.hasAuditLogs ||
@@ -446,6 +450,14 @@ const applySchema = async (transaction, state) => {
     { transaction },
   );
 
+  // Referencia externa de la venta (importacion CSV). Es la clave de
+  // idempotencia: la pareja (channel, externalRef) no se repite.
+  await sequelize.query(
+    `ALTER TABLE orders
+       ADD COLUMN IF NOT EXISTS "externalRef" VARCHAR(120)`,
+    { transaction },
+  );
+
   await sequelize.query(
     `ALTER TABLE orders
        ADD COLUMN IF NOT EXISTS "profileCompleteAt" TIMESTAMPTZ`,
@@ -522,6 +534,15 @@ const applySchema = async (transaction, state) => {
   await sequelize.query(
     `CREATE INDEX IF NOT EXISTS orders_provider_out_of_sync_idx
        ON orders ("providerOutOfSync") WHERE "providerOutOfSync" = true`,
+    { transaction },
+  );
+
+  // Idempotencia de la importacion CSV: la pareja (channel, externalRef) es
+  // unica. En Postgres los NULL no chocan entre si, asi que los pedidos web
+  // (externalRef NULL) pueden ser todos.
+  await sequelize.query(
+    `CREATE UNIQUE INDEX IF NOT EXISTS orders_channel_external_ref_idx
+       ON orders (channel, "externalRef")`,
     { transaction },
   );
 

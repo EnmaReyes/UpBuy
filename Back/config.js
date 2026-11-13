@@ -118,6 +118,152 @@ const toBool = (value, fallback = false) => {
   );
 };
 
+// ---------------------------------------------------------------------------
+// Sesiones administrativas (ADM-S1)
+//
+// - IDLE: minutos de inactividad permitidos.
+// - MAX: limite absoluto desde el login, aunque haya actividad.
+// Los valores se acotan para que una variable mal escrita no cree sesiones
+// eternas ni de un minuto.
+// ---------------------------------------------------------------------------
+const ADMIN_SESSION_IDLE_MINUTES = Math.min(
+  Math.max(toNumber(process.env.ADMIN_SESSION_IDLE_MINUTES, 120), 5),
+  24 * 60,
+);
+const ADMIN_SESSION_MAX_HOURS = Math.min(
+  Math.max(toNumber(process.env.ADMIN_SESSION_MAX_HOURS, 8), 1),
+  24 * 7,
+);
+
+// ---------------------------------------------------------------------------
+// MFA de administradores (ADM-S2)
+//
+// TOTP obligatorio para roles administrativos. La clave de cifrado del
+// secreto TOTP es AES-256-GCM (base64 de 32 bytes). En produccion, con MFA
+// obligatorio, el arranque falla si falta o es invalida: guardar el secreto en
+// claro o con una clave efimera seria peor que no arrancar.
+// ---------------------------------------------------------------------------
+const ADMIN_MFA_REQUIRED = toBool(process.env.ADMIN_MFA_REQUIRED, isProduction);
+
+const parseMfaKey = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  try {
+    const buffer = Buffer.from(raw, "base64");
+    return buffer.length === 32 ? buffer.toString("base64") : null;
+  } catch {
+    return null;
+  }
+};
+
+const rawMfaKey = String(process.env.ADMIN_MFA_ENCRYPTION_KEY || "").trim();
+let ADMIN_MFA_ENCRYPTION_KEY = parseMfaKey(rawMfaKey);
+
+if (rawMfaKey && !ADMIN_MFA_ENCRYPTION_KEY) {
+  throw new Error(
+    "ADMIN_MFA_ENCRYPTION_KEY debe ser base64 de exactamente 32 bytes.",
+  );
+}
+
+if (!ADMIN_MFA_ENCRYPTION_KEY) {
+  if (isTest) {
+    // Valor fijo solo para pruebas.
+    ADMIN_MFA_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString("base64");
+  } else if (isProduction && ADMIN_MFA_REQUIRED) {
+    throw new Error(
+      "ADMIN_MFA_ENCRYPTION_KEY es obligatorio en producción con ADMIN_MFA_REQUIRED=true. " +
+        "Genera una con: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+    );
+  } else {
+    ADMIN_MFA_ENCRYPTION_KEY = require("crypto")
+      .randomBytes(32)
+      .toString("base64");
+    console.warn(
+      "⚠️  ADMIN_MFA_ENCRYPTION_KEY no configurado: se generó una clave efímera. " +
+        "Los secretos MFA no sobrevivirán al reinicio. Configúrala en Back/.env.local.",
+    );
+  }
+}
+
+const ADMIN_MFA_ENCRYPTION_KEY_PREVIOUS = parseMfaKey(
+  process.env.ADMIN_MFA_ENCRYPTION_KEY_PREVIOUS,
+);
+
+const ADMIN_MFA_CHALLENGE_MINUTES = Math.min(
+  Math.max(toNumber(process.env.ADMIN_MFA_CHALLENGE_MINUTES, 10), 1),
+  60,
+);
+
+const ADMIN_MFA_MAX_ATTEMPTS = Math.min(
+  Math.max(toNumber(process.env.ADMIN_MFA_MAX_ATTEMPTS, 5), 1),
+  10,
+);
+
+const ADMIN_MFA_ISSUER =
+  String(process.env.ADMIN_MFA_ISSUER || "UPBUY").trim() || "UPBUY";
+
+// ---------------------------------------------------------------------------
+// Step-up para acciones destructivas (ADM-S3)
+//
+// Una sesion administrativa vale para leer, pero reembolsar, cancelar,
+// despublicar o cambiar roles exige un segundo factor reciente. La ventana se
+// mide desde `admin_sessions.mfaAt` y se refresca con
+// POST /api/auth/admin/step-up.
+// ---------------------------------------------------------------------------
+const ADMIN_STEP_UP_MINUTES = Math.min(
+  Math.max(toNumber(process.env.ADMIN_STEP_UP_MINUTES, 10), 1),
+  60,
+);
+
+// ---------------------------------------------------------------------------
+// Endurecimiento de sesion (ADM-S4)
+//
+// En produccion la cookie usa el prefijo `__Host-`: exige Secure, Path=/ y
+// ningun Domain, asi que un subdominio comprometido no puede fijarla. Fuera de
+// produccion se mantiene `access_token` para no romper el flujo local.
+//
+// `ADMIN_IP_ALLOWLIST` es una lista separada por comas de IPs o rangos CIDR
+// (p. ej. "190.1.2.3,10.0.0.0/8"). Vacia = sin restriccion.
+// ---------------------------------------------------------------------------
+const DEFAULT_SESSION_COOKIE_NAME = isProduction
+  ? "__Host-upbuy_session"
+  : "access_token";
+const SESSION_COOKIE_NAME =
+  String(process.env.SESSION_COOKIE_NAME || "").trim() ||
+  DEFAULT_SESSION_COOKIE_NAME;
+
+const SESSION_COOKIE_LEGACY_NAME = "access_token";
+
+const parseAllowlist = (raw) =>
+  String(raw || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+const ADMIN_IP_ALLOWLIST = Object.freeze(
+  parseAllowlist(process.env.ADMIN_IP_ALLOWLIST),
+);
+
+// Alertas de seguridad: N fallos dentro de la ventana avisan a los admins.
+const SECURITY_ALERTS_ENABLED = toBool(
+  process.env.SECURITY_ALERTS_ENABLED,
+  true,
+);
+const ADMIN_ALERT_FAILED_ATTEMPTS = Math.min(
+  Math.max(toNumber(process.env.ADMIN_ALERT_FAILED_ATTEMPTS, 5), 1),
+  100,
+);
+const ADMIN_ALERT_WINDOW_MINUTES = Math.min(
+  Math.max(toNumber(process.env.ADMIN_ALERT_WINDOW_MINUTES, 15), 1),
+  24 * 60,
+);
+
+// Retencion de auth_events. `0` desactiva la limpieza automatica/manual.
+const AUTH_EVENTS_RETENTION_DAYS = Math.min(
+  Math.max(toNumber(process.env.AUTH_EVENTS_RETENTION_DAYS, 90), 0),
+  3650,
+);
+
 const DATABASE_URL =
   process.env.DATABASE_URL ||
   (() => {
@@ -191,6 +337,31 @@ module.exports = {
   JWT_ALGORITHM,
   JWT_ISSUER,
   JWT_AUDIENCE,
+
+  // Sesiones administrativas revocables (ADM-S1).
+  ADMIN_SESSION_IDLE_MINUTES,
+  ADMIN_SESSION_MAX_HOURS,
+
+  // MFA TOTP de administradores (ADM-S2).
+  ADMIN_MFA_REQUIRED,
+  ADMIN_MFA_ENCRYPTION_KEY,
+  ADMIN_MFA_ENCRYPTION_KEY_PREVIOUS,
+  ADMIN_MFA_CHALLENGE_MINUTES,
+  ADMIN_MFA_MAX_ATTEMPTS,
+  ADMIN_MFA_ISSUER,
+
+  // Step-up para acciones destructivas (ADM-S3).
+  ADMIN_STEP_UP_MINUTES,
+
+  // Endurecimiento de sesion y alertas (ADM-S4).
+  SESSION_COOKIE_NAME,
+  SESSION_COOKIE_LEGACY_NAME,
+  ADMIN_IP_ALLOWLIST,
+  SECURITY_ALERTS_ENABLED,
+  ADMIN_ALERT_FAILED_ATTEMPTS,
+  ADMIN_ALERT_WINDOW_MINUTES,
+  AUTH_EVENTS_RETENTION_DAYS,
+
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
   FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || "",
   FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || "",

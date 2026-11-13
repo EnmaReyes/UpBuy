@@ -190,13 +190,17 @@ const applyPaymentStatus = async ({
   transaction,
   actorUserId,
   note,
+  paymentState = null,
+  skipStockEffects = false,
+  promoteFulfillment = true,
 }) => {
   // El ciclo canonico del dinero del pedido.
   const previousPaymentState = order.paymentState;
 
   const nextPaymentState = orderStatusFor(
     previousPaymentState,
-    CANONICAL_PAYMENT_BY_PAYMENT_STATUS[nextStatus] || PAYMENT_STATE.UNPAID,
+    paymentState ||
+      CANONICAL_PAYMENT_BY_PAYMENT_STATUS[nextStatus] || PAYMENT_STATE.UNPAID,
   );
 
   if (nextPaymentState !== order.paymentState) {
@@ -217,23 +221,27 @@ const applyPaymentStatus = async ({
   // Detector de sobreventa: se mira ANTES de devolver el producto al catalogo,
   // porque restoreOrderStock vuelve a poner stock = true.
   const stockConflicts =
-    nextStatus === PAYMENT_STATUS.APROBADO
+    nextStatus === PAYMENT_STATUS.APROBADO && !skipStockEffects
       ? await detectStockConflicts(order, transaction)
       : [];
 
   // Regla de negocio (stock booleano): un pago aprobado devuelve el producto
   // al catalogo, y un reembolso tambien (el producto existe fisicamente; si
   // se dano, el administrador lo marca agotado a mano).
+  //
+  // La importacion CSV no toca el inventario: registra ventas ya ocurridas,
+  // no unidades que salen del catalogo ahora.
   if (
-    nextStatus === PAYMENT_STATUS.APROBADO ||
-    nextStatus === PAYMENT_STATUS.REEMBOLSADO
+    !skipStockEffects &&
+    (nextStatus === PAYMENT_STATUS.APROBADO ||
+      nextStatus === PAYMENT_STATUS.REEMBOLSADO)
   ) {
     await restoreOrderStock(order, transaction);
   }
 
   await order.save({ transaction });
 
-  if (promoverAPagado) {
+  if (promoverAPagado && promoteFulfillment) {
     // Mismo camino que el panel: la maquina de estados valida, deja
     // historial y audita.
     await transitionFulfillment({
@@ -294,6 +302,9 @@ const transitionPayment = async ({
   actorUserId = null,
   note = null,
   transaction,
+  paymentState = null,
+  skipStockEffects = false,
+  promoteFulfillment = true,
 }) => {
   assertSettableStatus(nextStatus);
 
@@ -391,6 +402,9 @@ const transitionPayment = async ({
     transaction,
     actorUserId,
     note: note || `Pago ${nextStatus} registrado por administrador`,
+    paymentState,
+    skipStockEffects,
+    promoteFulfillment,
   });
 
   return { payment, order, stockConflicts };
@@ -432,6 +446,9 @@ const registerPayment = async ({
   actorUserId = null,
   note = null,
   transaction,
+  paymentState = null,
+  skipStockEffects = false,
+  promoteFulfillment = true,
 }) => {
   assertSettableStatus(status);
 
@@ -487,6 +504,9 @@ const registerPayment = async ({
       actorUserId,
       note,
       transaction: tx,
+      paymentState,
+      skipStockEffects,
+      promoteFulfillment,
     });
   });
 

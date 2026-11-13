@@ -1,6 +1,5 @@
 const { Op } = require("sequelize");
 const { Usuarios } = require("../DataBase/models/index.js");
-const { requireAuth, requireAdmin } = require("../Middleware/auth.js");
 const { sendError } = require("../Utils/respond.js");
 
 // GET /api/admin/users?limit=&offset=&q=
