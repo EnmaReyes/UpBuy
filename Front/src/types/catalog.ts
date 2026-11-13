@@ -72,12 +72,17 @@ export type CatalogQuery = {
 /** Datos mínimos que necesita `ProductCard`. Lo cumplen tanto el producto de
  *  la API como el mock de la Home. */
 export type ProductCardData = {
+  /** Identificador interno; sin el no se puede agregar al carrito. */
+  id?: string;
   slug: string | null;
   name: string;
   price: number;
   compareAtPrice: number | null;
   discountPercent: number;
   sizes: string[];
+  /** Unidades disponibles. `undefined` deja el boton fuera de la tarjeta. */
+  stock?: number;
+  combo?: boolean;
   categoryLabel?: string | null;
   badge?: "bestseller" | "nuevo" | null;
   available?: boolean;

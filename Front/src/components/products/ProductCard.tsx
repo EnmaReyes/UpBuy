@@ -1,8 +1,16 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/format";
 import { SafeImage } from "@/components/shared/SafeImage";
+import { AddToCartButton } from "@/components/kokonutui/cart-button";
+import {
+  cartKey,
+  maxQuantityForStock,
+  useCart,
+} from "@/context/cart-context";
 import type { ProductCardData } from "@/types/catalog";
 
 type ProductCardProps = {
@@ -15,12 +23,68 @@ type ProductCardProps = {
 // - Si el producto trae imagen real se muestra; si no, un marcador con la
 //   paleta de la marca (las fotografías comerciales todavía no existen).
 // - `priority` reserva la carga temprana de la primera fila.
+// - El Cart Button de Kokonut UI agrega directo desde la tarjeta. Si el
+//   producto tiene varias tallas se usa la primera como talla por defecto;
+//   la talla se puede cambiar en el detalle antes de comprar.
 export function ProductCard({ product, className, priority }: ProductCardProps) {
+  const { items, add, setQuantity, remove } = useCart();
+
   const hasDiscount = Boolean(
     product.compareAtPrice && product.discountPercent > 0,
   );
-  const soldOut = product.available === false;
+  const soldOut =
+    product.available === false ||
+    (typeof product.stock === "number" && product.stock <= 0);
   const href = product.slug ? `/producto/${product.slug}` : "/productos";
+
+  const sizes = product.combo ? [] : product.sizes;
+  const requiresSize = sizes.length > 0;
+  const size = requiresSize ? (sizes[0] ?? null) : null;
+
+  const stock = product.stock ?? 0;
+  const canBuy =
+    Boolean(product.id) &&
+    !soldOut &&
+    typeof product.stock === "number" &&
+    stock > 0;
+  const max = maxQuantityForStock(stock);
+
+  const lineKey = product.id
+    ? cartKey({ productId: product.id, size })
+    : null;
+  const quantityInCart = lineKey
+    ? (items.find((item) => cartKey(item) === lineKey)?.quantity ?? 0)
+    : 0;
+
+  const onQuantityChange = (next: number) => {
+    if (!product.id) return;
+
+    const current = lineKey
+      ? items.find((item) => cartKey(item) === lineKey)
+      : undefined;
+
+    if (next <= 0) {
+      if (lineKey && current) remove(lineKey);
+      return;
+    }
+
+    if (lineKey && current) {
+      setQuantity(lineKey, next);
+      return;
+    }
+
+    add({
+      productId: product.id,
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      image: product.image ?? null,
+      size,
+      requiresSize,
+      stock,
+      quantity: next,
+    });
+  };
 
   return (
     <article
@@ -111,6 +175,21 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
             </span>
           ) : null}
         </div>
+
+        {canBuy ? (
+          <div
+            className="mt-3 flex justify-end"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <AddToCartButton
+              label="Añadir"
+              max={max}
+              name={product.name}
+              onQuantityChange={onQuantityChange}
+              quantity={quantityInCart}
+            />
+          </div>
+        ) : null}
       </div>
     </article>
   );

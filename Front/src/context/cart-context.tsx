@@ -48,7 +48,11 @@ type CartContextValue = {
 };
 
 const STORAGE_KEY = "upbuy.cart.v1";
-const MAX_QUANTITY = 20;
+export const MAX_QUANTITY = 20;
+
+/** Tope de una linea: unidades reales del producto, con el limite por pedido. */
+export const maxQuantityForStock = (stock: number) =>
+  stock > 0 ? Math.min(Math.round(stock), MAX_QUANTITY) : MAX_QUANTITY;
 
 const CartContext = createContext<CartContextValue | null>(null);
 
@@ -57,8 +61,10 @@ export function cartKey(item: { productId: string; size: string | null }) {
 }
 
 const clampQuantity = (quantity: number, stock: number) => {
-  const limit = stock > 0 ? Math.min(stock, MAX_QUANTITY) : MAX_QUANTITY;
-  return Math.max(1, Math.min(Math.round(quantity) || 1, limit));
+  return Math.max(
+    1,
+    Math.min(Math.round(quantity) || 1, maxQuantityForStock(stock)),
+  );
 };
 
 const sanitize = (value: unknown): CartItem[] => {

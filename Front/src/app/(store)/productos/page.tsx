@@ -49,12 +49,15 @@ function toCardData(product: PublicProduct) {
       : base;
 
   return {
+    id: product.id,
     slug: product.slug,
     name: product.name,
     price: product.price,
     compareAtPrice: compareAt,
     discountPercent: product.discountPercent,
     sizes: product.sizes,
+    stock: product.stock,
+    combo: product.combo,
     categoryLabel: product.categories[0]?.name ?? null,
     badge: null,
     available: product.available,

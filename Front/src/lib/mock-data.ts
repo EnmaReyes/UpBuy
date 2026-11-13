@@ -37,6 +37,9 @@ export type Product = {
   image: string | null;
   images: string[];
   sizes: string[];
+  stock: number;
+  /** Un combo no pide talla al agregarse al carrito. */
+  combo?: boolean;
   colors: ProductColor[];
   details: string[];
 };
@@ -101,6 +104,7 @@ export const PRODUCTS: Product[] = [
     image: null,
     images: [],
     sizes: SIZES_APPAREL,
+    stock: 12,
     colors: [
       { name: "Crema", hex: "#F5E9D7" },
       { name: "Carbón", hex: "#0B0B0B" },
@@ -117,6 +121,7 @@ export const PRODUCTS: Product[] = [
     slug: "combo-linea-street",
     sku: "UPB-COM-002",
     name: "Combo Línea Street",
+    combo: true,
     description: "Silueta urbana pensada para moverte sin límites.",
     longDescription:
       "Camiseta y pantaloneta en un solo combo. La combinación está pensada para entrenar, salir o quedarte: textiles livianos, costuras flexibles y una paleta que combina con todo.",
@@ -130,6 +135,7 @@ export const PRODUCTS: Product[] = [
     image: null,
     images: [],
     sizes: SIZES_APPAREL,
+    stock: 12,
     colors: [
       { name: "Arena", hex: "#D9C9B3" },
       { name: "Café", hex: "#8B6F56" },
@@ -159,6 +165,7 @@ export const PRODUCTS: Product[] = [
     image: null,
     images: [],
     sizes: SIZES_APPAREL,
+    stock: 12,
     colors: [
       { name: "Crema", hex: "#F5E9D7" },
       { name: "Terracota", hex: "#D35400" },
@@ -188,6 +195,7 @@ export const PRODUCTS: Product[] = [
     image: null,
     images: [],
     sizes: SIZES_APPAREL,
+    stock: 12,
     colors: [
       { name: "Hueso", hex: "#EDE0CE" },
       { name: "Negro", hex: "#111111" },
@@ -217,6 +225,7 @@ export const PRODUCTS: Product[] = [
     image: null,
     images: [],
     sizes: SIZES_APPAREL,
+    stock: 12,
     colors: [
       { name: "Café", hex: "#8B6F56" },
       { name: "Carbón", hex: "#0B0B0B" },
@@ -246,6 +255,7 @@ export const PRODUCTS: Product[] = [
     image: null,
     images: [],
     sizes: SIZES_ACCESSORY,
+    stock: 8,
     colors: [
       { name: "Carbón", hex: "#0B0B0B" },
       { name: "Crema", hex: "#F5E9D7" },
@@ -275,6 +285,7 @@ export const PRODUCTS: Product[] = [
     image: null,
     images: [],
     sizes: SIZES_ACCESSORY,
+    stock: 8,
     colors: [
       { name: "Arena", hex: "#D9C9B3" },
       { name: "Negro", hex: "#111111" },
@@ -291,6 +302,7 @@ export const PRODUCTS: Product[] = [
     slug: "combo-street-full",
     sku: "UPB-COM-008",
     name: "Combo Street Full",
+    combo: true,
     description: "El conjunto completo para un día entero en la calle.",
     longDescription:
       "Camiseta, buzo y gorra en una sola selección. Una base coherente para armar looks sin pensar demasiado, con la paleta de la temporada.",
@@ -304,6 +316,7 @@ export const PRODUCTS: Product[] = [
     image: null,
     images: [],
     sizes: SIZES_APPAREL,
+    stock: 12,
     colors: [
       { name: "Arena", hex: "#D9C9B3" },
       { name: "Terracota", hex: "#D35400" },

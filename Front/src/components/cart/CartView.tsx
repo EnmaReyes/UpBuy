@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { cartKey, useCart } from "@/context/cart-context";
+import { ArrowRight, ShoppingBag, Trash2 } from "lucide-react";
+import { cartKey, maxQuantityForStock, useCart } from "@/context/cart-context";
 import { formatPrice } from "@/lib/format";
 import { SafeImage } from "@/components/shared/SafeImage";
+import { AddToCartButton } from "@/components/kokonutui/cart-button";
 
 // Vista del carrito. El total que se muestra es la suma de precios del
 // catálogo; el backend recalcula precio, stock y envío al crear el pedido.
@@ -100,30 +101,6 @@ export function CartView() {
                   </div>
 
                   <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-3">
-                    <div className="flex h-10 w-fit items-center rounded-lg border border-border">
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(key, item.quantity - 1)}
-                        disabled={item.quantity <= 1}
-                        aria-label={`Quitar una unidad de ${item.name}`}
-                        className="flex h-9 w-9 items-center justify-center text-carbon disabled:opacity-30"
-                      >
-                        <Minus className="h-3.5 w-3.5" aria-hidden="true" />
-                      </button>
-                      <span className="w-8 text-center text-sm font-semibold [font-variant-numeric:tabular-nums]">
-                        {item.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(key, item.quantity + 1)}
-                        disabled={item.quantity >= Math.min(20, item.stock || 20)}
-                        aria-label={`Agregar una unidad de ${item.name}`}
-                        className="flex h-9 w-9 items-center justify-center text-carbon disabled:opacity-30"
-                      >
-                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                      </button>
-                    </div>
-
                     <div className="text-right">
                       <p className="text-sm font-semibold text-carbon [font-variant-numeric:tabular-nums]">
                         {formatPrice(item.price * item.quantity)}
@@ -134,6 +111,15 @@ export function CartView() {
                         </p>
                       ) : null}
                     </div>
+
+                    <AddToCartButton
+                      max={maxQuantityForStock(item.stock)}
+                      name={item.name}
+                      onQuantityChange={(next) =>
+                        next <= 0 ? remove(key) : setQuantity(key, next)
+                      }
+                      quantity={item.quantity}
+                    />
                   </div>
                 </div>
               </li>

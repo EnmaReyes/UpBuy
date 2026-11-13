@@ -2,9 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Minus, Plus, ShoppingBag } from "lucide-react";
+import { Check, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCart } from "@/context/cart-context";
+import {
+  cartKey,
+  maxQuantityForStock,
+  useCart,
+} from "@/context/cart-context";
+import { AddToCartButton } from "@/components/kokonutui/cart-button";
 
 type PurchaseProduct = {
   productId: string;
@@ -22,7 +27,7 @@ type PurchaseProduct = {
 // añade al carrito local. El precio y el stock definitivos los valida el
 // backend al crear el pedido (FASE 5): el carrito nunca calcula el total final.
 export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) {
-  const { add } = useCart();
+  const { items, add, setQuantity, remove } = useCart();
 
   // La talla es una medida: solo se pide si el producto tiene tallas y no es
   // un combo. Es la misma regla que aplica el backend al crear el pedido.
@@ -32,36 +37,45 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
   const [size, setSize] = useState<string | null>(
     sizes.length === 1 ? sizes[0] : null,
   );
-  const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
 
   const needsSize = requiresSize && !size;
-  const canAdd = product.available && !needsSize;
+  const stock = product.stock;
+  const available = product.available && stock > 0;
+  const canAdd = available && !needsSize;
+  const max = maxQuantityForStock(stock);
 
-  const onAdd = () => {
+  const lineSize = requiresSize ? size : null;
+  const lineKey = cartKey({ productId: product.productId, size: lineSize });
+  const current = items.find((item) => cartKey(item) === lineKey);
+  const quantityInCart = current?.quantity ?? 0;
+
+  const onQuantityChange = (next: number) => {
     if (!canAdd) return;
 
-    add({
-      productId: product.productId,
-      slug: product.slug,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      size: requiresSize ? size : null,
-      requiresSize,
-      stock: product.stock,
-      quantity,
-    });
+    if (next <= 0) {
+      if (current) remove(lineKey);
+      setAdded(false);
+      return;
+    }
+
+    if (current) {
+      setQuantity(lineKey, next);
+    } else {
+      add({
+        productId: product.productId,
+        slug: product.slug,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        size: lineSize,
+        requiresSize,
+        stock,
+        quantity: next,
+      });
+    }
     setAdded(true);
   };
-
-  const buttonLabel = !product.available
-    ? "Producto agotado"
-    : needsSize
-      ? "Selecciona tu talla"
-      : added
-        ? "Añadir otra unidad"
-        : "Añadir al carrito";
 
   return (
     <div className="mt-7 flex flex-col gap-6">
@@ -100,53 +114,36 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="flex h-12 w-fit items-center rounded-lg border border-border bg-card">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        {canAdd ? (
+          <div className="flex h-12 items-center gap-3">
+            <AddToCartButton
+              max={max}
+              name={product.name}
+              onQuantityChange={onQuantityChange}
+              quantity={quantityInCart}
+            />
+            <span className="text-xs leading-relaxed text-muted-foreground">
+              {quantityInCart > 0
+                ? `${quantityInCart} en el carrito`
+                : "Elige la cantidad y añádela al carrito"}
+            </span>
+          </div>
+        ) : (
           <button
             type="button"
-            onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-            disabled={quantity <= 1}
-            aria-label="Quitar una unidad"
-            className="flex h-11 w-11 items-center justify-center text-carbon disabled:opacity-30"
+            disabled
+            className="flex h-12 flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-full bg-carbon/40 px-6 text-sm font-semibold text-cream/80"
           >
-            <Minus className="h-4 w-4" aria-hidden="true" />
+            <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+            {!available ? "Producto agotado" : "Selecciona tu talla"}
           </button>
-          <span
-            className="w-9 text-center text-sm font-semibold [font-variant-numeric:tabular-nums]"
-            aria-live="polite"
-          >
-            {quantity}
-          </span>
-          <button
-            type="button"
-            onClick={() => setQuantity((value) => Math.min(20, value + 1))}
-            disabled={quantity >= Math.min(20, product.stock || 20)}
-            aria-label="Agregar una unidad"
-            className="flex h-11 w-11 items-center justify-center text-carbon disabled:opacity-30"
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={onAdd}
-          aria-disabled={!canAdd}
-          className={cn(
-            "flex h-12 flex-1 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold transition-colors",
-            canAdd
-              ? "bg-carbon text-cream hover:bg-terracotta-deep"
-              : "cursor-not-allowed bg-carbon/40 text-cream/80",
-          )}
-        >
-          <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-          {buttonLabel}
-        </button>
+        )}
       </div>
 
-      {product.stock > 0 && product.stock <= 5 ? (
+      {stock > 0 && stock <= 5 ? (
         <p className="text-xs font-medium text-terracotta-deep">
-          Quedan {product.stock} {product.stock === 1 ? "unidad" : "unidades"}.
+          Quedan {stock} {stock === 1 ? "unidad" : "unidades"}.
         </p>
       ) : null}
 
