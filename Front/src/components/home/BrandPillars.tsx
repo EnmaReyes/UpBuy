@@ -1,69 +1,140 @@
-import { Compass, Layers, Sparkles, Footprints } from "lucide-react";
-import { Reveal } from "@/components/shared/Reveal";
+"use client";
 
-const PILLARS = [
+import Link from "next/link";
+import { ArrowRight, MessageCircle } from "lucide-react";
+import ShapeHero, { type HeroShape } from "@/components/kokonutui/shape-hero";
+
+// Atributos de marca que caen como píldoras sobre el hero (Shape Hero de Kokonut UI).
+// El orden alterna longitudes para que la pila quede equilibrada.
+const ATTRIBUTES = [
+  "Movimiento",
+  "Carácter",
+  "Duración",
+  "Identidad",
+  "Estilo",
+  "Ergonomía",
+  "Variedad",
+  "Confianza",
+  "Comodidad",
+  "Calidad",
+  "Rendimiento",
+  "Versatilidad",
+  "Innovación",
+  "Libertad",
+  "Actitud",
+  "Diseño",
+  "Resistencia",
+  "Autenticidad",
+] as const;
+
+// Tamaños generosos: en móvil crecen un paso para llenar la pila sin desbordar.
+const SIZES = [
+  "h-10 px-5 text-sm sm:h-11 sm:px-6 sm:text-base",
+  "h-11 px-6 text-sm sm:h-12 sm:px-7 sm:text-base",
+  "h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg",
+  "h-11 px-5 text-sm sm:h-12 sm:px-6 sm:text-base",
+  "h-10 px-5 text-sm sm:h-11 sm:px-6 sm:text-base",
+  "h-12 px-7 text-base sm:h-13 sm:px-8 sm:text-base",
+];
+
+// Variaciones de color de la paleta UPBUY: terracota como acento, no como base.
+const STYLES = [
+  "border border-terracotta/60 bg-[#171310] text-cream",
+  "bg-terracotta text-white shadow-[0_10px_30px_-12px_rgba(211,84,0,0.8)]",
+  "border border-cream/25 bg-carbon text-cream",
+  "bg-cream text-carbon",
+  "border border-coffee/50 bg-[#1C1611] text-cream/90",
+  "border border-terracotta/40 bg-terracotta/15 text-cream",
+];
+
+// Círculos decorativos intercalados, como en la composición original de Kokonut UI.
+const CIRCLES: HeroShape[] = [
   {
-    number: "01",
-    title: "Movimiento",
-    description: "Prendas que acompañan tu ritmo, del primer café al último metro.",
-    icon: Footprints,
+    id: "circulo-carbon",
+    className: "size-11 bg-[#211B17] sm:size-14",
   },
   {
-    number: "02",
-    title: "Carácter",
-    description: "Siluetas que se distinguen sin volverse invasivas.",
-    icon: Compass,
+    id: "circulo-crema",
+    className: "size-10 bg-cream/90 sm:size-12",
   },
   {
-    number: "03",
-    title: "Duración",
-    description: "Materiales y acabados elegidos para resistir lavados y uso real.",
-    icon: Layers,
+    id: "circulo-terracota",
+    className: "size-12 bg-terracotta sm:size-16",
   },
   {
-    number: "04",
-    title: "Identidad",
-    description: "Cada pieza refleja quién eres y cómo te mueves.",
-    icon: Sparkles,
+    id: "circulo-borde",
+    className: "size-10 border border-terracotta/50 bg-carbon sm:size-12",
+  },
+  {
+    id: "circulo-terracota-suave",
+    className: "size-9 bg-terracotta/30 sm:size-11",
+  },
+  {
+    id: "circulo-crema-borde",
+    className: "size-11 border border-cream/25 bg-[#1C1611] sm:size-14",
   },
 ];
 
-// Nuestra propuesta: cuatro pilares de marca con iconografía discreta.
+const SHAPES: HeroShape[] = [
+  ...ATTRIBUTES.map((label, index) => ({
+    id: `atributo-${label.toLowerCase()}`,
+    content: label,
+    className: [
+      "font-heading font-semibold tracking-tight",
+      SIZES[index % SIZES.length],
+      STYLES[index % STYLES.length],
+    ].join(" "),
+  })),
+  ...CIRCLES,
+];
+
+// Sección de marca: sustituye los cuatro pilares por el Shape Hero oficial
+// (caída, apilado y arrastre de píldoras) adaptado a la identidad UPBUY.
 export function BrandPillars() {
   return (
-    <section className="section-y bg-muted">
-      <div className="container-page">
-        <Reveal>
-          <p className="text-sm font-semibold tracking-[0.25em] text-terracotta uppercase">
-            Nuestra propuesta
-          </p>
-          <h2 className="mt-3 max-w-2xl font-heading text-[clamp(1.75rem,3.5vw,3rem)] leading-tight font-bold tracking-tight text-carbon">
-            Diseño pensado. Rendimiento diario.
-          </h2>
-        </Reveal>
-
-        <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {PILLARS.map((pillar, index) => {
-            const Icon = pillar.icon;
-            return (
-              <Reveal key={pillar.number} delay={index * 0.07}>
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-terracotta">
-                      <Icon className="h-5 w-5" aria-hidden="true" />
-                    </span>
-                    <span className="font-heading text-sm font-bold tracking-[0.2em] text-coffee-deep">
-                      {pillar.number}
-                    </span>
-                  </div>
-                  <h3 className="font-heading text-xl font-semibold text-carbon">{pillar.title}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{pillar.description}</p>
-                </div>
-              </Reveal>
-            );
-          })}
-        </div>
-      </div>
-    </section>
+    <ShapeHero
+      as="h2"
+      className="min-h-[840px] bg-carbon px-5 pt-14 pb-20 text-cream sm:min-h-[740px] sm:px-6 sm:pt-20 sm:pb-24 lg:min-h-[720px] lg:pt-24"
+      eyebrow={
+        <p className="inline-flex items-center gap-2 rounded-full border border-terracotta/40 bg-terracotta/10 px-4 py-1.5 text-[0.7rem] font-semibold tracking-[0.22em] text-cream uppercase">
+          <span className="size-1.5 rounded-full bg-terracotta" aria-hidden="true" />
+          La marca
+        </p>
+      }
+      title={
+        <span className="font-heading font-bold tracking-tight">
+          Más que productos,{" "}
+          <span className="text-terracotta">un estilo</span> que te mueve.
+        </span>
+      }
+      description={
+        <span className="block text-pretty text-sm leading-relaxed text-cream/75 sm:text-base">
+          En UPBUY reunimos estilo, comodidad y funcionalidad para acompañarte en cada momento.
+          Descubre productos seleccionados para quienes buscan calidad, versatilidad y
+          personalidad en cada elección.
+        </span>
+      }
+      actions={
+        <>
+          <Link
+            href="/productos"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-terracotta px-7 text-sm font-semibold text-white transition-colors duration-150 ease-out hover:bg-[#B84800] focus-visible:ring-2 focus-visible:ring-cream focus-visible:ring-offset-2 focus-visible:ring-offset-carbon focus-visible:outline-none"
+          >
+            Explorar productos
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
+          <Link
+            href="/contacto"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-cream/35 px-7 text-sm font-semibold text-cream transition-colors duration-150 ease-out hover:border-cream/70 hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-cream focus-visible:ring-offset-2 focus-visible:ring-offset-carbon focus-visible:outline-none"
+          >
+            <MessageCircle className="size-4" aria-hidden="true" />
+            Contáctanos
+          </Link>
+        </>
+      }
+      shapes={SHAPES}
+      // Suficiente área en móvil para que las 18 píldoras entren en la pila.
+      fill={0.55}
+    />
   );
 }

@@ -16,20 +16,92 @@ if (
   }
 }
 
-const FRONTEND_URL =
-  process.env.NODE_ENV === "production"
-    ? process.env.FRONTEND_URL
-    : "http://localhost:3001";
-
 const isProduction = process.env.NODE_ENV === "production";
 
-// Fail-fast: en produccion el secreto JWT debe venir de la variable de entorno.
-// No hay default silencioso que oculte un olvido de configuracion.
-if (isProduction && !process.env.JWT_SECRET) {
+// Un origen se compara por esquema + host (sin barra final ni path). Asi
+// `https://upbuy.com/` y `https://upbuy.com` son el mismo origen.
+const normalizeOrigin = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return "";
+  }
+};
+
+const parseOrigins = (value) =>
+  String(value || "")
+    .split(",")
+    .map(normalizeOrigin)
+    .filter(Boolean);
+
+// FRONTEND_URLS es la lista canonica (separada por comas). FRONTEND_URL sigue
+// funcionando por compatibilidad y se agrega a la lista.
+const FRONTEND_URLS = [
+  ...new Set([
+    ...parseOrigins(process.env.FRONTEND_URLS),
+    ...parseOrigins(process.env.FRONTEND_URL),
+  ]),
+];
+
+if (isProduction && FRONTEND_URLS.length === 0) {
   throw new Error(
-    "JWT_SECRET es obligatorio en producción. Configúralo en Vercel (Environment Variables).",
+    "FRONTEND_URL (o FRONTEND_URLS) es obligatorio en producción. Configúralo en Vercel (Environment Variables).",
   );
 }
+
+if (!isProduction && FRONTEND_URLS.length === 0) {
+  FRONTEND_URLS.push("http://localhost:3001");
+}
+
+const FRONTEND_URL = FRONTEND_URLS[0];
+
+// ---------------------------------------------------------------------------
+// JWT
+//
+// - En produccion el secreto es obligatorio y debe tener >= 32 caracteres.
+// - Fuera de produccion, si no hay secreto se genera uno efimero (nunca un
+//   valor conocido tipo "jwtkey"). Eso invalida sesiones al reiniciar, que es
+//   el comportamiento correcto para un secreto no configurado.
+// - El algoritmo, emisor y audiencia se fijan en un solo sitio para que la
+//   firma y la verificacion no puedan divergir.
+// ---------------------------------------------------------------------------
+const isTest =
+  process.env.NODE_ENV === "test" || Boolean(process.env.NODE_TEST_CONTEXT);
+const rawJwtSecret = String(process.env.JWT_SECRET || "").trim();
+
+if (isProduction && rawJwtSecret.length < 32) {
+  throw new Error(
+    "JWT_SECRET es obligatorio en producción y debe tener al menos 32 caracteres. Configúralo en Vercel (Environment Variables).",
+  );
+}
+
+if (!isProduction && !isTest && rawJwtSecret && rawJwtSecret.length < 32) {
+  throw new Error(
+    "JWT_SECRET debe tener al menos 32 caracteres. Configúralo en Back/.env.local.",
+  );
+}
+
+let JWT_SECRET = rawJwtSecret;
+
+if (!JWT_SECRET) {
+  if (isTest) {
+    // Valor fijo solo para pruebas: no se usa en ningun despliegue.
+    JWT_SECRET = "upbuy-test-jwt-secret-not-for-production";
+  } else {
+    JWT_SECRET = require("crypto").randomBytes(48).toString("hex");
+    console.warn(
+      "⚠️  JWT_SECRET no configurado: se generó uno efímero para este proceso. " +
+        "Configúralo en Back/.env.local para conservar las sesiones al reiniciar.",
+    );
+  }
+}
+
+const JWT_ALGORITHM = "HS256";
+const JWT_ISSUER = "upbuy-api";
+const JWT_AUDIENCE = "upbuy-web";
 
 const toNumber = (value, fallback) => {
   const parsed = Number(value);
@@ -111,10 +183,14 @@ const DB_DIALECT = resolveDialect(process.env.DB_DIALECT, DATABASE_URL);
 
 module.exports = {
   FRONTEND_URL,
+  FRONTEND_URLS,
   DATABASE_URL,
   DB_DIALECT,
   // Secreto JWT: en produccion DEBE venir de process.env.JWT_SECRET.
-  JWT_SECRET: process.env.JWT_SECRET || "jwtkey",
+  JWT_SECRET,
+  JWT_ALGORITHM,
+  JWT_ISSUER,
+  JWT_AUDIENCE,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
   FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || "",
   FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || "",

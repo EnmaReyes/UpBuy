@@ -1,7 +1,12 @@
 const bcrypt = require("bcryptjs");
 const { Usuarios } = require("../DataBase/models/Usuarios.js");
 const jwt = require("jsonwebtoken");
-const { JWT_SECRET } = require("../config.js");
+const {
+  JWT_SECRET,
+  JWT_ALGORITHM,
+  JWT_ISSUER,
+  JWT_AUDIENCE,
+} = require("../config.js");
 const { Op } = require("sequelize");
 
 const TOKEN_EXPIRATION = "12h";
@@ -9,10 +14,24 @@ const COOKIE_MAX_AGE = 12 * 60 * 60 * 1000; // 12 horas
 
 const isProduction = () => process.env.NODE_ENV === "production";
 
+const verifyOptions = {
+  algorithms: [JWT_ALGORITHM],
+  issuer: JWT_ISSUER,
+  audience: JWT_AUDIENCE,
+};
+
 // Emite la sesion propia de UPBUY (JWT en cookie httpOnly) y responde con el
 // usuario sin la contrasena. Compartida por login tradicional y social.
+//
+// El token solo lleva `id` (y `sub`, el mismo valor): el rol se consulta en la
+// base en cada ruta administrativa. Un token viejo con `admin: true` deja de
+// servir para autorizar nada.
 const issueSession = (res, user) => {
-  const token = jwt.sign({ id: user.id, admin: user.admin }, JWT_SECRET, {
+  const token = jwt.sign({ id: user.id }, JWT_SECRET, {
+    algorithm: JWT_ALGORITHM,
+    issuer: JWT_ISSUER,
+    audience: JWT_AUDIENCE,
+    subject: String(user.id),
     expiresIn: TOKEN_EXPIRATION,
   });
 
@@ -124,7 +143,7 @@ const me = async (req, res) => {
     if (!token) {
       return res.status(401).json("No autenticado");
     }
-    const userInfo = jwt.verify(token, JWT_SECRET);
+    const userInfo = jwt.verify(token, JWT_SECRET, verifyOptions);
 
     const user = await Usuarios.findByPk(userInfo.id, {
       attributes: { exclude: ["password", "gmailRefreshToken"] },

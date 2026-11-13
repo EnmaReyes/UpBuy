@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, MapPin, ShoppingBag } from "lucide-react";
+import { MapPin, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { createOrder } from "@/services/orders";
 import { ApiError } from "@/services/api/client";
 import { formatPrice } from "@/lib/format";
 import type { Address, Profile } from "@/types/auth";
-import { Field, FormMessage, SubmitButton } from "@/components/auth/fields";
+import { Field, FormMessage } from "@/components/auth/fields";
+import SlideToConfirm from "@/components/kokonutui/slide-to-confirm";
 import { cn } from "@/lib/utils";
 
 // Checkout: arma el pedido y lo envía al backend, que valida precio, stock,
@@ -32,23 +33,31 @@ export function CheckoutClient({
     "wompi",
   );
   const [pending, setPending] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Evita que un deslizamiento repetido cree dos pedidos.
+  const inFlightRef = useRef(false);
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  // Misma función que ejecutaba el botón "Confirmar pedido".
+  // Devuelve una promesa rechazada ante cualquier fallo para que el control
+  // de Kokonut UI vuelva al inicio y permita reintentar.
+  const confirmOrder = async (): Promise<void> => {
+    if (inFlightRef.current || completed) {
+      return;
+    }
     setError(null);
-
     const address = addresses.find((item) => item.id === addressId);
     if (!address) {
       setError("Selecciona una dirección de envío.");
-      return;
+      throw new Error("Dirección de envío no seleccionada");
     }
 
     if (items.length === 0) {
       setError("Tu carrito está vacío.");
-      return;
+      throw new Error("Carrito vacío");
     }
 
+    inFlightRef.current = true;
     setPending(true);
     try {
       const order = await createOrder({
@@ -74,6 +83,7 @@ export function CheckoutClient({
       });
 
       clear();
+      setCompleted(true);
       router.replace(
         `/pedido/${order.id}?metodo=${encodeURIComponent(paymentMethod)}`,
       );
@@ -89,6 +99,9 @@ export function CheckoutClient({
             : "No se pudo crear el pedido. Inténtalo de nuevo.",
         );
       }
+      throw caught;
+    } finally {
+      inFlightRef.current = false;
       setPending(false);
     }
   };
@@ -123,7 +136,10 @@ export function CheckoutClient({
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-8 grid gap-8 lg:grid-cols-12 lg:gap-12">
+    <form
+      onSubmit={(event) => event.preventDefault()}
+      className="mt-8 grid gap-8 lg:grid-cols-12 lg:gap-12"
+    >
       <div className="flex flex-col gap-6 lg:col-span-7">
         <section aria-labelledby="checkout-address" className="rounded-xl border border-border bg-card p-6">
           <h2
@@ -150,6 +166,7 @@ export function CheckoutClient({
                   value={address.id}
                   checked={addressId === address.id}
                   onChange={() => setAddressId(address.id)}
+                  disabled={pending || completed}
                   className="mt-1 h-4 w-4 accent-[#0B0B0B]"
                 />
                 <span className="flex gap-2">
@@ -220,6 +237,7 @@ export function CheckoutClient({
               value="wompi"
               checked={paymentMethod === "wompi"}
               onChange={() => setPaymentMethod("wompi")}
+              disabled={pending || completed}
               title="Pago en línea"
               description="Tarjeta, PSE o Nequi con Wompi. Se confirma al instante."
             />
@@ -227,9 +245,30 @@ export function CheckoutClient({
               value="cod_vendelo"
               checked={paymentMethod === "cod_vendelo"}
               onChange={() => setPaymentMethod("cod_vendelo")}
+              disabled={pending || completed}
               title="Contra entrega"
               description="Pagas en efectivo cuando recibes el pedido."
             />
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            {error ? <FormMessage kind="error">{error}</FormMessage> : null}
+
+            <SlideToConfirm
+              key={`${paymentMethod}-${addressId ?? "sin-direccion"}`}
+              label="Desliza para continuar"
+              confirmingLabel="Creando pedido"
+              doneLabel="Pedido creado"
+              onConfirm={confirmOrder}
+              disabled={pending || completed || !addressId || items.length === 0}
+              resetAfter={null}
+              className="max-w-none"
+            />
+
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Al confirmar se crea el pedido. El pago se completa en el
+              siguiente paso.
+            </p>
           </div>
         </section>
       </div>
@@ -285,20 +324,6 @@ export function CheckoutClient({
               {formatPrice(subtotal)}
             </span>
           </div>
-
-          <div className="mt-5 flex flex-col gap-3">
-            {error ? <FormMessage kind="error">{error}</FormMessage> : null}
-
-            <SubmitButton pending={pending} className="w-full">
-              Confirmar pedido
-              <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-            </SubmitButton>
-          </div>
-
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            Al confirmar se crea el pedido. El pago se completa en el siguiente
-            paso.
-          </p>
         </div>
       </aside>
     </form>
@@ -309,12 +334,14 @@ function PaymentOption({
   value,
   checked,
   onChange,
+  disabled,
   title,
   description,
 }: {
   value: string;
   checked: boolean;
   onChange: () => void;
+  disabled?: boolean;
   title: string;
   description: string;
 }) {
@@ -323,6 +350,7 @@ function PaymentOption({
       className={cn(
         "flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors",
         checked ? "border-carbon bg-muted/40" : "border-border hover:border-coffee/40",
+        disabled && "cursor-not-allowed opacity-60",
       )}
     >
       <input
@@ -331,6 +359,7 @@ function PaymentOption({
         value={value}
         checked={checked}
         onChange={onChange}
+        disabled={disabled}
         className="mt-1 h-4 w-4 accent-[#0B0B0B]"
       />
       <span>

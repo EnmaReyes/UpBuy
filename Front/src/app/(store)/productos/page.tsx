@@ -9,6 +9,7 @@ import {
   CatalogUnavailable,
 } from "@/components/products/CatalogStates";
 import { Reveal } from "@/components/shared/Reveal";
+import { DotFieldBackground } from "@/components/shared/DotFieldBackground";
 import {
   getCoverImage,
   listCategories,
@@ -104,8 +105,9 @@ export default async function ProductosPage({ searchParams }: ProductosPageProps
 
   return (
     <div className="bg-background">
-      <section className="bg-carbon pt-28 pb-14 text-cream sm:pt-32 lg:pb-20">
-        <div className="container-page">
+      <section className="relative isolate overflow-hidden bg-carbon pt-32 pb-28 text-cream sm:pt-36 lg:pb-36">
+        <DotFieldBackground variant="tienda" />
+        <div className="relative z-10 container-page">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-cream/60 uppercase transition-colors hover:text-cream"

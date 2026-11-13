@@ -33,6 +33,8 @@ export async function serverSend<T>(
     cache: "no-store",
     headers: {
       Accept: "application/json",
+      // Mutacion con cookie de sesion: el backend exige esta cabecera.
+      "X-Upbuy-CSRF": "1",
       Cookie: await getCookieHeader(),
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
     },

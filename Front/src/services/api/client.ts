@@ -149,6 +149,10 @@ export async function apiSend<T>(
       cache: "no-store",
       headers: {
         Accept: "application/json",
+        // CSRF: el backend exige esta cabecera en toda mutacion con cookie de
+        // sesion. Al no ser una cabecera "simple", el navegador hace preflight
+        // y CORS solo lo autoriza para el origen del frontend.
+        "X-Upbuy-CSRF": "1",
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),

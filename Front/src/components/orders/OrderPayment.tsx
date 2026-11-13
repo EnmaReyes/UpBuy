@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { CreditCard, Truck } from "lucide-react";
+import { useRef, useState } from "react";
+import { Truck } from "lucide-react";
 import { createPayment } from "@/services/payments";
 import { ApiError } from "@/services/api/client";
+import SlideToConfirm from "@/components/kokonutui/slide-to-confirm";
 
 // Acciones de pago del pedido.
 //
@@ -25,6 +26,8 @@ export function OrderPayment({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // El intento de pago se pide una sola vez aunque el gesto se repita.
+  const inFlightRef = useRef(false);
 
   const isCod = Boolean(paymentMethodCode?.startsWith("cod_"));
   const isPaid = paymentState === "settled" || paymentState === "collected";
@@ -34,7 +37,14 @@ export function OrderPayment({
     fulfillmentStatus === "pending_payment" &&
     total > 0;
 
-  const onPay = async () => {
+  // Misma función que ejecutaba "Pagar ahora": crea el intento en Wompi y
+  // redirige a su checkout alojado. Los datos de la tarjeta nunca pasan por
+  // UPBUY. Si falla, se rechaza la promesa para que el pulgar vuelva al inicio.
+  const onPay = async (): Promise<void> => {
+    if (inFlightRef.current) {
+      return;
+    }
+    inFlightRef.current = true;
     setPending(true);
     setError(null);
     try {
@@ -46,6 +56,9 @@ export function OrderPayment({
           ? caught.message
           : "No se pudo iniciar el pago en línea.",
       );
+      throw caught;
+    } finally {
+      inFlightRef.current = false;
       setPending(false);
     }
   };
@@ -78,15 +91,15 @@ export function OrderPayment({
 
   return (
     <div className="grid gap-2">
-      <button
-        type="button"
-        onClick={onPay}
+      <SlideToConfirm
+        label="Desliza para pagar"
+        confirmingLabel="Abriendo pago"
+        doneLabel="Redirigiendo…"
+        onConfirm={onPay}
         disabled={pending}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-carbon px-5 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep disabled:opacity-60"
-      >
-        <CreditCard className="h-4 w-4" aria-hidden="true" />
-        {pending ? "Abriendo pago…" : "Pagar ahora"}
-      </button>
+        resetAfter={null}
+        className="max-w-none"
+      />
 
       {error ? (
         <p
@@ -98,7 +111,8 @@ export function OrderPayment({
       ) : null}
 
       <p className="text-center text-[11px] text-muted-foreground">
-        Te llevaremos al checkout seguro de Wompi.
+        Te llevaremos al checkout seguro de Wompi. Allí eliges tarjeta débito,
+        crédito, PSE o Nequi.
       </p>
     </div>
   );

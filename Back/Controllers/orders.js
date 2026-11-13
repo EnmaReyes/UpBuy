@@ -49,13 +49,14 @@ const list = async (req, res) => {
   }
 };
 
-// GET /api/orders/:id — solo el dueño (o admin)
+// GET /api/orders/:id — SOLO el dueño. El administrador usa
+// /api/admin/orders/:id, que revalida el rol contra la base. Esta ruta no
+// acepta el claim `admin` del token a proposito (ver docs/SEGURIDAD_ADMIN.md).
 const detail = async (req, res) => {
   try {
     const order = await getOrderForUser({
       orderId: req.params.id,
       userId: req.user.id,
-      admin: req.user.admin,
     });
     return res.status(200).json(order);
   } catch (error) {
@@ -63,13 +64,14 @@ const detail = async (req, res) => {
   }
 };
 
-// POST /api/orders/:id/cancel — el dueño (o admin) mientras el pedido no
-// esté en preparación y el dinero no esté aprobado/cobrado.
+// POST /api/orders/:id/cancel — SOLO el dueño, mientras el pedido no esté en
+// preparación y el dinero no esté aprobado/cobrado. El admin cancela desde el
+// panel con /api/admin/orders/:id/status.
 const cancel = async (req, res) => {
   try {
     const order = await cancelOrder({
       orderId: req.params.id,
-      user: req.user,
+      userId: req.user.id,
     });
     return res.status(200).json(order);
   } catch (error) {

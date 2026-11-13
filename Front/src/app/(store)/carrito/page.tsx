@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CartView } from "@/components/cart/CartView";
+import { DotFieldBackground } from "@/components/shared/DotFieldBackground";
 
 export const metadata: Metadata = {
   title: "Carrito — UPBUY",
@@ -9,8 +10,9 @@ export const metadata: Metadata = {
 export default function CarritoPage() {
   return (
     <div className="bg-background">
-      <section className="bg-carbon pt-28 pb-12 text-cream sm:pt-32">
-        <div className="container-page">
+      <section className="relative isolate overflow-hidden bg-carbon pt-32 pb-20 text-cream sm:pt-36">
+        <DotFieldBackground variant="carrito" />
+        <div className="relative z-10 container-page">
           <p className="text-xs font-semibold tracking-[0.25em] text-terracotta uppercase">
             Tu selección
           </p>

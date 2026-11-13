@@ -749,8 +749,11 @@ const createManualOrder = async ({
 };
 
 // Cancela un pedido pendiente de pago y libera su stock.
-const cancelOrder = async ({ orderId, user }) => {
+// Solo el dueño: el administrador cancela desde el panel administrativo, que
+// revalida su rol contra la base. Nunca se autoriza por un claim del JWT.
+const cancelOrder = async ({ orderId, userId }) => {
   assertUuid(orderId, "pedido");
+  assertUuid(userId, "usuario");
 
   const transaction = await sequelize.transaction();
 
@@ -763,8 +766,9 @@ const cancelOrder = async ({ orderId, user }) => {
     if (!order) {
       throw new HttpError(404, "Pedido no encontrado");
     }
-    if (!user.admin && order.userId !== user.id) {
-      throw new HttpError(403, "No tienes permisos sobre este pedido");
+    if (order.userId !== userId) {
+      // 404 y no 403: no se revela la existencia de pedidos ajenos.
+      throw new HttpError(404, "Pedido no encontrado");
     }
     if (
       order.paymentState === PAYMENT_STATE.SETTLED ||
@@ -788,9 +792,9 @@ const cancelOrder = async ({ orderId, user }) => {
       order,
       to: FULFILLMENT_STATUS.CANCELLED,
       transaction,
-      actorUserId: user.id,
-      source: user.admin ? STATUS_SOURCE.MANUAL_ADMIN : STATUS_SOURCE.CUSTOMER,
-      note: user.admin ? "Cancelado por administrador" : "Cancelado por el cliente",
+      actorUserId: userId,
+      source: STATUS_SOURCE.CUSTOMER,
+      note: "Cancelado por el cliente",
       audit: true,
     });
 
@@ -800,9 +804,6 @@ const cancelOrder = async ({ orderId, user }) => {
     const full = await getOrderForUser({
       orderId: order.id,
       userId: order.userId,
-      // Si quien cancela es un administrador ve el payload del proveedor;
-      // si es el comprador, no.
-      admin: Boolean(user.admin),
       transaction,
     });
 

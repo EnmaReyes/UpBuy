@@ -1,11 +1,23 @@
 const jwt = require("jsonwebtoken");
-const { JWT_SECRET } = require("../config.js");
+const {
+  JWT_SECRET,
+  JWT_ALGORITHM,
+  JWT_ISSUER,
+  JWT_AUDIENCE,
+} = require("../config.js");
 const { Usuarios } = require("../DataBase/models/Usuarios.js");
 
 // Middleware de autenticacion basado en la cookie httpOnly existente
-// (access_token). No cambia el formato del token: { id, admin }.
+// (access_token). El token solo identifica al usuario: `{ id }`. El rol
+// administrativo NO viaja en el token; `requireAdmin` lo lee de la base.
 
 const getToken = (req) => req.cookies?.access_token;
+
+const verifyOptions = {
+  algorithms: [JWT_ALGORITHM],
+  issuer: JWT_ISSUER,
+  audience: JWT_AUDIENCE,
+};
 
 const requireAuth = (req, res, next) => {
   const token = getToken(req);
@@ -15,8 +27,9 @@ const requireAuth = (req, res, next) => {
   }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.user = { id: payload.id, admin: Boolean(payload.admin) };
+    const payload = jwt.verify(token, JWT_SECRET, verifyOptions);
+    // Solo el id. Nunca se copia un claim `admin` del token a req.user.
+    req.user = { id: payload.id };
     return next();
   } catch (error) {
     if (error.name === "TokenExpiredError") {
@@ -62,8 +75,8 @@ const optionalAuth = (req, res, next) => {
   if (!token) return next();
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.user = { id: payload.id, admin: Boolean(payload.admin) };
+    const payload = jwt.verify(token, JWT_SECRET, verifyOptions);
+    req.user = { id: payload.id };
   } catch {
     // token invalido en ruta publica: se ignora
   }

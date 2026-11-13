@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
+import { DotFieldBackground } from "@/components/shared/DotFieldBackground";
 
 export const metadata: Metadata = {
   title: "Nosotros — UPBUY",
@@ -51,8 +52,9 @@ const NUMBERS = [
 export default function NosotrosPage() {
   return (
     <div className="bg-background">
-      <section className="bg-carbon pt-28 pb-16 text-cream sm:pt-32 lg:pb-24">
-        <div className="container-page">
+      <section className="relative isolate overflow-hidden bg-carbon pt-32 pb-36 text-cream sm:pt-36 lg:pb-40">
+        <DotFieldBackground variant="nosotros" />
+        <div className="relative z-10 container-page">
           <p className="text-xs font-semibold tracking-[0.25em] text-terracotta uppercase">
             Nosotros
           </p>

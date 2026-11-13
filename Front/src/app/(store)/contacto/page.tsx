@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Clock, Mail, MessageCircle } from "lucide-react";
 import { ContactForm } from "@/components/shared/ContactForm";
 import { Reveal } from "@/components/shared/Reveal";
+import { DotFieldBackground } from "@/components/shared/DotFieldBackground";
 
 export const metadata: Metadata = {
   title: "Contacto — UPBUY",
@@ -41,8 +42,9 @@ const FAQ = [
 export default function ContactoPage() {
   return (
     <div className="bg-background">
-      <section className="bg-carbon pt-28 pb-16 text-cream sm:pt-32 lg:pb-20">
-        <div className="container-page">
+      <section className="relative isolate overflow-hidden bg-carbon pt-32 pb-32 text-cream sm:pt-36 lg:pb-40">
+        <DotFieldBackground variant="contacto" />
+        <div className="relative z-10 container-page">
           <p className="text-xs font-semibold tracking-[0.25em] text-terracotta uppercase">
             Contacto
           </p>

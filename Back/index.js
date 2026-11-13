@@ -32,8 +32,11 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const compression = require("compression");
-const { FRONTEND_URL, TRUST_PROXY } = require("./config.js");
+const { FRONTEND_URLS, TRUST_PROXY } = require("./config.js");
 const { globalLimiter } = require("./Middlewares/rateLimits.js");
+const {
+  requireTrustedOrigin,
+} = require("./Middlewares/requireTrustedOrigin.js");
 const { notFound, errorHandler } = require("./Middlewares/errors.js");
 
 const port = process.env.PORT || 3001;
@@ -173,13 +176,25 @@ app.use(
 
 app.use(
   cors({
-    origin: FRONTEND_URL,
+    origin: FRONTEND_URLS,
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
+    allowedHeaders: ["Accept", "Content-Type", "X-Upbuy-CSRF"],
     credentials: true,
   }),
 );
 
 app.use(cookieParser());
+
+// CSRF: toda mutacion con cookie de sesion debe venir de un origen permitido
+// y llevar la cabecera X-Upbuy-CSRF. Sin cookie (webhooks, login, registro) no
+// aplica. Ver Middlewares/requireTrustedOrigin.js.
+app.use(requireTrustedOrigin);
+
+// Las respuestas del panel nunca se cachean.
+app.use("/api/admin", (req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 
 // Techo general de peticiones por IP (ver Middlewares/rateLimits.js).
 app.use(globalLimiter);

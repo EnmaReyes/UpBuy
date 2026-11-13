@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/services/account/queries";
 import { AccountNav } from "@/components/account/AccountNav";
 import { LogoutButton } from "@/components/account/LogoutButton";
+import { DotFieldBackground } from "@/components/shared/DotFieldBackground";
 
 // Área privada. El middleware ya exige la cookie, pero aquí se valida de
 // verdad contra el backend: una cookie caducada cae igual al login.
@@ -25,8 +26,9 @@ export default async function CuentaLayout({
 
   return (
     <div className="bg-background pt-16">
-      <section className="bg-carbon pt-16 pb-12 text-cream">
-        <div className="container-page">
+      <section className="relative isolate overflow-hidden bg-carbon pt-20 pb-20 text-cream">
+        <DotFieldBackground variant="perfil" />
+        <div className="relative z-10 container-page">
           <p className="text-xs font-semibold tracking-[0.25em] text-terracotta uppercase">
             Mi cuenta
           </p>
