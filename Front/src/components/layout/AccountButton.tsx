@@ -39,11 +39,13 @@ export function AccountButton({ className }: { className?: string }) {
       title={ariaLabel}
       className={
         className ??
-        "flex h-10 items-center gap-2 rounded-lg px-2 text-cream transition-colors hover:bg-cream/10"
+        "flex h-11 min-w-11 items-center justify-center gap-2 rounded-xl px-2 text-cream transition-colors hover:bg-cream/10"
       }
     >
       <User className="h-5 w-5 shrink-0" aria-hidden="true" />
-      <span className="hidden text-xs font-semibold tracking-wide uppercase sm:inline">
+      {/* La etiqueta aparece solo cuando hay sitio para ella: en 1024-1279 px
+          ensancharía las acciones y descentraría el Split Nav. */}
+      <span className="hidden text-xs font-semibold tracking-wide uppercase xl:inline">
         {label}
       </span>
     </Link>

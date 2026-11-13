@@ -128,7 +128,7 @@ const generateOrderNumber = async (transaction) => {
     { transaction },
   );
   const numero = String(rows[0].n).padStart(6, "0");
-  return `BYG-${new Date().getFullYear()}-${numero}`;
+  return `UPBUY-${new Date().getFullYear()}-${numero}`;
 };
 
 const productModel = () => Product;

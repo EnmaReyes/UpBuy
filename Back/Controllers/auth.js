@@ -9,7 +9,7 @@ const COOKIE_MAX_AGE = 12 * 60 * 60 * 1000; // 12 horas
 
 const isProduction = () => process.env.NODE_ENV === "production";
 
-// Emite la sesion propia de ByGio (JWT en cookie httpOnly) y responde con el
+// Emite la sesion propia de UPBUY (JWT en cookie httpOnly) y responde con el
 // usuario sin la contrasena. Compartida por login tradicional y social.
 const issueSession = (res, user) => {
   const token = jwt.sign({ id: user.id, admin: user.admin }, JWT_SECRET, {

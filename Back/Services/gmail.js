@@ -68,7 +68,7 @@ const sendEmail = async ({ to, subject, body, refreshToken }) => {
   const { token: accessToken } = await client.getAccessToken();
   if (!accessToken) throw new Error("No se pudo obtener access token de Google.");
 
-  const from = GOOGLE_MAIL_FROM || "bygionay.88@gmail.com";
+  const from = GOOGLE_MAIL_FROM || "upbuy.official@gmail.com";
   const message = [
     `From: ${from}`,
     `To: ${to}`,

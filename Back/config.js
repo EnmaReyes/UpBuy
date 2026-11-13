@@ -118,7 +118,7 @@ module.exports = {
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
   FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || "",
   FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || "",
-  GOOGLE_MAIL_FROM: process.env.GOOGLE_MAIL_FROM || "bygionay.88@gmail.com",
+  GOOGLE_MAIL_FROM: process.env.GOOGLE_MAIL_FROM || "upbuy.official@gmail.com",
 
   // Ecommerce
   // Precios por defecto de las variantes DTF (pesos COP)

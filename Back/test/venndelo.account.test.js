@@ -164,9 +164,9 @@ test("validateOrderPayload normaliza external_order_id (idempotencia)", () => {
     billing_info: {},
     shipping_info: {},
     payment_method_code: "EXTERNAL_PAYMENT",
-    orderId: "BYG-2026-000001",
+    orderId: "UPBUY-2026-000001",
   });
-  assert.equal(payload.external_order_id, "BYG-2026-000001");
+  assert.equal(payload.external_order_id, "UPBUY-2026-000001");
 });
 
 test("validateQuotationPayload no exige billing_info", () => {

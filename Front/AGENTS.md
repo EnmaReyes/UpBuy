@@ -1,3 +1,17 @@
+# Front — AGENTS.md
+
+Reglas del frontend (Next.js 16). Las reglas generales del monorepo
+—estructura, marca UPBUY, contrato con el backend, despliegue y verificación—
+están en [`../AGENTS.md`](../AGENTS.md). **Léelo primero**: aplica a todo lo que
+viva en `Front/`.
+
+- La marca es **UPBUY**: nada de nombres de marcas personales ni de proyectos
+  anteriores en textos, clases, variables, claves de storage o comentarios.
+- Los textos de UI van **en español**.
+- El número de pedido que se muestra al cliente tiene el prefijo `UPBUY`
+  (`UPBUY-2026-000011`); llega del backend en `orderNumber`, no lo compongas en
+  el front.
+
 # Kokonut UI
 
 This project installs components from Kokonut UI, a shadcn/ui registry.

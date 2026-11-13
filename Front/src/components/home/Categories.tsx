@@ -12,7 +12,10 @@ type CategoriesProps = {
 // cuando el backend publique el contrato.
 export function Categories({ categories }: CategoriesProps) {
   return (
-    <section id="categorias" className="section-y scroll-mt-20 bg-background">
+    <section
+      id="encuentra-tu-estilo"
+      className="section-y scroll-mt-24 bg-background"
+    >
       <div className="container-page">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <Reveal>

@@ -57,7 +57,7 @@ export function NotificationButton() {
       href="/cuenta/notificaciones"
       aria-label={label}
       title={label}
-      className="relative flex h-10 w-10 items-center justify-center rounded-lg text-cream transition-colors hover:bg-cream/10"
+      className="relative flex h-11 w-11 items-center justify-center rounded-xl text-cream transition-colors hover:bg-cream/10"
     >
       <Bell className="h-5 w-5" aria-hidden="true" />
       {count > 0 ? (
