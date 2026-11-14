@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
+import { PurchaseAlerts } from "./orders/PurchaseAlerts";
 import type { AdminProfile } from "@/types/admin";
 
 // Shell del panel: sidebar fija en escritorio y drawer accesible en móvil.
@@ -76,6 +77,9 @@ export function AdminShell({
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
       </div>
+
+      {/* Los avisos de compra viven en todo el panel (ADM-5). */}
+      <PurchaseAlerts />
     </div>
   );
 }

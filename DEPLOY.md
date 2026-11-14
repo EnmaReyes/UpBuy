@@ -39,6 +39,17 @@ Recomendadas / según servicio:
 - Venndelo Pro: `VENNDELO_CLIENT_ID`, `VENNDELO_CLIENT_SECRET`,
   `VENNDELO_REFRESH_TOKEN`, `SUPPLIER_CREDENTIALS_ENCRYPTION_KEY`.
 - `TRUST_PROXY` no hace falta: en producción se asume `1`.
+- Panel (ADM-6+): `BACKEND_URL` (URL pública del propio back; la usan los
+  enlaces de las notificaciones del panel).
+- Difusión email (ADM-7): `GOOGLE_MAIL_CLIENT_ID`, `GOOGLE_MAIL_CLIENT_SECRET`,
+  `GOOGLE_MAIL_REFRESH_TOKEN`, `GOOGLE_MAIL_FROM` (`upbuy.official@gmail.com`)
+  y `GMAIL_TOKEN_ENCRYPTION_KEY` (base64 de 32 bytes: cifra el refresh token
+  en la base). Sin estas variables la difusión queda deshabilitada; el resto
+  del panel sigue funcionando.
+- WhatsApp (ADM-8): `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`,
+  `WHATSAPP_BUSINESS_ACCOUNT_ID`, `WHATSAPP_TEMPLATE_MARKETING` (plantilla
+  Meta aprobada con `{{1}}` = texto renderizado) y `CAMPAIGN_DAILY_LIMIT`.
+  Sin ellas el panel usa el modo manual (wa.me).
 
 Las plantillas completas están en `Back/.env.example`. El archivo `.env.local`
 **no** se sube a git y no se usa en Vercel.
@@ -49,6 +60,8 @@ Las plantillas completas están en `Back/.env.example`. El archivo `.env.local`
 
 - `/api/cron/sync-providers`
 - `/api/cron/sync-catalog`
+- `/api/cron/campaigns` — continúa el envío de campañas (email y WhatsApp,
+  un lote por corrida, respeta el techo diario `CAMPAIGN_DAILY_LIMIT`)
 
 Necesitan `CRON_SECRET` definido. En plan Pro puedes bajar el schedule a
 `*/15 * * * *` editando `vercel.json`.
@@ -62,7 +75,8 @@ esté despierto.
 Las tablas se crean **automáticamente** en el primer arranque: `ensureBaseSchema`
 crea las tablas base si la base está vacía y `ensureCatalogSchema` /
 `ensureDropshippingSchema` aplican el resto (CHECKs, índices, secuencia,
-semillas). Todo es idempotente.
+semillas). Todo es idempotente. Los índices del panel (ADM-10) los aplica
+`ensurePanelIndexes` al arrancar; a mano: `npm run db:migrate:indexes`.
 
 Para preparar la base a mano antes del primer deploy:
 `DATABASE_URL="postgresql://...@...neon.tech/db?sslmode=require" npm run db:bootstrap`

@@ -107,6 +107,16 @@ const importLimiter = crearLimite({
     "Demasiadas importaciones seguidas. Espera unos minutos antes de volver a intentarlo.",
 });
 
+// Campanas de difusion (ADM-7): crear/audience/enviar/test. El envio real
+// corre por lotes de 25, asi que el limite por ventana es generoso pero
+// frena bucles y escaneos del panel.
+const campaignLimiter = crearLimite({
+  windowMs: 10 * MINUTE,
+  limit: 40,
+  message:
+    "Demasiadas acciones de difusión seguidas. Espera unos minutos antes de volver a intentarlo.",
+});
+
 module.exports = {
   globalLimiter,
   authLimiter,
@@ -116,5 +126,6 @@ module.exports = {
   webhookLimiter,
   adminMfaLimiter,
   importLimiter,
+  campaignLimiter,
   porUsuarioOIp,
 };

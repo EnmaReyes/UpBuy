@@ -258,6 +258,42 @@ export async function apiGet<T>(
 }
 
 /**
+ * Descarga autenticada (GET). Se usa para exportaciones CSV del panel: reenvía
+ * la cookie y devuelve el archivo tal cual, sin intentar parsear JSON.
+ */
+export async function apiDownload(
+  path: string,
+  { query }: { query?: Query } = {},
+): Promise<Blob> {
+  const url = buildUrl(path, query);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "text/csv, application/octet-stream" },
+    });
+  } catch {
+    throw new ApiError("No se pudo conectar con el servidor", {
+      kind: "network",
+    });
+  }
+
+  if (!response.ok) {
+    const { message, code, details } = await readError(response);
+    throw new ApiError(message, {
+      kind: "http",
+      status: response.status,
+      code,
+      details,
+    });
+  }
+
+  return response.blob();
+}
+
+/**
  * Lectura con sesión que nunca lanza: devuelve `null` si no hay sesión o si el
  * backend no responde. Pensada para widgets optimistas (p. ej. el botón de
  * cuenta del navbar), donde un fallo no debe romper la página.

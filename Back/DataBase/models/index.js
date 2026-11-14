@@ -32,6 +32,8 @@ const { AdminSession } = require("./AdminSession.js");
 const { AuthEvent } = require("./AuthEvent.js");
 const { AdminMfaChallenge } = require("./AdminMfaChallenge.js");
 const { AdminBackupCode } = require("./AdminBackupCode.js");
+const { Campaign } = require("./Campaign.js");
+const { CampaignRecipient } = require("./CampaignRecipient.js");
 const enums = require("./enums.js");
 
 // Define las asociaciones (requiere los modelos de arriba ya definidos).
@@ -64,5 +66,7 @@ module.exports = {
   AuthEvent,
   AdminMfaChallenge,
   AdminBackupCode,
+  Campaign,
+  CampaignRecipient,
   ...enums,
 };

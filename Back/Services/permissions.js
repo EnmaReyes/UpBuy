@@ -82,7 +82,12 @@ const STEP_UP_ACTIONS = Object.freeze({
   "orders.cancel": "orders.write",
   "campaigns.send": "campaigns.send",
   "admins.manage": "admins.manage",
+  "users.disable": "users.write",
   "catalog.unpublish": "catalog.write",
+  // Accion personal: cualquier administrador puede regenerar SUS codigos de
+  // respaldo. No depende de un permiso de gobierno, solo de un segundo factor
+  // reciente (por eso el valor es `null`).
+  "security.backup_codes": null,
 });
 
 const isStepUpAction = (action) =>

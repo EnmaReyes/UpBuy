@@ -18,10 +18,12 @@
     "db:migrate:catalog": "node scripts/migrateSupplierCatalog.js",
     "db:verify-catalog": "node scripts/verifySupplierCatalogMigration.js",
     "db:migrate:admin": "node scripts/migrateAdminSecurity.js",
+    "db:migrate:campaigns": "node scripts/migrateCampaignSchema.js",
+    "db:migrate:indexes": "node scripts/migratePanelIndexes.js",
     "db:grant-admin": "node scripts/grantAdmin.js",
     "security:prune": "node scripts/pruneSecurityLogs.js",
     "venndelo:check": "node scripts/check-venndelo.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test --test-concurrency=1 test/*.test.js"
   },
   "keywords": [],
   "author": "",

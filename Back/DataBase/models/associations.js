@@ -29,6 +29,16 @@ const {
 } = require("./SupplierProductVariation.js");
 const { SupplierProductAsset } = require("./SupplierProductAsset.js");
 const { CatalogSyncRun } = require("./CatalogSyncRun.js");
+const { Campaign } = require("./Campaign.js");
+const { CampaignRecipient } = require("./CampaignRecipient.js");
+
+// ------------------------------- Campanas ------------------------------
+// Destinatario -> usuario: nombre visible en el detalle de la campana.
+CampaignRecipient.belongsTo(Usuarios, {
+  foreignKey: "userId",
+  as: "user",
+  sourceKey: "id",
+});
 
 // ------------------------------- Pedidos -------------------------------
 Usuarios.hasMany(Order, {

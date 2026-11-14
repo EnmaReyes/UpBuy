@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/sync-catalog",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/campaigns",
+      "schedule": "0 12 * * *"
     }
   ]
 }

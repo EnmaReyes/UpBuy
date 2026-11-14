@@ -4,7 +4,7 @@ const {
   requireAdminSession,
   requirePermission,
 } = require("../../Middleware/auth.js");
-const { list } = require("../../Controllers/suppliers/suppliers.controller.js");
+const { list, overview } = require("../../Controllers/suppliers/suppliers.controller.js");
 const venndeloRoutes = require("./venndelo.routes.js");
 
 const router = express.Router();
@@ -16,6 +16,7 @@ router.use(
   requirePermission("providers.manage"),
 );
 
+router.get("/overview", overview);
 router.get("/", list);
 router.use("/venndelo", venndeloRoutes);
 

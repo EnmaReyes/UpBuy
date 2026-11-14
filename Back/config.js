@@ -203,6 +203,82 @@ const ADMIN_MFA_ISSUER =
   String(process.env.ADMIN_MFA_ISSUER || "UPBUY").trim() || "UPBUY";
 
 // ---------------------------------------------------------------------------
+// Gmail de campanas (ADM-7)
+//
+// El refresh token OAuth se guarda cifrado con AES-256-GCM. Sin clave no se
+// guarda nada en claro: el panel muestra "Gmail no configurado" y el envio
+// queda deshabilitado. Es OPCIONAL (a diferencia de ADMIN_MFA_ENCRYPTION_KEY):
+// faltarla solo desactiva la difusion, no tumba la API.
+// ---------------------------------------------------------------------------
+const parseGmailKey = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  try {
+    const buffer = Buffer.from(raw, "base64");
+    return buffer.length === 32 ? buffer.toString("base64") : null;
+  } catch {
+    return null;
+  }
+};
+
+const rawGmailKey = String(process.env.GMAIL_TOKEN_ENCRYPTION_KEY || "").trim();
+let GMAIL_TOKEN_ENCRYPTION_KEY = parseGmailKey(rawGmailKey);
+
+if (rawGmailKey && !GMAIL_TOKEN_ENCRYPTION_KEY) {
+  throw new Error(
+    "GMAIL_TOKEN_ENCRYPTION_KEY debe ser base64 de exactamente 32 bytes.",
+  );
+}
+
+const GMAIL_TOKEN_ENCRYPTION_KEY_PREVIOUS = parseGmailKey(
+  process.env.GMAIL_TOKEN_ENCRYPTION_KEY_PREVIOUS,
+);
+
+// Techo de envios diarios de campanas (todas las campanas suman). Por defecto
+// 400, por debajo de la cuota de envio de Gmail de una cuenta personal (500).
+const CAMPAIGN_DAILY_LIMIT = Math.min(
+  Math.max(toNumber(process.env.CAMPAIGN_DAILY_LIMIT, 400), 1),
+  10000,
+);
+
+// BACKEND_URL: URL publica de la API en produccion (la usa el redirect URI
+// del OAuth de Gmail). En desarrollo el redirect es fijo.
+const BACKEND_URL = String(process.env.BACKEND_URL || "").trim().replace(/\/+$/, "");
+
+// ---------------------------------------------------------------------------
+// WhatsApp Cloud API (ADM-8)
+//
+// Difusion solo con plantillas aprobadas por Meta. Sin credenciales el panel
+// ofrece modo manual (enlaces wa.me uno a uno) y NO simula envios. Las
+// librerias no oficiales (whatsapp-web.js, Baileys, automatizacion de
+// WhatsApp Web) estan prohibidas: riesgo de bloqueo y de cumplimiento.
+// ---------------------------------------------------------------------------
+const cleanEnv = (value) => String(value || "").trim();
+
+const WHATSAPP_PHONE_NUMBER_ID = cleanEnv(process.env.WHATSAPP_PHONE_NUMBER_ID);
+const WHATSAPP_ACCESS_TOKEN = cleanEnv(process.env.WHATSAPP_ACCESS_TOKEN);
+const WHATSAPP_BUSINESS_ACCOUNT_ID = cleanEnv(
+  process.env.WHATSAPP_BUSINESS_ACCOUNT_ID,
+);
+const WHATSAPP_API_VERSION =
+  cleanEnv(process.env.WHATSAPP_API_VERSION) || "v21.0";
+// Plantillas de difusion (marketing) y operacional (pedido). Deben estar
+// aprobadas en la cuenta de Meta Business.
+const WHATSAPP_TEMPLATE_MARKETING = cleanEnv(
+  process.env.WHATSAPP_TEMPLATE_MARKETING,
+);
+const WHATSAPP_TEMPLATE_ORDER = cleanEnv(process.env.WHATSAPP_TEMPLATE_ORDER);
+const WHATSAPP_TEMPLATE_LANG =
+  cleanEnv(process.env.WHATSAPP_TEMPLATE_LANG) || "es";
+
+const isWhatsappConfigured = () =>
+  Boolean(
+    WHATSAPP_PHONE_NUMBER_ID &&
+      WHATSAPP_ACCESS_TOKEN &&
+      WHATSAPP_TEMPLATE_MARKETING,
+  );
+
+// ---------------------------------------------------------------------------
 // Step-up para acciones destructivas (ADM-S3)
 //
 // Una sesion administrativa vale para leer, pero reembolsar, cancelar,
@@ -366,6 +442,21 @@ module.exports = {
   FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || "",
   FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || "",
   GOOGLE_MAIL_FROM: process.env.GOOGLE_MAIL_FROM || "upbuy.official@gmail.com",
+
+  // Campanas por email (ADM-7).
+  GMAIL_TOKEN_ENCRYPTION_KEY,
+  GMAIL_TOKEN_ENCRYPTION_KEY_PREVIOUS,
+  CAMPAIGN_DAILY_LIMIT,
+  BACKEND_URL,
+
+  // Difusion por WhatsApp Cloud API (ADM-8).
+  WHATSAPP_PHONE_NUMBER_ID,
+  WHATSAPP_BUSINESS_ACCOUNT_ID,
+  WHATSAPP_API_VERSION,
+  WHATSAPP_TEMPLATE_MARKETING,
+  WHATSAPP_TEMPLATE_ORDER,
+  WHATSAPP_TEMPLATE_LANG,
+  isWhatsappConfigured,
 
   // Ecommerce
   // Precios por defecto de las variantes DTF (pesos COP)

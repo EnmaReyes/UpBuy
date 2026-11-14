@@ -16,6 +16,7 @@ export type AdminOrderListQuery = {
   paymentMethod?: string;
   paymentMethodCode?: string;
   provider?: string;
+  outOfSync?: boolean;
   from?: string;
   to?: string;
   limit?: number;

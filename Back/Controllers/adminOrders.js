@@ -1,11 +1,13 @@
 const {
   listOrdersAdmin,
+  listRecentWebOrders,
   getOrderAdminDetail,
   listOrderSyncHistory,
   changeOrderStatus,
   updateTracking,
   orderStats,
   salesByPeriod,
+  exportOrdersCsv,
 } = require("../Services/adminOrders.js");
 const {
   createManualOrder,
@@ -44,6 +46,7 @@ const list = async (req, res) => {
       paymentMethod,
       paymentMethodCode,
       provider,
+      outOfSync,
       q,
       from,
       to,
@@ -57,6 +60,7 @@ const list = async (req, res) => {
       paymentMethod,
       paymentMethodCode,
       provider,
+      outOfSync,
       q,
       from,
       to,
@@ -66,6 +70,65 @@ const list = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     return sendError(res, error, "No se pudieron cargar los pedidos");
+  }
+};
+
+// GET /api/admin/orders/recent?since=<ISO>
+//
+// Avisos de compra en vivo. Devuelve { orders, count, serverTime }. Sin `since`
+// responde los ultimos 20 pedidos web (linea base); con `since` solo los
+// posteriores, en orden ascendente. El Cache-Control lo pone /api/admin.
+const recent = async (req, res) => {
+  try {
+    const result = await listRecentWebOrders({ since: req.query.since });
+    return res.status(200).json(result);
+  } catch (error) {
+    return sendError(res, error, "No se pudieron cargar las compras recientes");
+  }
+};
+
+// GET /api/admin/orders/export.csv?provider=&outOfSync=&from=&to=
+// Exportacion operativa: estados ya traducidos, sin strings del proveedor.
+const exportCsv = async (req, res) => {
+  try {
+    const {
+      status,
+      fulfillmentStatus,
+      paymentStatus,
+      paymentState,
+      channel,
+      paymentMethod,
+      paymentMethodCode,
+      provider,
+      outOfSync,
+      q,
+      from,
+      to,
+    } = req.query;
+
+    const result = await exportOrdersCsv({
+      status: fulfillmentStatus || status,
+      paymentStatus: paymentState || paymentStatus,
+      channel,
+      paymentMethod,
+      paymentMethodCode,
+      provider,
+      outOfSync,
+      q,
+      from,
+      to,
+    });
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${result.filename}"`,
+    );
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Upbuy-Rows", String(result.total));
+    return res.send(result.csv);
+  } catch (error) {
+    return sendError(res, error, "No se pudo exportar la lista de pedidos");
   }
 };
 
@@ -346,6 +409,8 @@ const changePayment = async (req, res) => {
 
 module.exports = {
   list,
+  recent,
+  exportCsv,
   stats,
   detail,
   syncHistory,

@@ -10,6 +10,9 @@ const adminUsersRoutes = require("./Rutas/adminUsers.js");
 const adminAdminsRoutes = require("./Rutas/adminAdmins.js");
 const adminMeRoutes = require("./Rutas/adminMe.js");
 const adminAuditRoutes = require("./Rutas/adminAudit.js");
+const adminCampaignsRoutes = require("./Rutas/adminCampaigns.js");
+const adminWhatsappRoutes = require("./Rutas/adminWhatsapp.js");
+const publicCampaignsRoutes = require("./Rutas/publicCampaigns.js");
 const paymentsRoutes = require("./Rutas/payments.js");
 const webhooksRoutes = require("./Rutas/webhooks.js");
 const cronRoutes = require("./Rutas/cron.js");
@@ -24,6 +27,10 @@ const { ensureBaseSchema } = require("./DataBase/ensureBaseSchema.js");
 const {
   ensureAdminSecuritySchema,
 } = require("./DataBase/ensureAdminSecuritySchema.js");
+const {
+  ensureCampaignSchema,
+} = require("./DataBase/ensureCampaignSchema.js");
+const { ensurePanelIndexes } = require("./DataBase/ensurePanelIndexes.js");
 const {
   ensureCatalogSchema,
 } = require("./DataBase/ensureCatalogSchema.js");
@@ -108,6 +115,10 @@ const initializeDatabase = async () => {
   // auditoria de autenticacion (ADM-S1).
   await ensureAdminSecuritySchema();
 
+  // Campanas de difusion: consentimiento, campaigns y campaign_recipients
+  // (ADM-7).
+  await ensureCampaignSchema();
+
   // Catalogo: productos, categorias, imagenes y catalogo de proveedores.
   // Tambien retira el esquema viejo (articulos / price_variants) si esta vacio.
   await ensureCatalogSchema();
@@ -115,6 +126,9 @@ const initializeDatabase = async () => {
   // Dropshipping: estados canonicos, proveedores de pedidos, contabilidad y
   // auditoria.
   await ensureDropshippingSchema();
+
+  // Indices del panel (ADM-10): idempotentes, no hacen nada cuando ya estan.
+  await ensurePanelIndexes();
 
   console.log("✅ Base de datos inicializada");
 };
@@ -277,6 +291,11 @@ app.use("/api/admin/orders", adminOrdersRoutes);
 app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/admin/admins", adminAdminsRoutes);
 app.use("/api/admin/audit", adminAuditRoutes);
+// Campanas de difusion (ADM-7) y baja publica.
+app.use("/api/admin/campaigns", adminCampaignsRoutes);
+// Estado y prueba de WhatsApp Cloud API (ADM-8).
+app.use("/api/admin/whatsapp", adminWhatsappRoutes);
+app.use("/api/public/campaigns", publicCampaignsRoutes);
 // Catalogo administrativo y proveedores.
 app.use("/api/admin/products", adminProductsRoutes);
 app.use("/api/admin/categories", adminCategoriesRoutes);

@@ -40,5 +40,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/cuenta/:path*", "/checkout"],
+  // `/admin` va en el matcher ademas de estar en PROTECTED_PREFIXES: sin esto
+  // el proxy nunca se ejecuta en las rutas del panel y la redireccion temprana
+  // del punto 5.3 de ADMIN_DASHBOARD_PROMPT quedaria solo en el layout.
+  matcher: ["/cuenta/:path*", "/checkout", "/admin", "/admin/:path*"],
 };

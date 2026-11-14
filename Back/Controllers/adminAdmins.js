@@ -13,11 +13,20 @@
 
 const { Op } = require("sequelize");
 const {
+  ADMIN_SESSION_IDLE_MINUTES,
+  ADMIN_SESSION_MAX_HOURS,
+  ADMIN_STEP_UP_MINUTES,
+} = require("../config.js");
+const {
   listActiveSessions,
   revokeSession,
   revokeAllForUser,
   recordAuthEvent,
 } = require("../Services/adminSessions.js");
+const {
+  countBackupCodes,
+  regenerateBackupCodes,
+} = require("../Services/mfa.js");
 const {
   isValidRole,
   isAdminRole,
@@ -100,6 +109,85 @@ const revokeOne = async (req, res) => {
     return res.status(200).json({ revoked: true, current: isCurrent });
   } catch (error) {
     return sendError(res, error, "No se pudo cerrar la sesión");
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Estado de seguridad del propio administrador (ADM-S2 / ADM-S3)
+// ---------------------------------------------------------------------------
+
+// GET /api/admin/admins/security
+// Resumen para `/admin/perfil/seguridad`: estado de MFA, codigos de respaldo
+// restantes y politica de sesion vigente. Nunca devuelve el secreto TOTP ni
+// los hashes de los codigos.
+const securityOverview = async (req, res) => {
+  try {
+    const user = await Usuarios.findByPk(req.user.id, {
+      attributes: ["id", "mfaEnabled", "mfaEnrolledAt"],
+    });
+    if (!user) throw new HttpError(404, "Usuario no encontrado");
+
+    const [codes, sessions] = await Promise.all([
+      countBackupCodes(user.id),
+      listActiveSessions(user.id),
+    ]);
+
+    return res.status(200).json({
+      mfa: {
+        enabled: Boolean(user.mfaEnabled),
+        enrolledAt: user.mfaEnrolledAt || null,
+      },
+      backupCodes: codes,
+      sessions: {
+        active: sessions.length,
+        currentSessionId: req.user.sessionId || null,
+      },
+      policy: {
+        idleMinutes: ADMIN_SESSION_IDLE_MINUTES,
+        maxHours: ADMIN_SESSION_MAX_HOURS,
+        stepUpMinutes: ADMIN_STEP_UP_MINUTES,
+      },
+    });
+  } catch (error) {
+    return sendError(res, error, "No se pudo cargar tu estado de seguridad");
+  }
+};
+
+// POST /api/admin/admins/security/backup-codes
+// Genera un juego nuevo de codigos de respaldo y invalida los anteriores. La
+// ruta exige step-up reciente: es una accion sensible aunque sea sobre la
+// propia cuenta. Los codigos se devuelven UNA sola vez.
+const regenerateCodes = async (req, res) => {
+  try {
+    const user = await Usuarios.findByPk(req.user.id, {
+      attributes: ["id", "mfaEnabled"],
+    });
+    if (!user) throw new HttpError(404, "Usuario no encontrado");
+
+    if (!user.mfaEnabled) {
+      return res.status(409).json({
+        message:
+          "Activa la verificación en dos pasos antes de generar códigos de respaldo",
+        code: "MFA_NOT_ENABLED",
+      });
+    }
+
+    const result = await regenerateBackupCodes({ userId: user.id });
+
+    await recordAuthEvent({
+      userId: user.id,
+      event: "mfa_backup_codes_regenerated",
+      result: "success",
+      req,
+      metadata: { count: result.count },
+    });
+
+    return res.status(200).json({
+      backupCodes: result.backupCodes,
+      count: result.count,
+    });
+  } catch (error) {
+    return sendError(res, error, "No se pudieron regenerar los códigos");
   }
 };
 
@@ -342,6 +430,8 @@ module.exports = {
   listSessions,
   revokeAll,
   revokeOne,
+  securityOverview,
+  regenerateCodes,
   listAdmins,
   updateAdmin,
 };

@@ -13,7 +13,9 @@ import { ADMIN_ROLE_LABELS, type AdminProfile } from "@/types/admin";
 // El nombre y el rol salen de `GET /api/admin/me` (server-side), nunca del JWT.
 
 const SECTION_TITLES: { prefix: string; title: string }[] = [
+  { prefix: "/admin/perfil/seguridad", title: "Seguridad" },
   { prefix: "/admin/perfil", title: "Perfil" },
+  { prefix: "/admin/notificaciones", title: "Notificaciones" },
   { prefix: "/admin/pedidos", title: "Pedidos" },
   { prefix: "/admin/ventas", title: "Ventas" },
   { prefix: "/admin/proveedores", title: "Proveedores" },
@@ -100,7 +102,7 @@ export function AdminTopbar({
 
       <div className="ml-auto flex items-center gap-1.5">
         <Link
-          href="/cuenta/notificaciones"
+          href="/admin/notificaciones"
           aria-label={
             unread > 0
               ? `Notificaciones, ${unread} sin leer`

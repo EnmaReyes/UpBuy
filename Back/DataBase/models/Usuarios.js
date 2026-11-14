@@ -148,6 +148,50 @@ const Usuarios = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+
+    // ---------------------------------------------------------------------
+    // Consentimiento de difusion (ADM-7).
+    //
+    // marketingOptIn es el consentimiento explicito para promocionales.
+    // unsubscribedAt manda sobre el opt-in: con baja el usuario nunca recibe
+    // campanas aunque siga opt-in. emailBouncedAt excluye correos muertos.
+    // ---------------------------------------------------------------------
+    marketingOptIn: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    marketingOptInAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    unsubscribedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    emailBouncedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+
+    // ---------------------------------------------------------------------
+    // Consentimiento de difusion por WhatsApp (ADM-8). Independiente del
+    // opt-in de correo: un canal no hereda el consentimiento del otro.
+    // whatsappUnsubscribedAt manda sobre whatsappOptIn.
+    // ---------------------------------------------------------------------
+    whatsappOptIn: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    whatsappOptInAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    whatsappUnsubscribedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     timestamps: true,

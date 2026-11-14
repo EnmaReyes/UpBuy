@@ -7,6 +7,8 @@ const {
   CATALOG_SYNC_SCHEDULE,
 } = require("../config.js");
 const { runProviderSync } = require("../Services/cron.js");
+const { runBatch, runWhatsappBatch, CAMPAIGN_DAILY_LIMIT } = require("../Services/campaigns/campaignService.js");
+const whatsapp = require("../Services/whatsapp/index.js");
 const venndeloService = require("../Services/suppliers/venndelo.service.js");
 const { CATALOG_SYNC_TRIGGER } = require("../DataBase/models/enums.js");
 const { sendError } = require("../Utils/respond.js");
@@ -89,5 +91,45 @@ const syncCatalog = async (req, res) => {
 
 router.get("/sync-providers", syncProviders);
 router.get("/sync-catalog", syncCatalog);
+
+// GET /api/cron/campaigns
+//
+// Continua el envio de campanas con pendientes: UN lote por corrida (el
+// schedule se encarga de las siguientes). Prioriza WhatsApp (lote de 20) si
+// esta configurado; si no, correo. Reutiliza el remitente de cualquier admin
+// con Gmail conectado; si no lo hay responde con `skipped` sin tocar nada
+// (no simula envios).
+const campaignsBatch = async (req, res) => {
+  try {
+    if (!authorizeCron(req, res)) return undefined;
+
+    if (whatsapp.isConfigured()) {
+      const result = await runWhatsappBatch({ campaignId: null });
+      if (result.sent + result.failed > 0 || result.remaining > 0) {
+        return res.status(200).json({ ...result, channel: "whatsapp", dailyLimit: CAMPAIGN_DAILY_LIMIT });
+      }
+      // Sin pendientes de WhatsApp: cae al canal de correo.
+    }
+
+    const result = await runBatch({ adminId: null });
+    return res.status(200).json({
+      ...result,
+      dailyLimit: CAMPAIGN_DAILY_LIMIT,
+    });
+  } catch (error) {
+    // Sin Gmail conectado (o sin WhatsApp configurado con pendientes de ese
+    // canal) el cron no falla: informa y lo reintenta la proxima corrida.
+    if (error.code === "GMAIL_NOT_CONNECTED" || error.code === "WHATSAPP_NOT_CONFIGURED") {
+      return res.status(200).json({
+        ok: true,
+        skipped: error.code,
+        message: error.message,
+      });
+    }
+    return sendError(res, error, "No se pudo ejecutar el lote de campañas");
+  }
+};
+
+router.get("/campaigns", campaignsBatch);
 
 module.exports = router;

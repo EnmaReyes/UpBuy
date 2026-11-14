@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { getDashboardSummary } from "@/services/admin/dashboard";
 import { formatDate, formatPrice } from "@/lib/format";
+import { SalesMetricCard } from "@/components/admin/sales/SalesMetricCard";
+import { ProviderSpendingRing } from "@/components/admin/sales/ProviderSpendingRing";
 import {
   FULFILLMENT_LABELS,
   PAYMENT_STATE_LABELS,
@@ -115,6 +117,31 @@ export default async function AdminDashboardPage() {
             </article>
           );
         })}
+      </section>
+
+      {/* Resumen de ventas (ADM-6): serie del mes y anillo por proveedor. */}
+      <section
+        aria-labelledby="sales-summary-title"
+        className="flex flex-col gap-3"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2
+            id="sales-summary-title"
+            className="font-heading text-lg font-semibold text-carbon"
+          >
+            Ventas del mes
+          </h2>
+          <Link
+            href="/admin/ventas"
+            className="inline-flex h-10 items-center rounded-lg border border-border bg-background px-4 text-sm font-semibold text-carbon transition-colors hover:border-carbon focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            Ver ventas y contabilidad
+          </Link>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <SalesMetricCard sales={data.sales} periodo="mes" />
+          <ProviderSpendingRing byProvider={data.accounting.byProvider} />
+        </div>
       </section>
 
       <ProvidersNotice providers={data.providers} />

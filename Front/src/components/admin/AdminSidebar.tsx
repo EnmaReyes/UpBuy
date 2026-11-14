@@ -49,28 +49,28 @@ const NAV_ITEMS: AdminNavItem[] = [
     label: "Ventas",
     icon: TrendingUp,
     permission: "orders.read",
-    available: false,
+    available: true,
   },
   {
     href: "/admin/proveedores",
     label: "Proveedores",
     icon: Truck,
     permission: "providers.manage",
-    available: false,
+    available: true,
   },
   {
     href: "/admin/usuarios",
     label: "Usuarios",
     icon: Users,
     permission: "users.read",
-    available: false,
+    available: true,
   },
   {
     href: "/admin/difusion",
     label: "Difusión",
     icon: Mail,
     permission: "campaigns.read",
-    available: false,
+    available: true,
   },
   {
     href: "/cuenta/notificaciones",
@@ -88,8 +88,8 @@ const NAV_ITEMS: AdminNavItem[] = [
     href: "/admin/perfil/seguridad",
     label: "Seguridad",
     icon: ShieldCheck,
-    permission: "audit.read",
-    available: false,
+    // Sin permiso: es la seguridad de la propia cuenta, no auditoría de otros.
+    available: true,
   },
 ];
 

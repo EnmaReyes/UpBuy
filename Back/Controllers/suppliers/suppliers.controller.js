@@ -6,6 +6,7 @@ const {
   SupplierProduct,
 } = require("../../DataBase/models/index.js");
 const { listSupplierAdapters } = require("../../integrations/suppliers/index.js");
+const { getOverview } = require("../../Services/adminProviders.js");
 
 const list = async (req, res) => {
   try {
@@ -41,4 +42,13 @@ const list = async (req, res) => {
   }
 };
 
-module.exports = { list };
+// GET /api/admin/suppliers/overview — salud, contadores y actividad del panel.
+const overview = async (req, res) => {
+  try {
+    return res.json(await getOverview());
+  } catch (error) {
+    return sendError(res, error, "No se pudo cargar el estado de los proveedores");
+  }
+};
+
+module.exports = { list, overview };

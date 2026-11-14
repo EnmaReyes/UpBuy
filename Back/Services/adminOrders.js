@@ -17,6 +17,7 @@ const {
   PAYMENT_STATUS,
   PAYMENT_METHOD_CODE,
   HISTORY_KIND,
+  SALE_CHANNEL,
   SALE_CHANNEL_VALUES,
   PAYMENT_METHOD_VALUES,
   STATUS_SOURCE,
@@ -76,19 +77,19 @@ const ADMIN_ORDER_SORT = [
 const parseLimit = (limit) => Math.min(Math.max(Number(limit) || 20, 1), 100);
 const parseOffset = (offset) => Math.max(Number(offset) || 0, 0);
 
-// GET /api/admin/orders
-const listOrdersAdmin = async ({
+// Construye el WHERE de la lista administrativa. Se comparte con la
+// exportacion CSV para que ambos usen exactamente los mismos filtros.
+const buildOrderWhere = ({
   status,
   paymentStatus,
   channel,
   paymentMethod,
   paymentMethodCode,
   provider,
+  outOfSync,
   q,
   from,
   to,
-  limit,
-  offset,
 } = {}) => {
   const where = {};
 
@@ -134,6 +135,11 @@ const listOrdersAdmin = async ({
     where.provider = provider;
   }
 
+  // Solo los desincronizados: es el filtro del contador de proveedores.
+  if (outOfSync === true || outOfSync === "1" || outOfSync === "true") {
+    where.providerOutOfSync = true;
+  }
+
   const search = String(q || "").trim();
   if (search) {
     const term = `%${search}%`;
@@ -150,6 +156,37 @@ const listOrdersAdmin = async ({
     if (from) where.createdAt[Op.gte] = parseDay(from, "from");
     if (to) where.createdAt[Op.lte] = parseDay(to, "to", true);
   }
+
+  return where;
+};
+
+// GET /api/admin/orders
+const listOrdersAdmin = async ({
+  status,
+  paymentStatus,
+  channel,
+  paymentMethod,
+  paymentMethodCode,
+  provider,
+  outOfSync,
+  q,
+  from,
+  to,
+  limit,
+  offset,
+} = {}) => {
+  const where = buildOrderWhere({
+    status,
+    paymentStatus,
+    channel,
+    paymentMethod,
+    paymentMethodCode,
+    provider,
+    outOfSync,
+    q,
+    from,
+    to,
+  });
 
   const safeLimit = parseLimit(limit);
   const safeOffset = parseOffset(offset);
@@ -181,6 +218,67 @@ const listOrdersAdmin = async ({
     limit: safeLimit,
     offset: safeOffset,
   };
+};
+
+// ---------------------------------------------------------------------------
+// Avisos de compra en vivo (ADM-5)
+//
+// `GET /api/admin/orders/recent` alimenta el polling del panel. Solo mira las
+// compras que entraron por la tienda web: las ventas manuales o importadas por
+// CSV no generan aviso.
+//
+// Contrato:
+//   - sin `since`  -> ultimos 20 pedidos web, del mas antiguo al mas nuevo
+//                     (primera carga del panel: sirve de linea base).
+//   - con `since`  -> pedidos web con createdAt > since, en orden ascendente.
+//   - `since` invalido -> 400.
+//   - `serverTime` se toma ANTES de consultar para que el siguiente `since` no
+//     se salte pedidos creados mientras corria la consulta. Un pedido repetido
+//     es inofensivo: el front deduplica por id.
+// ---------------------------------------------------------------------------
+
+const RECENT_WEB_LIMIT = 20;
+
+const listRecentWebOrders = async ({ since } = {}) => {
+  const where = { channel: SALE_CHANNEL.WEB };
+  const rawSince = String(since ?? "").trim();
+
+  if (rawSince) {
+    const date = new Date(rawSince);
+    if (Number.isNaN(date.getTime())) {
+      throw new HttpError(400, "El parámetro since no es una fecha válida");
+    }
+    where.createdAt = { [Op.gt]: date };
+  }
+
+  const serverTime = new Date().toISOString();
+
+  // Con `since` interesa lo primero que llego despues de esa marca. Sin
+  // `since` (primera carga) interesan los ultimos 20: se consultan al reves y
+  // se devuelven igualmente en orden ascendente.
+  const rows = await Order.findAll({
+    where,
+    include: [
+      { model: OrderItem, as: "items" },
+      {
+        model: Usuarios,
+        as: "user",
+        attributes: ["id", "username", "email"],
+      },
+    ],
+    order: [["createdAt", rawSince ? "ASC" : "DESC"]],
+    limit: RECENT_WEB_LIMIT,
+  });
+
+  if (!rawSince) rows.reverse();
+
+  const orders = rows.map((order) => {
+    const data = order.toJSON();
+    delete data.providerStatus;
+    return data;
+  });
+
+  return { orders, count: orders.length, serverTime };
 };
 
 // GET /api/admin/orders/:id
@@ -655,8 +753,160 @@ function formatBucketLabel(d, bucket) {
   return new Intl.DateTimeFormat("es-CO", { year: "numeric" }).format(bog);
 }
 
+// ---------------------------------------------------------------------------
+// Exportacion CSV para operar en el panel del proveedor (ADM-4)
+// ---------------------------------------------------------------------------
+
+const CSV_MAX_ROWS = 5000;
+
+// Los estados se exportan YA traducidos: nunca se escribe el string crudo del
+// proveedor ni el codigo interno en un archivo que sale del panel.
+const CSV_CHANNEL_LABELS = {
+  web: "Tienda web",
+  presencial: "Presencial",
+  whatsapp: "WhatsApp",
+  otro: "Otro",
+};
+
+const CSV_PAYMENT_CODE_LABELS = {
+  wompi: "Wompi",
+  vendelo: "Vendelo",
+  cod_dropi: "Contra entrega (Dropi)",
+  cod_vendelo: "Contra entrega (Vendelo)",
+};
+
+const csvCell = (value) => {
+  if (value === null || value === undefined) return "";
+  const text = String(value);
+  return /[",;\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+const csvRow = (values) => values.map(csvCell).join(",");
+
+const buildOrdersCsv = (orders = []) => {
+  const header = [
+    "pedido",
+    "fecha",
+    "canal",
+    "cliente",
+    "telefono",
+    "email",
+    "direccion",
+    "ciudad",
+    "departamento",
+    "productos",
+    "cantidad_total",
+    "total",
+    "metodo_pago",
+    "estado_pago",
+    "estado_cumplimiento",
+    "transportadora",
+    "guia",
+    "id_proveedor",
+    "referencia_externa",
+    "notas",
+  ];
+
+  const rows = orders.map((order) => {
+    const data = typeof order.toJSON === "function" ? order.toJSON() : order;
+    const items = Array.isArray(data.items) ? data.items : [];
+    const products = items
+      .map((item) => {
+        const size = item.size ? ` (${item.size})` : "";
+        return `${item.quantity || 1}x ${item.title || item.sku || ""}${size}`;
+      })
+      .join(" | ");
+    const quantity = items.reduce(
+      (sum, item) => sum + (Number(item.quantity) || 0),
+      0,
+    );
+
+    return csvRow([
+      data.orderNumber,
+      data.createdAt ? new Date(data.createdAt).toISOString() : "",
+      CSV_CHANNEL_LABELS[data.channel] || "",
+      data.recipientName || "",
+      data.phone || "",
+      data.email || "",
+      data.address || "",
+      data.city || "",
+      data.department || "",
+      products,
+      quantity,
+      data.total ?? "",
+      CSV_PAYMENT_CODE_LABELS[data.paymentMethodCode] ||
+        data.paymentMethod ||
+        "",
+      PAYMENT_LABELS[data.paymentState] || "",
+      FULFILLMENT_LABELS[data.fulfillmentStatus] || "",
+      data.trackingCarrier || "",
+      data.trackingNumber || "",
+      data.providerOrderId || "",
+      data.externalRef || "",
+      data.notes || "",
+    ]);
+  });
+
+  // BOM para que Excel abra el archivo como UTF-8 (tildes correctas).
+  return `\uFEFF${[csvRow(header), ...rows].join("\r\n")}`;
+};
+
+// GET /api/admin/orders/export.csv
+const exportOrdersCsv = async ({
+  status,
+  paymentStatus,
+  channel,
+  paymentMethod,
+  paymentMethodCode,
+  provider,
+  outOfSync,
+  q,
+  from,
+  to,
+} = {}) => {
+  const where = buildOrderWhere({
+    status,
+    paymentStatus,
+    channel,
+    paymentMethod,
+    paymentMethodCode,
+    provider,
+    outOfSync,
+    q,
+    from,
+    to,
+  });
+
+  const orders = await Order.findAll({
+    where,
+    include: [
+      { model: OrderItem, as: "items" },
+      {
+        model: Usuarios,
+        as: "user",
+        attributes: ["id", "username", "email"],
+      },
+    ],
+    order: [
+      ["createdAt", "DESC"],
+      [{ model: OrderItem, as: "items" }, "createdAt", "ASC"],
+    ],
+    limit: CSV_MAX_ROWS,
+  });
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  const scope = provider ? `-${provider}` : "";
+  return {
+    filename: `upbuy-pedidos${scope}-${stamp}.csv`,
+    total: orders.length,
+    truncated: orders.length >= CSV_MAX_ROWS,
+    csv: buildOrdersCsv(orders),
+  };
+};
+
 module.exports = {
   listOrdersAdmin,
+  listRecentWebOrders,
   getOrderAdmin,
   getOrderAdminDetail,
   listOrderSyncHistory,
@@ -666,4 +916,6 @@ module.exports = {
   updateTracking,
   orderStats,
   salesByPeriod,
+  exportOrdersCsv,
+  buildOrdersCsv,
 };

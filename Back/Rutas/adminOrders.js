@@ -11,6 +11,7 @@ const {
 } = require("../DataBase/models/enums.js");
 const {
   list,
+  recent,
   stats,
   detail,
   syncHistory,
@@ -24,6 +25,7 @@ const {
   createManual,
   previewManual,
   importCsv,
+  exportCsv,
   payments,
   registerPaymentHandler,
   changePayment,
@@ -55,10 +57,14 @@ const stepUpRefund = requireStepUp("orders.refund");
 const stepUpCancel = requireStepUp("orders.cancel", { when: isCancellation });
 
 // Rutas fijas ANTES de /:id para que no las capture el parametro.
+// Avisos de compra en vivo (ADM-5): debe ir antes de router.get("/:id").
+router.get("/recent", canReadOrders, recent);
 router.get("/stats", canReadOrders, stats);
 router.get("/ventas", canReadOrders, sales);
 router.get("/accounting", canReadOrders, accounting);
 router.get("/providers", canReadOrders, providers);
+// Exportacion CSV operativa (antes de /:id para que no la capture el parametro).
+router.get("/export.csv", canReadOrders, exportCsv);
 
 // Registro manual de ventas externas.
 router.post("/manual", canWriteOrders, createManual);

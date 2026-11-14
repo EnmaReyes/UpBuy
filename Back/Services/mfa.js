@@ -372,6 +372,56 @@ const beginEnrollment = async ({ userId }) => {
   };
 };
 
+// Regenera SOLO los codigos de respaldo, sin tocar el secreto TOTP ni el
+// estado de MFA. Se usa desde `/admin/perfil/seguridad` cuando el
+// administrador ya consumio algunos codigos (o cree que se filtraron).
+//
+// Los codigos se devuelven en claro una unica vez; en la base solo queda el
+// hash. La operacion es atomica: si falla la escritura, los codigos anteriores
+// siguen vigentes.
+const regenerateBackupCodes = async ({ userId } = {}) => {
+  if (!userId) {
+    const error = new Error("Usuario requerido");
+    error.status = 400;
+    throw error;
+  }
+
+  const backupCodes = generateBackupCodes();
+  const hashes = await Promise.all(backupCodes.map(hashBackupCode));
+
+  const transaction = await sequelize.transaction();
+  try {
+    await AdminBackupCode.destroy({ where: { userId }, transaction });
+    await AdminBackupCode.bulkCreate(
+      hashes.map((codeHash) => ({ userId, codeHash })),
+      { transaction },
+    );
+    await transaction.commit();
+  } catch (error) {
+    try {
+      await transaction.rollback();
+    } catch {
+      // La conexion pudo caerse: el rollback ya no aplica.
+    }
+    throw error;
+  }
+
+  return { backupCodes, count: backupCodes.length };
+};
+
+// Cuantos codigos de respaldo quedan sin usar. `total` incluye los ya usados,
+// para que el panel pueda explicar por que quedan menos.
+const countBackupCodes = async (userId) => {
+  if (!userId) return { total: 0, remaining: 0 };
+
+  const [total, remaining] = await Promise.all([
+    AdminBackupCode.count({ where: { userId } }),
+    AdminBackupCode.count({ where: { userId, usedAt: null } }),
+  ]);
+
+  return { total, remaining };
+};
+
 // Valida el primer TOTP y activa MFA. No emite sesion: eso lo hace el
 // controller despues de confirmar el ticket.
 const completeEnrollment = async ({ user, code }) => {
@@ -565,6 +615,8 @@ module.exports = {
   buildOtpauthUrl,
   verifyAdminCode,
   beginEnrollment,
+  regenerateBackupCodes,
+  countBackupCodes,
   completeEnrollment,
   createLoginChallenge,
   verifyLoginChallenge,

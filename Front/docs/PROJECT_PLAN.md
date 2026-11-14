@@ -183,6 +183,14 @@ Cada fase: explicar alcance, archivos afectados, dependencias y riesgos antes de
 | FASE 4 | Completada | Registro, login, sesión, perfil y direcciones |
 | FASE 5 | Completada | Carrito local, checkout y pedido creado en el backend |
 | FASE 6 | Completada | Pago Wompi, contra entrega (UI) y listado de pedidos |
+| FASE 7 | Completada | Logística y proveedores (dropshipping, sync, tracking) |
+| FASE 8 | Completada | Optimización y lanzamiento (índices, límites, docs, despliegue) |
+| Panel ADM-0..ADM-S3 | Completada | Seguridad admin (roles, MFA, step-up, auditoría) |
+| Panel ADM-1..ADM-6 | Completada | Dashboard, pedidos, catálogo, ventas, notificaciones, proveedores |
+| Panel ADM-7 | Completada | Difusión email con Gmail (OAuth, consentimiento, cron) |
+| Panel ADM-8 | Completada | Difusión WhatsApp Cloud API (plantilla Meta, lotes) |
+| Panel ADM-9 | Completada | Clientes: listado, detalle, edición, CSV, desactivar con step-up |
+| Panel ADM-10 | Completada | Cierre: accesibilidad, índices, límites, docs y checklist |
 
 ## 13. FASE 3 — entregado
 

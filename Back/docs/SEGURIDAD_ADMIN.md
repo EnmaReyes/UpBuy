@@ -592,6 +592,19 @@ compradores siguen funcionando igual.
 - Tests en `test/auth.admin.test.js`: mapa de acciones, step-up ausente/fresco/
   vencido, permiso insuficiente, último superadmin y autodegradación.
 
+#### Seguridad personal en el panel (`/admin/perfil/seguridad`)
+
+- `GET /api/admin/admins/security`: `mfa` (estado y fecha de activación),
+  `backupCodes` (`total`/`remaining`), `sessions` (`active`,
+  `currentSessionId`) y `policy` (`idleMinutes`, `maxHours`,
+  `stepUpMinutes`). No expone el secreto TOTP ni hashes.
+- `POST /api/admin/admins/security/backup-codes`: regenera los 10 códigos e
+  invalida los anteriores en una transacción. Exige step-up
+  (`security.backup_codes`, sin permiso de gobierno) y MFA activo.
+- `GET/POST/DELETE /api/admin/admins/sessions*`: listar, cerrar una o todas
+  las sesiones del propio administrador. Cerrar la actual limpia la cookie.
+- Tests en `test/admin.security.test.js`.
+
 ### ADM-S4 — Endurecimiento (implementado 2026-11-13)
 
 - `Services/sessionCookie.js`: cookie `__Host-upbuy_session` en producción

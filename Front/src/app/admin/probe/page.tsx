@@ -15,8 +15,8 @@ const conTimeout = async <T,>(
   const limite = new Promise<string>((resolve) =>
     setTimeout(() => resolve(`TIMEOUT ${etiqueta}`), ms),
   );
-  const resultado = await Promise.race([guarda, limite]);
-  return terminado ? `OK ${etiqueta}` : resultado;
+  const resultado: unknown = await Promise.race([guarda, limite]);
+  return terminado ? `OK ${etiqueta}` : String(resultado);
 };
 
 export default async function ProbePage() {
@@ -29,10 +29,10 @@ export default async function ProbePage() {
     await conTimeout("users/me con query", 6000, serverFetch("/api/users/me", { query: { x: 1 } }).then(() => 1)),
   );
   marcas.push(
-    await conTimeout("admin/orders sin query", 6000, serverFetch("/api/admin/orders").then((d) => d.orders.length)),
+    await conTimeout("admin/orders sin query", 6000, serverFetch<{ orders: unknown[] }>("/api/admin/orders").then((d) => d.orders.length)),
   );
   marcas.push(
-    await conTimeout("admin/orders con query", 6000, serverFetch("/api/admin/orders", { query: { limit: 2 } }).then((d) => d.orders.length)),
+    await conTimeout("admin/orders con query", 6000, serverFetch<{ orders: unknown[] }>("/api/admin/orders", { query: { limit: 2 } }).then((d) => d.orders.length)),
   );
 
   return <p>PROBE | {marcas.join(" | ")}</p>;
