@@ -40,12 +40,9 @@ export async function getAdminClientOrders(
   );
 }
 
-/** URL del CSV de clientes (descarga con cookie de sesión del panel). */
+/** URL del CSV de clientes (descarga con cookie del panel). */
 export function adminClientsCsvUrl(): string {
-  const base =
-    (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000").replace(
-      /\/+$/,
-      "",
-    );
-  return `${base}/api/admin/users/export.csv`;
+  // Relativa a propósito: pasa por el proxy same-origin del front
+  // (next.config.ts) y la cookie de sesión viaja first-party.
+  return "/api/admin/users/export.csv";
 }

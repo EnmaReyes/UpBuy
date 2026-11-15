@@ -1,6 +1,10 @@
 // Cliente HTTP centralizado.
 //
-// - La base URL vive en `NEXT_PUBLIC_API_URL` (pública, sin secretos).
+// - En el NAVEGADOR las llamadas van same-origin (`/api/...`): el proxy del
+//   front (next.config.ts) las reescribe al backend y la cookie de sesion es
+//   first-party, no de terceros.
+// - En el SERVIDOR (Server Components) se necesita URL absoluta porque un
+//   fetch de Node no admite rutas relativas: se usa NEXT_PUBLIC_API_URL.
 // - Los errores se normalizan a `ApiError` para distinguir "no existe" (404),
 //   "sin sesión" (401) o "la API no responde" (red/5xx) sin adivinar.
 // - `apiFetch` es para lecturas públicas (catálogo). `apiSend` es para
@@ -8,9 +12,14 @@
 // - El backend responde errores como texto JSON (p. ej. `"Usuario Existente"`),
 //   así que el cuerpo se inspecciona antes de tipar el error.
 
-const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
-).replace(/\/+$/, "");
+const isServer = typeof window === "undefined";
+
+const API_URL = isServer
+  ? (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000").replace(
+      /\/+$/,
+      "",
+    )
+  : "";
 
 export type ApiErrorKind = "network" | "http" | "parse";
 
@@ -66,16 +75,18 @@ type FetchOptions = {
 };
 
 function buildUrl(path: string, query?: Query): string {
-  const url = new URL(`${API_URL}${path.startsWith("/") ? path : `/${path}`}`);
+  const base = `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
 
-  if (query) {
-    for (const [key, value] of Object.entries(query)) {
-      if (value === undefined || value === null || value === "") continue;
-      url.searchParams.set(key, String(value));
-    }
+  if (!query) return base;
+
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null || value === "") continue;
+    params.set(key, String(value));
   }
-
-  return url.toString();
+  const search = params.toString();
+  if (!search) return base;
+  return `${base}${base.includes("?") ? "&" : "?"}${search}`;
 }
 
 // El backend responde `"texto"` o `{ message, code }` según la ruta.

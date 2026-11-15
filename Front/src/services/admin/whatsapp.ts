@@ -19,9 +19,7 @@ export async function listWhatsappManual(
 }
 
 export function whatsappManualCsvUrl(campaignId: string): string {
-  const base =
-    process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
-  return `${base.replace(/\/+$/, "")}/api/admin/campaigns/${encodeURIComponent(
-    campaignId,
-  )}/whatsapp/export.csv`;
+  // Relativa a propósito: pasa por el proxy same-origin del front
+  // (next.config.ts) y la cookie de sesión viaja first-party.
+  return `/api/admin/campaigns/${encodeURIComponent(campaignId)}/whatsapp/export.csv`;
 }
