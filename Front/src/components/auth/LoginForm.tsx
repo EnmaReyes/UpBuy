@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ApiError } from "@/services/api/client";
 import { login } from "@/services/auth";
 import { safeInternalPath } from "@/lib/safe-url";
+import { getDashboardRoute } from "@/lib/dashboard-route";
 import { AdminMfaForm } from "./AdminMfaForm";
 import { Field, FormMessage, SubmitButton, inputClass } from "./fields";
 
@@ -22,8 +23,11 @@ type MfaState =
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath =
-    safeInternalPath(searchParams?.get("next")) ?? "/cuenta/perfil";
+  // Con ?next= se respeta; sin él, el destino lo decide el rol
+  // (getDashboardRoute) tras responder el login. Para el flujo MFA el
+  // default es el panel, porque solo los administradores llegan ahí.
+  const requestedPath = safeInternalPath(searchParams?.get("next"));
+  const nextPath = requestedPath ?? "/cuenta/perfil";
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +63,8 @@ export function LoginForm() {
       }
 
       // La cookie ya está emitida; se refresca para que el servidor la lea.
-      router.replace(nextPath);
+      // Sin ?next= el destino lo decide el rol del usuario que entra.
+      router.replace(requestedPath ?? getDashboardRoute(result.user));
       router.refresh();
     } catch (caught) {
       setError(
@@ -76,7 +81,7 @@ export function LoginForm() {
       <AdminMfaForm
         mode="challenge"
         challengeId={mfa.challengeId}
-        nextPath={nextPath}
+        nextPath={requestedPath ?? "/admin"}
         onBack={() => setMfa(null)}
       />
     );
@@ -87,7 +92,7 @@ export function LoginForm() {
       <AdminMfaForm
         mode="enroll"
         enrollmentTicket={mfa.enrollmentTicket}
-        nextPath={nextPath}
+        nextPath={requestedPath ?? "/admin"}
         onBack={() => setMfa(null)}
       />
     );

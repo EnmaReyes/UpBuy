@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { User } from "lucide-react";
 import { getSessionClient } from "@/services/auth";
+import { getDashboardRoute } from "@/lib/dashboard-route";
 import type { AuthUser } from "@/types/auth";
 
 // Acceso a la cuenta en el navbar.
@@ -27,7 +28,9 @@ export function AccountButton({ className }: { className?: string }) {
   }, []);
 
   const label = user ? firstName(user) : "Ingresar";
-  const href = user ? "/cuenta/perfil" : "/login";
+  // Única fuente de verdad del destino: admin -> /admin, comprador ->
+  // /cuenta/perfil, sin sesión -> /login (lib/dashboard-route).
+  const href = getDashboardRoute(user);
   // El nombre accesible debe contener el texto visible (regla
   // `label-content-name-mismatch`), por eso concatena `label`.
   const ariaLabel = user ? `Mi cuenta — ${label}` : "Ingresar";

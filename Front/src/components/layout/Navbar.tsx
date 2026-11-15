@@ -12,6 +12,7 @@ import {
   type NavItem,
 } from "@/components/kokonutui/morphic-navbar";
 import { AccountButton } from "@/components/layout/AccountButton";
+import { useDashboardRoute } from "@/hooks/use-dashboard-route";
 import { NotificationButton } from "@/components/layout/NotificationButton";
 import { CartButton } from "@/components/cart/CartButton";
 
@@ -58,6 +59,8 @@ function scrollToStyleSection() {
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  // Destino del "Mi cuenta" del drawer según el rol (admin -> /admin).
+  const { dashboardHref } = useDashboardRoute();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   // El drawer resuelve su enlace activo por ruta, pero "Categorías" es una
@@ -269,7 +272,7 @@ export function Navbar() {
 
             <div className="mt-6 border-t border-cream/10 pt-4">
               <Link
-                href="/cuenta/perfil"
+                href={dashboardHref ?? "/cuenta/perfil"}
                 className="flex min-h-11 items-center rounded-xl px-3 text-base font-medium text-cream/85 transition-colors hover:bg-cream/10 hover:text-cream"
               >
                 Mi cuenta

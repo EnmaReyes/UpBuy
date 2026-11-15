@@ -44,7 +44,9 @@ export default async function AdminLayout({
         redirect("/login?next=/admin");
       }
       if (error.code === "ADMIN_REQUIRED") {
-        redirect("/");
+        // Sesión válida pero sin rol del panel: es un comprador mirando la URL
+        // a mano. Va a SU dashboard, no al home ni al login.
+        redirect("/cuenta/perfil");
       }
       if (error.code === "ADMIN_IP_NOT_ALLOWED") {
         return <IpBlocked message={error.message} />;

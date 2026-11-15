@@ -73,7 +73,7 @@ const NAV_ITEMS: AdminNavItem[] = [
     available: true,
   },
   {
-    href: "/cuenta/notificaciones",
+    href: "/admin/notificaciones",
     label: "Notificaciones",
     icon: Bell,
     available: true,
@@ -110,7 +110,7 @@ export function AdminSidebar({
   return (
     <div className="flex h-full flex-col gap-6">
       <Link
-        href="/admin"
+        href="/"
         onClick={onNavigate}
         className="font-heading text-xl font-bold tracking-[0.18em] text-cream"
       >
