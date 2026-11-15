@@ -238,6 +238,7 @@ const PROVIDER_VALUES = Object.values(PROVIDER);
 const SUPPLIER_SLUG = {
   VENNDELO: "venndelo",
   DROPI: "dropi",
+  MASTERSHOP: "mastershop",
 };
 
 const SUPPLIER_SLUGS = Object.values(SUPPLIER_SLUG);

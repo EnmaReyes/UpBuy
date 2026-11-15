@@ -184,8 +184,17 @@ integrations/suppliers/
     venndelo.catalog.js    GET /products y /products/:id (cursor)
     venndelo.assets.js     imágenes (lectura; escritura bloqueada)
     venndelo.normalize.js  normalización pura
+  mastershop/
+    mastershop.auth.js     llave estática (ms-api-key), sin OAuth
+    mastershop.client.js   cliente HTTP, rate limit y traducción de errores
+    mastershop.catalog.js  GET /api/products (índice de página)
+    mastershop.assets.js   una imagen por producto (solo lectura)
+    mastershop.normalize.js normalización pura y SKU `MS-`
 Services/catalog/    importación, sincronización, corridas, consulta
-Services/suppliers/venndelo.service.js   fachada del panel
+Services/suppliers/catalogSupplier.service.js    fábrica de la fachada
+Services/suppliers/venndelo.service.js           instancia Venndelo
+Services/suppliers/mastershop.service.js         instancia MasterShop
+Controllers/suppliers/catalogSupplier.controller.js  fábrica HTTP
 ```
 
 Contrato del registro:
@@ -251,5 +260,125 @@ verdad (el `VENNDELO_REFRESH_TOKEN` del entorno queda obsoleto).
 2. Registrarlo en `integrations/suppliers/index.js`.
 3. Insertar su fila en `suppliers` (o sembrarla en `ensureCatalogSchema.js`).
 4. Añadir sus variables al `.env.example`.
+5. Crear la fachada y el controlador con las fábricas compartidas:
 
-`Services/catalog/*` no se toca: habla el contrato común.
+```js
+// Services/suppliers/<slug>.service.js
+module.exports = createCatalogSupplierService({ slug, providerName });
+// Controllers/suppliers/<slug>.controller.js
+module.exports = createCatalogSupplierController({ service, providerName });
+```
+
+`Services/catalog/*` no se toca: habla el contrato común. Si el proveedor
+necesita SKU/slug/tallas propios, expone los hooks opcionales en `catalog`:
+
+```js
+catalog: { normalizeProduct, productSizes, buildProductSku, buildProductSlug }
+```
+
+Si no los expone, se usan los de Venndelo (comportamiento histórico).
+
+---
+
+# MasterShop (catálogo)
+
+Integración de CATÁLOGO. No tiene adaptador de pedidos ni webhooks: esas
+superficies quedaron fuera de alcance.
+
+## 11. Autenticación
+
+MasterShop usa una **llave estática** en el header `ms-api-key`. No hay OAuth,
+refresh token, rotación ni caché de token, y tampoco se persiste nada en
+`supplier_credentials`. La llave vive solo en el entorno
+(`MASTERSHOP_API_KEY`) y nunca se devuelve en `/status`, `/test-connection`, ni
+en los mensajes de error o logs.
+
+MasterShop deriva el usuario y el negocio de la llave: **no** se envían headers
+de contexto ni identificadores de usuario/negocio.
+
+```env
+MASTERSHOP_API_URL=https://prod.api.mastershop.com
+MASTERSHOP_API_KEY=
+MASTERSHOP_HTTP_TIMEOUT_MS=20000
+MASTERSHOP_SYNC_PAGE_SIZE=50
+```
+
+Sin `MASTERSHOP_API_KEY` el adaptador queda "no configurado": las rutas de su
+panel responden 503 y el resto de la tienda sigue funcionando.
+
+## 12. Endpoints usados (documentación oficial)
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/api/products` | `page` (índice, empieza en 1), `limit` (≤50), `category`, `search` |
+| GET | `/api/products/{id}` | detalle; 404 si el producto no pertenece al negocio |
+
+Respuesta del listado: `{ results: [...], resultsCount: { totalProducts } }`.
+El fin de los datos se detecta por página vacía, página incompleta o haber
+alcanzado `totalProducts`. No se usa `next_page_token`: MasterShop pagina por
+índice.
+
+Campos del producto que se consumen: `idProduct`, `name`, `description`,
+`basePrice`, `baseCurrencyPrice`, `stockTotal`, `urlImageProduct`. El payload
+completo se conserva en `supplier_products.rawData`.
+
+## 13. Mapeo a Upbuy
+
+- Se importa **a nivel de producto**: el esquema de `variation[]` no está
+  documentado, así que no se leen variaciones ni se derivan tallas.
+- `stockTotal` → `totalQuantity` y `availability` (`> 0`).
+- `basePrice` → costo (`originalPrice`).
+- `baseCurrencyPrice` → moneda (si no es ISO de 3 letras, `COP`).
+- `urlImageProduct` → un único asset (`externalAssetId: "img-1"`, posición 1).
+- SKU publicado: `MS-<idProduct>`; slug: nombre + fragmento del id.
+- Un producto sin stock se **desactiva**; nunca se borra.
+
+## 14. Errores del proveedor
+
+| Proveedor | Nuestra API | Motivo |
+|---|---|---|
+| 400 | 400 | petición inválida (bug o dato mal formado) |
+| 404 | 404 | producto inexistente o de otro negocio |
+| 429 | 503 | límite de uso; se informa `retryAfterSeconds` |
+| 401 / 403 | 502 | llave ausente o sin permiso (configuración nuestra) |
+| 5xx | 502 | fallo del proveedor |
+
+Los headers `RateLimit-Limit`, `RateLimit-Remaining` y `RateLimit-Reset` se
+leen y se reportan sin secretos en `/test-connection`.
+
+## 15. Rutas del panel
+
+Bajo `/api/admin/suppliers/mastershop`, con sesión revocable y permiso
+`providers.manage`:
+
+```
+GET  /status
+POST /test-connection
+GET  /products            (siempre desde PostgreSQL)
+GET  /products/:id
+GET  /sync-history
+POST /products/:id/publish
+POST /products/:id/unpublish
+POST /sync
+```
+
+No existen rutas de billetera ni de pedidos: MasterShop se integra solo como
+catálogo.
+
+## 16. Cron
+
+`GET /api/cron/sync-catalog` recorre **todos** los proveedores configurados en
+orden. Si uno falla, se registra en su `catalog_sync_runs` y se continúa con el
+siguiente; la respuesta trae un arreglo `suppliers` con el resultado de cada
+uno y `ok` global.
+
+## 17. Limitaciones conocidas
+
+- **Pedidos**: sin integrar. `POST /api/orders` exige un esquema de
+  `variation[]` que no está documentado y `orders.provider` solo acepta
+  `vendelo`/`dropi`.
+- **Webhooks**: sin integrar. MasterShop no documenta firma HMAC ni secreto
+  compartido, así que el origen no se puede verificar.
+- **Market / billetera / devoluciones**: fuera de alcance.
+- **Variaciones**: no se importan (contrato no documentado).
+

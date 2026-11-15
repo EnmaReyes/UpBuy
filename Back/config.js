@@ -626,6 +626,31 @@ module.exports = {
   // los eventos se aceptan sin verificar firma (con aviso en el log).
   VENNDELO_WEBHOOK_SECRET: (process.env.VENNDELO_WEBHOOK_SECRET || "").trim(),
 
+  // ---------------------------------------------------------------------
+  // MasterShop API (catalogo de proveedores).
+  //
+  //   base:      https://prod.api.mastershop.com  (host oficial documentado)
+  //   auth:      header `ms-api-key` (llave estatica, sin OAuth ni refresh)
+  //   catalogo:  GET /api/products (page/limit; limit se recorta a 50)
+  //
+  // MASTERSHOP_API_KEY vacia = MasterShop no configurado: las rutas de su
+  // catalogo responden 503 y el resto de la tienda sigue funcionando. La llave
+  // NUNCA se expone en respuestas ni en logs.
+  // ---------------------------------------------------------------------
+  MASTERSHOP_API_URL: (
+    process.env.MASTERSHOP_API_URL || "https://prod.api.mastershop.com"
+  ).trim(),
+  MASTERSHOP_API_KEY: (process.env.MASTERSHOP_API_KEY || "").trim(),
+  MASTERSHOP_HTTP_TIMEOUT_MS: Math.max(
+    toNumber(process.env.MASTERSHOP_HTTP_TIMEOUT_MS, 20000),
+    1000,
+  ),
+  // La API documenta que `limit` se recorta a 50 aunque se pida mas.
+  MASTERSHOP_SYNC_PAGE_SIZE: Math.min(
+    Math.max(toNumber(process.env.MASTERSHOP_SYNC_PAGE_SIZE, 50), 1),
+    50,
+  ),
+
   // Clave AES-256-GCM (base64, 32 bytes) para cifrar las credenciales que se
   // persisten en supplier_credentials. Sin ella, la rotacion del refresh token
   // NO se guarda en la base (solo funciona con VENNDELO_REFRESH_TOKEN del

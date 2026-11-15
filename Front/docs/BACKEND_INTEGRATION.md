@@ -127,10 +127,12 @@ importados/publicados, última corrida), `orderProviders[]` (Vendelo y Dropi:
 interpreta estados crudos: solo muestra `label`, `mode`, contadores y la salud
 ya calculada.
 
-Catálogo (`/admin/suppliers/venndelo/*`): la UI de catálogo, publicación,
-stock, precio, sincronización e historial usa las rutas existentes; no hay
-endpoint nuevo. Pedidos, wallet e historial operativo de Venndelo también se
-consumen tal cual (`/admin/suppliers/venndelo/...` y `/admin/orders`).
+Catálogo (`/admin/suppliers/venndelo/*` y `/admin/suppliers/mastershop/*`): la
+UI de catálogo, publicación, stock, precio, sincronización e historial usa las
+rutas existentes; no hay endpoint nuevo. Pedidos, wallet e historial operativo
+de Venndelo también se consumen tal cual (`/admin/suppliers/venndelo/...` y
+`/admin/orders`). MasterShop solo expone catálogo: no tiene rutas de pedidos ni
+de billetera.
 
 `export.csv` responde `text/csv` con BOM UTF-8 y `X-Upbuy-Rows`. Se descarga con
 `apiDownload`, nunca con `apiFetch`, porque la respuesta no es JSON.
@@ -505,7 +507,7 @@ elegido (respaldo ante un fallback inesperado).
 | Catálogo / listado de productos | ✅ `/products` | ✅ `/productos` (búsqueda, categoría, destacados, paginación) |
 | Detalle de producto | ✅ `/products/:slug` | ✅ `/producto/[slug]` (galería, ficha, relacionados, JSON-LD) |
 | Categorías | ✅ `/categories` | ✅ Pills de filtro en `/productos` |
-| Importar/sincronizar catálogo | ✅ `/admin/suppliers/venndelo/*` | ✅ `/admin/proveedores/venndelo` (catálogo, publicación, stock, precio, historial) |
+| Importar/sincronizar catálogo | ✅ `/admin/suppliers/venndelo/*` · `/admin/suppliers/mastershop/*` | ✅ `/admin/proveedores/venndelo` (catálogo, publicación, stock, precio, historial) |
 | Venta manual | ✅ `/admin/orders/manual` (+ `/preview`) | ✅ `/admin/pedidos/nuevo` |
 | Importación CSV de pedidos | ✅ `/admin/orders/import` | ✅ `/admin/pedidos/importar` (vista previa + confirmación) |
 | Exportación CSV de pedidos | ✅ `/admin/orders/export.csv` | ✅ `/admin/proveedores/pedidos` |

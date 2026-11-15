@@ -88,7 +88,9 @@ Back/
       catalogQuery.service.js    lectura pública/admin + edición
       categories.service.js      categorías internas
     suppliers/
-      venndelo.service.js  fachada para el panel
+      catalogSupplier.service.js  fachada genérica de proveedor de catálogo
+      venndelo.service.js         instancia Venndelo
+      mastershop.service.js       instancia MasterShop
     providers/          adaptadores Vendelo / Dropi (pedidos)
     syncService.js      sincronización IN/OUT de pedidos
     webhookEvents.js    idempotencia de webhooks
@@ -194,6 +196,12 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 | POST | `/api/admin/suppliers/venndelo/products/:id/publish` (+ `/unpublish`) |
 | POST | `/api/admin/suppliers/venndelo/sync` |
 | GET | `/api/admin/suppliers/venndelo/sync-history` |
+| GET | `/api/admin/suppliers/mastershop/status` |
+| POST | `/api/admin/suppliers/mastershop/test-connection` |
+| GET | `/api/admin/suppliers/mastershop/products` (+ `/:id`) |
+| POST | `/api/admin/suppliers/mastershop/products/:id/publish` (+ `/unpublish`) |
+| POST | `/api/admin/suppliers/mastershop/sync` |
+| GET | `/api/admin/suppliers/mastershop/sync-history` |
 | GET | `/api/admin/admins/sessions` |
 | POST | `/api/admin/admins/sessions/revoke-all` |
 | DELETE | `/api/admin/admins/sessions/:id` |
@@ -564,17 +572,22 @@ Y desglosa COD en `unpaid`, `pending_collection`, `collected` y `settled`.
 
 ---
 
-## 6.b Catálogo de proveedores (Venndelo Pro)
+## 6.b Catálogo de proveedores (Venndelo Pro / MasterShop)
 
-El catálogo de Venndelo Pro se importa a PostgreSQL y se publica en la tienda
+El catálogo de cada proveedor se importa a PostgreSQL y se publica en la tienda
 por decisión del administrador. Detalle completo en
 [`docs/PROVEEDORES.md`](docs/PROVEEDORES.md).
+
+Proveedores de catálogo disponibles hoy:
+
+- **Venndelo Pro** (`venndelo`) — OAuth 2.0 con rotación de refresh token.
+- **MasterShop** (`mastershop`) — llave estática `ms-api-key`, sin OAuth.
 
 ### Modelos
 
 | Tabla | Qué guarda |
 |---|---|
-| `suppliers` | El proveedor (Venndelo, Dropi…). |
+| `suppliers` | El proveedor (Venndelo, MasterShop, Dropi…). |
 | `supplier_credentials` | Credenciales cifradas (AES-256-GCM) y refresh token rotado. |
 | `supplier_products` | Producto ORIGINAL del proveedor (idempotente por `supplierId + externalId`). |
 | `supplier_product_variations` | Variación (talla): SKU, precio y **cantidad real**. |
@@ -601,15 +614,20 @@ por decisión del administrador. Detalle completo en
 
 ### Importación y sincronización
 
-- `POST /api/admin/suppliers/venndelo/sync` importa el catálogo original y
-  aplica los cambios a los productos publicados. Es idempotente: correrlo dos
-  veces no duplica nada.
-- Paginación por **cursor** (`page_token` / `next_page_token`; `page_size` ≤ 500).
+- `POST /api/admin/suppliers/<slug>/sync` importa el catálogo original y aplica
+  los cambios a los productos publicados. Es idempotente: correrlo dos veces no
+  duplica nada.
+- Paginación: **cursor** en Venndelo (`page_token` / `next_page_token`;
+  `page_size` ≤ 500) e **índice de página** en MasterShop (`page` ≥ 1,
+  `limit` ≤ 50, fin por `resultsCount.totalProducts`).
 - Reglas: el **stock** sigue a las unidades reales del proveedor; el **precio de
   venta nunca se pisa**; si un producto deja de estar disponible se
   **desactiva** (no se borra); un producto con pedidos jamás se elimina.
 - La importación **no borra** productos que falten en una página parcial.
 - Concurrencia: un advisory lock de Postgres impide dos corridas a la vez (409).
+  Hay una clave de lock por proveedor.
+- El cron `/api/cron/sync-catalog` sincroniza **todos** los proveedores
+  configurados; si uno falla, los demás continúan.
 
 ### Publicar
 
@@ -624,8 +642,18 @@ modifican** (Venndelo lo prohíbe), solo se leen.
 2. Registrarlo en `integrations/suppliers/index.js`.
 3. Insertar su fila en `suppliers` (o sembrarla en `ensureCatalogSchema`).
 4. Añadir sus variables al `.env.example`.
+5. Crear la fachada y el controlador con las fábricas compartidas:
 
-Los servicios de `Services/catalog/` no cambian.
+```js
+// Services/suppliers/<slug>.service.js
+module.exports = createCatalogSupplierService({ slug, providerName });
+// Controllers/suppliers/<slug>.controller.js
+module.exports = createCatalogSupplierController({ service, providerName });
+```
+
+Los servicios de `Services/catalog/` no cambian: si el proveedor necesita
+SKU/slug/tallas propios, expone los hooks `normalizeProduct`, `productSizes`,
+`buildProductSku` y `buildProductSlug` dentro de `catalog`.
 
 ---
 

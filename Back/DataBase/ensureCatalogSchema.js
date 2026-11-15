@@ -18,7 +18,7 @@
 //   - Agrega `order_items.supplierProductId` (trazabilidad, sin FK).
 //   - RETIRA el esquema viejo de precios por talla (price_variants,
 //     product_prices) y las tablas articulos/dtfs, que quedaron obsoletas.
-//   - Siembra el proveedor Venndelo (idempotente).
+//   - Siembra los proveedores de catalogo (idempotente).
 //
 // Los DROP solo se ejecutan si la tabla existe Y esta vacia: si tiene filas,
 // se deja intacta y se registra un aviso (nunca se pierden datos por arrancar).
@@ -159,6 +159,42 @@ const addForeignKeyIfPossible = async (
      $fk$`,
     { transaction },
   );
+};
+
+// ---------------------------------------------------------------------------
+// Semillas de proveedores de catalogo
+// ---------------------------------------------------------------------------
+
+// Un proveedor de catalogo por integracion registrada en
+// `integrations/suppliers`. Los valores son constantes del codigo: no vienen
+// de entrada del usuario.
+const SUPPLIER_SEEDS = [
+  { name: "Venndelo", slug: "venndelo", baseUrl: "https://api.venndelo.com" },
+  {
+    name: "MasterShop",
+    slug: "mastershop",
+    baseUrl: "https://prod.api.mastershop.com",
+  },
+];
+
+const seedSuppliers = async (transaction) => {
+  for (const seed of SUPPLIER_SEEDS) {
+    await sequelize.query(
+      `INSERT INTO suppliers (id, name, slug, "isActive", "baseUrl", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), '${seed.name}', '${seed.slug}', true, '${seed.baseUrl}', now(), now())
+       ON CONFLICT (slug) DO NOTHING`,
+      { transaction },
+    );
+  }
+};
+
+// Comprobacion de solo lectura: cuantos proveedores sembrados ya existen.
+const countSeededSuppliers = async () => {
+  const slugs = SUPPLIER_SEEDS.map((seed) => `'${seed.slug}'`).join(", ");
+  const [rows] = await sequelize.query(
+    `SELECT count(*)::int AS n FROM suppliers WHERE slug IN (${slugs})`,
+  );
+  return rows?.[0]?.n || 0;
 };
 
 // ---------------------------------------------------------------------------
@@ -519,12 +555,7 @@ const applySchema = async (transaction, state) => {
   // -------------------------------------------------------------------------
   // 7. Semillas
   // -------------------------------------------------------------------------
-  await sequelize.query(
-    `INSERT INTO suppliers (id, name, slug, "isActive", "baseUrl", "createdAt", "updatedAt")
-     VALUES (gen_random_uuid(), 'Venndelo', 'venndelo', true, 'https://api.venndelo.com', now(), now())
-     ON CONFLICT (slug) DO NOTHING`,
-    { transaction },
-  );
+  await seedSuppliers(transaction);
 };
 
 // ---------------------------------------------------------------------------
@@ -534,6 +565,13 @@ const applySchema = async (transaction, state) => {
 const ensureCatalogSchema = async () => {
   const initialState = await getSchemaState();
   if (!needsMigration(initialState)) {
+    // El esquema puede estar al dia y faltar una semilla nueva (un proveedor
+    // agregado despues). Se comprueba en solo lectura y solo se siembra si
+    // falta: en el arranque normal no se escribe nada.
+    if ((await countSeededSuppliers()) < SUPPLIER_SEEDS.length) {
+      await seedSuppliers();
+      console.log("✅ Semillas de proveedores de catálogo completadas");
+    }
     console.log("✅ Esquema de catálogo al día");
     return { migrated: false };
   }

@@ -19,6 +19,7 @@ const {
   Product,
   ProductImage,
   Category,
+  Supplier,
   SupplierProduct,
   SupplierProductVariation,
   SupplierProductAsset,
@@ -42,6 +43,26 @@ const { importCatalog } = require("./catalogImport.service.js");
 const runs = require("./catalogRuns.service.js");
 
 const log = createLogger("catalog.sync");
+
+// Helpers de nombres (SKU/slug/tallas) con respaldo en Venndelo. Cada
+// adaptador puede exponer los suyos en `catalog`; si no, se usa el
+// comportamiento historico para no cambiar los SKU ya publicados.
+const FALLBACK_HELPERS = { productSizes, buildProductSku, buildProductSlug };
+
+const helpersForSlug = (slug) => {
+  try {
+    const adapter = getSupplierAdapter(slug);
+    return {
+      productSizes: adapter.catalog?.productSizes || FALLBACK_HELPERS.productSizes,
+      buildProductSku:
+        adapter.catalog?.buildProductSku || FALLBACK_HELPERS.buildProductSku,
+      buildProductSlug:
+        adapter.catalog?.buildProductSlug || FALLBACK_HELPERS.buildProductSlug,
+    };
+  } catch {
+    return FALLBACK_HELPERS;
+  }
+};
 
 // ---------------------------------------------------------------------------
 // Imagenes publicadas
@@ -74,7 +95,12 @@ const rebuildProductImages = async (product, assets, transaction) => {
 // Aplicar un producto del proveedor a uno publicado
 // ---------------------------------------------------------------------------
 
-const applyToPublished = async (product, supplierProduct, transaction) => {
+const applyToPublished = async (
+  product,
+  supplierProduct,
+  transaction,
+  helpers = FALLBACK_HELPERS,
+) => {
   const overrides = product.manualOverrides || {};
   const updates = {};
   let changed = false;
@@ -105,7 +131,7 @@ const applyToPublished = async (product, supplierProduct, transaction) => {
     where: { supplierProductId: supplierProduct.id },
     transaction,
   });
-  const sizes = productSizes(variations);
+  const sizes = helpers.productSizes(variations);
   const jsonSizes = JSON.stringify(product.sizes || []);
   if (jsonSizes !== JSON.stringify(sizes)) {
     updates.sizes = sizes;
@@ -145,7 +171,11 @@ const applyToPublished = async (product, supplierProduct, transaction) => {
 };
 
 // Sincroniza todos los productos publicados de un proveedor.
-const syncPublishedProducts = async ({ supplierId, transaction }) => {
+const syncPublishedProducts = async ({
+  supplierId,
+  transaction,
+  helpers = FALLBACK_HELPERS,
+}) => {
   const products = await Product.findAll({
     where: { supplierId },
     transaction,
@@ -163,7 +193,12 @@ const syncPublishedProducts = async ({ supplierId, transaction }) => {
     );
     if (!supplierProduct) continue;
 
-    const changed = await applyToPublished(product, supplierProduct, transaction);
+    const changed = await applyToPublished(
+      product,
+      supplierProduct,
+      transaction,
+      helpers,
+    );
     if (changed) updated += 1;
     else unchanged += 1;
   }
@@ -211,6 +246,10 @@ const publishSupplierProduct = async ({
       throw new HttpError(409, "El proveedor del producto ya no existe");
     }
 
+    // Nombres (SKU/slug/tallas) segun el proveedor: cada adaptador define los
+    // suyos y si no, se mantiene el historico de Venndelo.
+    const helpers = helpersForSlug(supplier.slug);
+
     const variations = await SupplierProductVariation.findAll({
       where: { supplierProductId: supplierProduct.id },
       transaction,
@@ -251,12 +290,15 @@ const publishSupplierProduct = async ({
       status: PRODUCT_STATUS.ACTIVE,
       active: Boolean(supplierProduct.availability),
       providerSku: variations.find((v) => v.sku)?.sku || null,
-      sizes: productSizes(variations),
+      sizes: helpers.productSizes(variations),
     };
 
     if (!product) {
-      const sku = buildProductSku(supplierProduct.externalId);
-      const slug = buildProductSlug(supplierProduct.name, supplierProduct.externalId);
+      const sku = helpers.buildProductSku(supplierProduct.externalId);
+      const slug = helpers.buildProductSlug(
+        supplierProduct.name,
+        supplierProduct.externalId,
+      );
       const occupied = await Product.findOne({ where: { sku }, transaction });
       if (occupied) {
         throw new HttpError(
@@ -367,7 +409,7 @@ const runCatalogSync = async ({
     if (!adapter.isConfigured()) {
       throw new HttpError(
         503,
-        "Venndelo no está configurado (faltan credenciales)",
+        `${adapter.name} no está configurado (faltan credenciales)`,
       );
     }
 
@@ -387,8 +429,9 @@ const runCatalogSync = async ({
       });
 
       // 2. Aplicar a los productos ya publicados.
+      const helpers = helpersForSlug(supplierSlug);
       const published = await sequelize.transaction((transaction) =>
-        syncPublishedProducts({ supplierId: supplier.id, transaction }),
+        syncPublishedProducts({ supplierId: supplier.id, transaction, helpers }),
       );
 
       await runs.finishRun(run, {

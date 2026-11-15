@@ -9,7 +9,8 @@ const {
 const { runProviderSync } = require("../Services/cron.js");
 const { runBatch, runWhatsappBatch, CAMPAIGN_DAILY_LIMIT } = require("../Services/campaigns/campaignService.js");
 const whatsapp = require("../Services/whatsapp/index.js");
-const venndeloService = require("../Services/suppliers/venndelo.service.js");
+const { runCatalogSync } = require("../Services/catalog/catalogSync.service.js");
+const { listSupplierAdapters } = require("../integrations/suppliers/index.js");
 const { CATALOG_SYNC_TRIGGER } = require("../DataBase/models/enums.js");
 const { sendError } = require("../Utils/respond.js");
 const { createLogger } = require("../Utils/logger.js");
@@ -64,8 +65,10 @@ const syncProviders = async (req, res) => {
 
 // GET /api/cron/sync-catalog
 //
-// Sincroniza el catalogo de Venndelo (direccion IN). Igual que el cron de
-// pedidos: Bearer CRON_SECRET y todo el trabajo queda en catalog_sync_runs.
+// Sincroniza el catalogo de TODOS los proveedores configurados (direccion IN).
+// Igual que el cron de pedidos: Bearer CRON_SECRET y todo el trabajo queda en
+// catalog_sync_runs. Un proveedor que falle no cancela a los demas: cada uno
+// se reporta por separado.
 const syncCatalog = async (req, res) => {
   try {
     if (!authorizeCron(req, res)) return undefined;
@@ -77,13 +80,48 @@ const syncCatalog = async (req, res) => {
       });
     }
 
-    const result = await venndeloService.sync({
-      trigger: CATALOG_SYNC_TRIGGER.CRON,
-      triggeredBy: null,
-      pageSize: req.query.pageSize,
-    });
+    const configured = listSupplierAdapters().filter(
+      (adapter) => adapter.configured,
+    );
 
-    return res.status(200).json({ ...result, schedule: CATALOG_SYNC_SCHEDULE });
+    if (configured.length === 0) {
+      return res.status(200).json({
+        ok: true,
+        skipped: "Ningún proveedor de catálogo está configurado",
+        schedule: CATALOG_SYNC_SCHEDULE,
+      });
+    }
+
+    const suppliers = [];
+    for (const adapter of configured) {
+      try {
+        const result = await runCatalogSync({
+          supplierSlug: adapter.slug,
+          trigger: CATALOG_SYNC_TRIGGER.CRON,
+          triggeredBy: null,
+          pageSize: req.query.pageSize,
+        });
+        suppliers.push({ ok: true, ...result });
+      } catch (error) {
+        // El error de un proveedor se registra y se sigue con el siguiente.
+        log.warn("Falló la sincronización de catálogo del cron", {
+          supplier: adapter.slug,
+          message: error.message,
+        });
+        suppliers.push({
+          ok: false,
+          supplier: adapter.slug,
+          status: error.status || 502,
+          message: error.message,
+        });
+      }
+    }
+
+    return res.status(200).json({
+      ok: suppliers.every((item) => item.ok),
+      suppliers,
+      schedule: CATALOG_SYNC_SCHEDULE,
+    });
   } catch (error) {
     return sendError(res, error, "No se pudo sincronizar el catálogo");
   }

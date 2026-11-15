@@ -19,7 +19,7 @@ const {
   SupplierProductAsset,
 } = require("../../DataBase/models/index.js");
 const {
-  normalizeProduct,
+  normalizeProduct: defaultNormalizeProduct,
 } = require("../../integrations/suppliers/venndelo/venndelo.normalize.js");
 const { createLogger } = require("../../Utils/logger.js");
 
@@ -138,7 +138,13 @@ const syncAssets = async (supplierProductId, assets, transaction) => {
       Boolean(row.isPrimary) !== Boolean(values.isPrimary) ||
       row.fileName !== values.fileName;
 
-    await row.update(values, { transaction });
+    await SupplierProductAsset.update(values, {
+      where: { id: row.id },
+      transaction,
+    });
+    // Se usa la actualizacion estatica: la instancia en memoria conserva la
+    // posicion vieja (se libero arriba con `position + 100`) y Sequelize
+    // omitiria la columna por "sin cambios", dejando los assets desplazados.
     if (differs) changed = true;
   }
 
@@ -218,7 +224,14 @@ const importProduct = async ({ supplierId, normalized, transaction }) => {
 };
 
 // Importa una pagina completa dentro de SU PROPIA transaccion.
-const importPage = async ({ supplierId, items }) => {
+//
+// `normalizeProduct` es el normalizador del proveedor (hook del adaptador). Si
+// no se pasa, se usa el de Venndelo para conservar el comportamiento previo.
+const importPage = async ({
+  supplierId,
+  items,
+  normalizeProduct = defaultNormalizeProduct,
+}) => {
   const stats = { created: 0, updated: 0, unchanged: 0, errors: 0, errorSummary: [] };
 
   const transaction = await sequelize.transaction();
@@ -241,14 +254,16 @@ const importPage = async ({ supplierId, items }) => {
         stats[outcome] += 1;
       } catch (error) {
         stats.errors += 1;
+        // El id externo puede llamarse distinto segun el proveedor.
+        const externalId = raw?.id ?? raw?.idProduct ?? null;
         if (stats.errorSummary.length < 20) {
           stats.errorSummary.push({
-            externalId: raw?.id ? String(raw.id) : null,
+            externalId: externalId === null ? null : String(externalId),
             motivo: error.message,
           });
         }
         log.warn("No se pudo importar un producto", {
-          externalId: raw?.id ? String(raw.id) : null,
+          externalId: externalId === null ? null : String(externalId),
           error: error.message,
         });
       }
@@ -264,6 +279,8 @@ const importPage = async ({ supplierId, items }) => {
 
 // Importa el catalogo completo usando el iterador del adaptador.
 const importCatalog = async ({ supplier, adapter, pageSize, filters, onProgress }) => {
+  const normalizeProduct =
+    adapter.catalog?.normalizeProduct || defaultNormalizeProduct;
   const totals = {
     pages: 0,
     received: 0,
@@ -281,7 +298,11 @@ const importCatalog = async ({ supplier, adapter, pageSize, filters, onProgress 
       totals.pages += 1;
       totals.received += page.items.length;
 
-      const stats = await importPage({ supplierId: supplier.id, items: page.items });
+      const stats = await importPage({
+        supplierId: supplier.id,
+        items: page.items,
+        normalizeProduct,
+      });
       totals.created += stats.created;
       totals.updated += stats.updated;
       totals.unchanged += stats.unchanged;

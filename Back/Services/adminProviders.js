@@ -33,6 +33,7 @@ const PROVIDER_LABELS = {
 // Slugs del catalogo que se consideran "Pro" (integracion con API).
 const CATALOG_LABELS = {
   venndelo: "Venndelo Pro (catálogo)",
+  mastershop: "MasterShop (catálogo)",
   dropi: "Dropi (catálogo)",
 };
 

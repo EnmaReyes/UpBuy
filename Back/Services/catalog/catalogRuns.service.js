@@ -27,6 +27,7 @@ const log = createLogger("catalog.runs");
 // Clave del advisory lock por proveedor (una por integracion de catalogo).
 const LOCK_KEYS = {
   venndelo: 2147483010,
+  mastershop: 2147483011,
 };
 
 // Una corrida "running" mas vieja que esto se considera abandonada (la funcion

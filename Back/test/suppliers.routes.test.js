@@ -91,3 +91,18 @@ test("el cron de catálogo exige el Bearer CRON_SECRET", async () => {
   const response = await callRouter(cronRoutes, { url: "/sync-catalog" });
   assert.equal(response.status, 401);
 });
+
+test("las rutas del panel de MasterShop exigen sesión", async () => {
+  const calls = [
+    { url: "/mastershop/status" },
+    { url: "/mastershop/products" },
+    { url: "/mastershop/products/123" },
+    { method: "POST", url: "/mastershop/sync" },
+    { method: "POST", url: "/mastershop/products/123/publish" },
+  ];
+
+  for (const call of calls) {
+    const response = await callRouter(suppliersRoutes, call);
+    assert.equal(response.status, 401, `${call.method || "GET"} ${call.url}`);
+  }
+});

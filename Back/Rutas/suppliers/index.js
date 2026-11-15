@@ -6,6 +6,7 @@ const {
 } = require("../../Middleware/auth.js");
 const { list, overview } = require("../../Controllers/suppliers/suppliers.controller.js");
 const venndeloRoutes = require("./venndelo.routes.js");
+const mastershopRoutes = require("./mastershop.routes.js");
 
 const router = express.Router();
 
@@ -19,5 +20,6 @@ router.use(
 router.get("/overview", overview);
 router.get("/", list);
 router.use("/venndelo", venndeloRoutes);
+router.use("/mastershop", mastershopRoutes);
 
 module.exports = router;

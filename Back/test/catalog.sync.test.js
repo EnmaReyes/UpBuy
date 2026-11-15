@@ -14,6 +14,7 @@ const {
   Supplier,
   SupplierProduct,
   SupplierProductVariation,
+  SupplierProductAsset,
   Product,
   ProductImage,
   Category,
@@ -239,5 +240,43 @@ test("una imagen repetida no se duplica", async (t) => {
     );
     const again = await ProductImage.count({ where: { productId: product.id } });
     assert.equal(again, 1, "sincronizar no duplica imágenes");
+  });
+});
+
+test("reimportar conserva la posición y el orden de los assets", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  await withTempSupplier(async (supplier) => {
+    const externalId = `asset-pos-${Date.now()}`;
+    const items = [RAW_PRODUCT(externalId)];
+
+    await importPage({ supplierId: supplier.id, items });
+    await importPage({ supplierId: supplier.id, items });
+    await importPage({ supplierId: supplier.id, items });
+
+    const supplierProduct = await SupplierProduct.findOne({
+      where: { supplierId: supplier.id },
+    });
+    const assets = await SupplierProductAsset.findAll({
+      where: { supplierProductId: supplierProduct.id },
+    });
+
+    assert.equal(assets.length, 1);
+    assert.equal(
+      assets[0].position,
+      1,
+      "la posición no debe quedar desplazada tras reimportar",
+    );
+    assert.equal(assets[0].isPrimary, true);
+
+    const product = await publishSupplierProduct({
+      supplierProductId: supplierProduct.id,
+      price: 10000,
+    });
+    const [image] = await ProductImage.findAll({
+      where: { productId: product.id },
+    });
+    assert.equal(image.position, 1);
+    assert.equal(image.isPrimary, true, "la imagen principal no se pierde");
   });
 });

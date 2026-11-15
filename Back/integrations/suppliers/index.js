@@ -23,6 +23,10 @@ const venndeloAuth = require("./venndelo/venndelo.auth.js");
 const venndeloClient = require("./venndelo/venndelo.client.js");
 const venndeloCatalog = require("./venndelo/venndelo.catalog.js");
 const venndeloAssets = require("./venndelo/venndelo.assets.js");
+const mastershopAuth = require("./mastershop/mastershop.auth.js");
+const mastershopClient = require("./mastershop/mastershop.client.js");
+const mastershopCatalog = require("./mastershop/mastershop.catalog.js");
+const mastershopAssets = require("./mastershop/mastershop.assets.js");
 
 const venndelo = {
   slug: SUPPLIER_SLUG.VENNDELO,
@@ -39,8 +43,24 @@ const venndelo = {
   assets: venndeloAssets,
 };
 
+const mastershop = {
+  slug: SUPPLIER_SLUG.MASTERSHOP,
+  name: "MasterShop",
+  isConfigured: mastershopAuth.isConfigured,
+  auth: {
+    getAccessToken: mastershopAuth.getAccessToken,
+    getStatus: mastershopAuth.getStatus,
+    invalidate: mastershopAuth.invalidate,
+    resolveCredentials: mastershopAuth.resolveCredentials,
+  },
+  client: mastershopClient,
+  catalog: mastershopCatalog,
+  assets: mastershopAssets,
+};
+
 const ADAPTERS = {
   [SUPPLIER_SLUG.VENNDELO]: venndelo,
+  [SUPPLIER_SLUG.MASTERSHOP]: mastershop,
 };
 
 const normalizeSlug = (slug) => String(slug || "").trim().toLowerCase();
