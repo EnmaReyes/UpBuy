@@ -1,21 +1,30 @@
 import { apiDownload, apiGet, apiSend, type Query } from "@/services/api/client";
+import type { CatalogSupplierSlug } from "@/services/admin/providers";
 import type {
+  AdminProduct,
   AdminVenndeloOrder,
-  AdminVenndeloProduct,
   AdminVenndeloWalletBalance,
 } from "@/types/admin";
 
 // Mutaciones y descargas del panel de proveedores (ADM-4). Todas pasan por el
 // cliente centralizado, que añade cookie y la cabecera CSRF.
+//
+// Conexión y catálogo son genéricos por slug: Venndelo y MasterShop comparten
+// los mismos endpoints. Pedidos y wallet solo existen para Venndelo.
 
-export type VenndeloTestResult = {
+export type CatalogSupplierTestResult = {
   ok: boolean;
   latencyMs: number;
   message: string;
-  tokenExpiresAt: string | null;
+  /** Solo los proveedores con OAuth lo devuelven (Venndelo). */
+  tokenExpiresAt?: string | null;
+  /** Cuántos productos ve la llave (MasterShop). */
+  totalProducts?: number;
+  /** Cabeceras de límite de uso que reporte el proveedor (MasterShop). */
+  rateLimit?: Record<string, unknown> | null;
 };
 
-export type VenndeloSyncResult = {
+export type CatalogSupplierSyncResult = {
   runId?: string;
   status?: string;
   received?: number;
@@ -23,37 +32,102 @@ export type VenndeloSyncResult = {
   updated?: number;
   unchanged?: number;
   errors?: number;
+  /** Politica aplicada en esta corrida. */
+  publishPolicy?: "manual" | "auto_draft" | "auto_visible";
+  /** Nuevos publicados por la politica automatica. */
+  publishedCreated?: number;
+  /** Ya publicados que cambiaron. */
+  publishedUpdated?: number;
+  /** Ocultados por falta de disponibilidad. */
+  hidden?: number;
+  /** No publicados (sin stock o error). */
+  skipped?: number;
 };
 
-export async function testVenndeloConnection(): Promise<VenndeloTestResult> {
-  return apiSend<VenndeloTestResult>(
-    "/api/admin/suppliers/venndelo/test-connection",
+/** Alias histórico. */
+export type VenndeloTestResult = CatalogSupplierTestResult;
+export type VenndeloSyncResult = CatalogSupplierSyncResult;
+
+export async function testCatalogSupplierConnection(
+  slug: CatalogSupplierSlug,
+): Promise<CatalogSupplierTestResult> {
+  return apiSend<CatalogSupplierTestResult>(
+    `/api/admin/suppliers/${slug}/test-connection`,
   );
+}
+
+export async function syncCatalogSupplier(
+  slug: CatalogSupplierSlug,
+  pageSize?: number,
+): Promise<CatalogSupplierSyncResult> {
+  return apiSend<CatalogSupplierSyncResult>(
+    `/api/admin/suppliers/${slug}/sync`,
+    { body: pageSize ? { pageSize } : {} },
+  );
+}
+
+export async function publishCatalogSupplierProduct(
+  slug: CatalogSupplierSlug,
+  id: string,
+  options: {
+    visibility?: "draft" | "visible";
+    markup?: number;
+    price?: number;
+    categoryIds?: string[];
+  } = {},
+): Promise<AdminProduct> {
+  return apiSend<AdminProduct>(
+    `/api/admin/suppliers/${slug}/products/${encodeURIComponent(id)}/publish`,
+    { body: options },
+  );
+}
+
+export async function unpublishCatalogSupplierProduct(
+  slug: CatalogSupplierSlug,
+  id: string,
+): Promise<AdminProduct> {
+  return apiSend<AdminProduct>(
+    `/api/admin/suppliers/${slug}/products/${encodeURIComponent(id)}/unpublish`,
+  );
+}
+
+export async function publishCatalogSupplierBulk(
+  slug: CatalogSupplierSlug,
+  payload: {
+    productIds?: string[];
+    filters?: Record<string, unknown>;
+    markup?: number;
+    visibility?: "draft" | "visible";
+  },
+): Promise<{ requested: number; updated: number; skipped: unknown[] }> {
+  return apiSend(`/api/admin/suppliers/${slug}/products/publish-bulk`, {
+    body: payload,
+  });
+}
+
+// --- Compatibilidad: Venndelo Pro ------------------------------------------
+
+export async function testVenndeloConnection(): Promise<VenndeloTestResult> {
+  return testCatalogSupplierConnection("venndelo");
 }
 
 export async function syncVenndeloCatalog(
   pageSize?: number,
 ): Promise<VenndeloSyncResult> {
-  return apiSend<VenndeloSyncResult>("/api/admin/suppliers/venndelo/sync", {
-    body: pageSize ? { pageSize } : {},
-  });
+  return syncCatalogSupplier("venndelo", pageSize);
 }
 
 export async function publishVenndeloProduct(
   id: string,
-): Promise<AdminVenndeloProduct> {
-  return apiSend<AdminVenndeloProduct>(
-    `/api/admin/suppliers/venndelo/products/${encodeURIComponent(id)}/publish`,
-    { body: {} },
-  );
+  options: { visibility?: "draft" | "visible"; markup?: number } = {},
+): Promise<AdminProduct> {
+  return publishCatalogSupplierProduct("venndelo", id, options);
 }
 
 export async function unpublishVenndeloProduct(
   id: string,
-): Promise<AdminVenndeloProduct> {
-  return apiSend<AdminVenndeloProduct>(
-    `/api/admin/suppliers/venndelo/products/${encodeURIComponent(id)}/unpublish`,
-  );
+): Promise<AdminProduct> {
+  return unpublishCatalogSupplierProduct("venndelo", id);
 }
 
 export async function topupVenndeloWallet(amount: number): Promise<string> {

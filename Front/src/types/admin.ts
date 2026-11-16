@@ -519,7 +519,7 @@ export const ADMIN_IMPORT_STATUS_LABELS: Record<string, string> = {
 // Proveedores y control operativo (ADM-4)
 // ---------------------------------------------------------------------------
 
-/** Corrida de catálogo (Venndelo Pro). */
+/** Corrida de catálogo (Venndelo Pro, MasterShop). */
 export type AdminCatalogRun = {
   id: string;
   trigger: string;
@@ -531,6 +531,14 @@ export type AdminCatalogRun = {
   updated: number;
   unchanged: number;
   errors: number;
+  /** Nuevos publicados por la política automática del proveedor. */
+  publishedCreated: number;
+  /** Ya publicados que cambiaron al sincronizar. */
+  publishedUpdated: number;
+  /** Ocultados porque el proveedor dejó de ofrecerlos. */
+  hidden: number;
+  /** No publicados (sin disponibilidad o error). */
+  skipped: number;
   errorSummary: { motivo?: string; [key: string]: unknown }[];
 };
 
@@ -597,25 +605,34 @@ export type AdminProvidersOverview = {
   health: AdminProviderHealth;
 };
 
-/** Estado de la integración Venndelo Pro (sin secretos). */
-export type AdminVenndeloStatus = {
+/** Política de publicación configurada en el proveedor de catálogo. */
+export type AdminPublishPolicy = "manual" | "auto_draft" | "auto_visible";
+
+/** Estado de un proveedor de catálogo (sin secretos). */
+export type AdminCatalogSupplierStatus = {
   supplier: {
     slug: string;
     name: string;
     isActive: boolean;
     baseUrl: string;
+    publishPolicy: AdminPublishPolicy;
+    defaultCategoryId: string | null;
   };
   configured: boolean;
   token: { cached: boolean; expiresAt: string | null };
-  credentials: {
+  /** Solo los proveedores con credenciales rotables (Venndelo) lo devuelven. */
+  credentials?: {
     persisted: boolean;
     refreshTokenRotatedAt: string | null;
     refreshTokenExpiresAt: string | null;
     encryptionConfigured: boolean;
-  };
+  } | null;
   catalog: { supplierProducts: number; publishedProducts: number };
   lastRun: AdminCatalogRun | null;
 };
+
+/** Alias histórico: el panel de Venndelo usa la misma forma genérica. */
+export type AdminVenndeloStatus = AdminCatalogSupplierStatus;
 
 export type AdminVenndeloVariation = {
   id: string;
@@ -627,7 +644,8 @@ export type AdminVenndeloVariation = {
   originalPrice: string | number | null;
 };
 
-export type AdminVenndeloProduct = {
+/** Producto del proveedor con el estado de su publicación en UPBUY. */
+export type AdminSupplierCatalogProduct = {
   id: string;
   externalId: string;
   name: string;
@@ -647,12 +665,16 @@ export type AdminVenndeloProduct = {
   } | null;
 };
 
-export type AdminVenndeloProductList = {
-  products: AdminVenndeloProduct[];
+export type AdminSupplierCatalogProductList = {
+  products: AdminSupplierCatalogProduct[];
   total: number;
   page: number;
   limit: number;
 };
+
+/** Alias histórico del catálogo de Venndelo. */
+export type AdminVenndeloProduct = AdminSupplierCatalogProduct;
+export type AdminVenndeloProductList = AdminSupplierCatalogProductList;
 
 export type AdminVenndeloSyncHistory = {
   runs: AdminCatalogRun[];
@@ -997,4 +1019,178 @@ export type AdminClientOrdersResult = {
 export type UpdateClientResult = {
   user: AdminClientListItem;
   missing: string[];
+};
+
+// ---------------------------------------------------------------------------
+// Catalogo UPBUY (curaduria)
+// ---------------------------------------------------------------------------
+
+/** Estado editorial del producto en la tienda. */
+export type AdminProductStatus = "draft" | "active" | "archived";
+
+export const ADMIN_PRODUCT_STATUS_LABELS: Record<string, string> = {
+  draft: "Borrador",
+  active: "Activo",
+  archived: "Archivado",
+};
+
+/** Categoria interna (N:M con productos). */
+export type AdminProductCategory = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+/** Imagen de la galeria del producto. */
+export type AdminProductImage = {
+  id: string;
+  url: string;
+  position: number;
+  isPrimary: boolean;
+  externalAssetId?: string | null;
+};
+
+/** Producto tal como lo devuelve `GET /api/admin/products`. */
+export type AdminProduct = {
+  id: string;
+  sku: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  price: number;
+  compareAtPrice: number | null;
+  /** Precio final con el descuento del producto. */
+  precio: number;
+  precioOriginal: number;
+  descuentoPorcentaje: number | null;
+  destacadas: boolean;
+  stock: number;
+  /** Costo del proveedor (solo lectura). */
+  cost: number | null;
+  /** Multiplicador aplicado al costo. */
+  markup: number | null;
+  currency: string;
+  status: AdminProductStatus | string;
+  active: boolean;
+  available: boolean;
+  images: string[];
+  gallery: AdminProductImage[];
+  categories: AdminProductCategory[];
+  sizes?: string[];
+  provider: string | null;
+  providerSku: string | null;
+  supplierId: string | null;
+  supplierProductId: string | null;
+  manualOverrides: Record<string, boolean> | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminProductListResult = {
+  products: AdminProduct[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type AdminCatalogFilters = {
+  q: string;
+  status: "" | AdminProductStatus;
+  visibility: "" | "visible" | "hidden";
+  stock: "" | "in" | "out";
+  hasCategory: "" | "true" | "false";
+  published: "" | "1" | "0";
+  provider: string;
+};
+
+export type AdminProductBulkAction =
+  | "make_visible"
+  | "hide"
+  | "archive"
+  | "restore_draft"
+  | "apply_markup"
+  | "set_categories"
+  | "feature";
+
+export type AdminProductBulkResult = {
+  requested: number;
+  updated: number;
+  skipped: { id: string; motivo: string }[];
+};
+
+/** Categoria del panel; incluye inactivas y el conteo de productos. */
+export type AdminCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  productCount: number;
+};
+
+export type AdminCategoryList = {
+  categories: AdminCategory[];
+};
+
+/** Producto original del proveedor en la bandeja (aun sin publicar). */
+export type AdminSupplierTrayItem = {
+  id: string;
+  externalId: string;
+  name: string;
+  description: string | null;
+  availability: boolean;
+  totalQuantity: number;
+  originalPrice: string | number | null;
+  currency: string;
+  /** Proveedor del que vino: la bandeja es global. */
+  supplier: { id: string; slug: string; name: string };
+  assets: {
+    id: string;
+    url: string;
+    position: number;
+    externalAssetId?: string | null;
+  }[];
+  variations?: {
+    id: string;
+    sku: string | null;
+    quantity: number;
+    supplierPrice: string | number | null;
+  }[];
+  lastSyncedAt: string | null;
+  updatedAt: string;
+  published: {
+    id: string;
+    sku: string;
+    slug: string;
+    price: string | number;
+    status: string;
+    active: boolean;
+  } | null;
+};
+
+export type AdminSupplierTrayResult = {
+  products: AdminSupplierTrayItem[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type AdminSupplierTrayFilters = {
+  q: string;
+  availability: "" | "true" | "false";
+  /** Slug del proveedor; vacio = todos los conectados. */
+  provider: string;
+};
+
+export type AdminSupplierTraySettings = {
+  slug: string;
+  publishPolicy: "manual" | "auto_draft" | "auto_visible";
+  defaultCategoryId: string | null;
+};
+
+export const ADMIN_PUBLISH_POLICY_LABELS: Record<string, string> = {
+  manual: "Manual: tú publicas desde la bandeja",
+  auto_draft: "Automática en borrador",
+  auto_visible: "Automática y visible",
 };

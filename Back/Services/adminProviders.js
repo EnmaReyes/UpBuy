@@ -206,6 +206,10 @@ const serializeRun = (run) => {
     updated: data.updated,
     unchanged: data.unchanged,
     errors: data.errors,
+    publishedCreated: data.publishedCreated ?? 0,
+    publishedUpdated: data.publishedUpdated ?? 0,
+    hidden: data.hidden ?? 0,
+    skipped: data.skipped ?? 0,
     errorSummary: data.errorSummary || [],
   };
 };

@@ -87,6 +87,41 @@ test("el catálogo administrativo exige sesión", async () => {
   assert.equal(categories.status, 401);
 });
 
+test("las acciones nuevas del catálogo exigen sesión", async () => {
+  const calls = [
+    { method: "POST", url: "/bulk" },
+    { method: "POST", url: "/abc/visibility" },
+    { method: "PUT", url: "/abc/images" },
+    { method: "POST", url: "/abc/images/restore" },
+  ];
+
+  for (const call of calls) {
+    const response = await callRouter(adminProductsRoutes, call);
+    assert.equal(
+      response.status,
+      401,
+      `${call.method || "GET"} ${call.url}`,
+    );
+  }
+});
+
+test("las acciones nuevas de proveedores exigen sesión", async () => {
+  const calls = [
+    { method: "POST", url: "/mastershop/products/publish-bulk" },
+    { method: "PATCH", url: "/venndelo/settings" },
+    { method: "POST", url: "/venndelo/products/publish-bulk" },
+  ];
+
+  for (const call of calls) {
+    const response = await callRouter(suppliersRoutes, call);
+    assert.equal(
+      response.status,
+      401,
+      `${call.method || "GET"} ${call.url}`,
+    );
+  }
+});
+
 test("el cron de catálogo exige el Bearer CRON_SECRET", async () => {
   const response = await callRouter(cronRoutes, { url: "/sync-catalog" });
   assert.equal(response.status, 401);

@@ -1,15 +1,20 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
-import type { Category } from "@/lib/mock-data";
+
+type HomeCategory = {
+  slug: string;
+  name: string;
+  description: string | null;
+};
 
 type CategoriesProps = {
-  categories: Category[];
+  categories: HomeCategory[];
 };
 
 // Categorías: imagen, nombre, descripción breve y CTA.
-// Los enlaces filtran /productos por categoría; se conectarán al catálogo real
-// cuando el backend publique el contrato.
+// Los datos vienen del catálogo real (`GET /api/categories`); el enlace filtra
+// /productos por categoría.
 export function Categories({ categories }: CategoriesProps) {
   return (
     <section
@@ -60,7 +65,7 @@ export function Categories({ categories }: CategoriesProps) {
                 <div className="flex flex-1 flex-col gap-2 p-5">
                   <h3 className="font-heading text-lg font-semibold text-carbon">{category.name}</h3>
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    {category.description}
+                    {category.description ?? "Explora la selección."}
                   </p>
                   <span className="mt-auto inline-flex items-center gap-1.5 pt-3 text-xs font-semibold tracking-[0.16em] text-terracotta-deep uppercase">
                     Explorar

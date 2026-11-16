@@ -72,6 +72,36 @@ const PRODUCT_STATUS = {
 
 const PRODUCT_STATUS_VALUES = Object.values(PRODUCT_STATUS);
 
+// Politica de publicacion de un proveedor de catalogo.
+//   - manual: la sincronizacion solo importa; el admin publica desde la bandeja.
+//   - auto_draft: la sincronizacion crea el producto en borrador.
+//   - auto_visible: la sincronizacion crea y activa el producto.
+const PUBLISH_POLICY = {
+  MANUAL: "manual",
+  AUTO_DRAFT: "auto_draft",
+  AUTO_VISIBLE: "auto_visible",
+};
+
+const PUBLISH_POLICY_VALUES = Object.values(PUBLISH_POLICY);
+
+// Acciones cerradas del endpoint de lote. No se aceptan strings libres.
+const PRODUCT_BULK_ACTION = {
+  MAKE_VISIBLE: "make_visible",
+  HIDE: "hide",
+  ARCHIVE: "archive",
+  RESTORE_DRAFT: "restore_draft",
+  APPLY_MARKUP: "apply_markup",
+  SET_CATEGORIES: "set_categories",
+  FEATURE: "feature",
+};
+
+const PRODUCT_BULK_ACTION_VALUES = Object.values(PRODUCT_BULK_ACTION);
+
+// Categoria de respaldo cuando se publica sin categoria y el proveedor no
+// tiene una por defecto.
+const DEFAULT_CATEGORY_SLUG = "sin-clasificar";
+const DEFAULT_CATEGORY_NAME = "Sin clasificar";
+
 // Canal por el que entro la venta. 'web' lo asigna el checkout; los demas
 // los registra un administrador para ventas externas (presencial/WhatsApp).
 const SALE_CHANNEL = {
@@ -342,6 +372,12 @@ module.exports = {
   ARTICLE_TIPO_VALUES,
   PRODUCT_STATUS,
   PRODUCT_STATUS_VALUES,
+  PUBLISH_POLICY,
+  PUBLISH_POLICY_VALUES,
+  PRODUCT_BULK_ACTION,
+  PRODUCT_BULK_ACTION_VALUES,
+  DEFAULT_CATEGORY_SLUG,
+  DEFAULT_CATEGORY_NAME,
   SUPPLIER_SLUG,
   SUPPLIER_SLUGS,
   PRODUCT_PROVIDER,

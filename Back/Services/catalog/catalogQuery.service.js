@@ -2,14 +2,21 @@
 //
 // El checkout resuelve precios y stock por su cuenta (Services/pricing.js);
 // este servicio es para LEER el catalogo y para que el admin lo edite.
-const { Op } = require("sequelize");
+const { Op, literal } = require("sequelize");
 const {
   Product,
   Category,
   ProductImage,
+  Supplier,
+  SupplierProduct,
+  SupplierProductAsset,
 } = require("../../DataBase/models/index.js");
-const { PRODUCT_STATUS } = require("../../DataBase/models/enums.js");
+const {
+  PRODUCT_STATUS,
+  PRODUCT_STATUS_VALUES,
+} = require("../../DataBase/models/enums.js");
 const { aplicarDescuento } = require("../prices.js");
+const { isVisible } = require("./visibility.service.js");
 const HttpError = require("../../Utils/HttpError.js");
 
 const toArray = (value) => (Array.isArray(value) ? value : []);
@@ -131,22 +138,69 @@ const getBySlugOrSku = async (value) => {
 };
 
 // Listado administrativo: incluye borradores/archivados y campos internos.
-const listAdmin = async ({ q, status, provider, limit = 24, offset = 0 } = {}) => {
+const listAdmin = async ({
+  q,
+  status,
+  provider,
+  visibility,
+  hasCategory,
+  published,
+  stock,
+  limit = 24,
+  offset = 0,
+} = {}) => {
   const safeLimit = Math.min(Math.max(Number(limit) || 24, 1), 100);
   const safeOffset = Math.max(Number(offset) || 0, 0);
 
   const where = {};
+  const conditions = [];
+
   const search = String(q || "").trim();
   if (search) {
     // El panel busca por nombre o por SKU (propio o del proveedor).
-    where[Op.or] = [
-      { name: { [Op.iLike]: `%${search}%` } },
-      { sku: { [Op.iLike]: `%${search}%` } },
-      { providerSku: { [Op.iLike]: `%${search}%` } },
-    ];
+    conditions.push({
+      [Op.or]: [
+        { name: { [Op.iLike]: `%${search}%` } },
+        { sku: { [Op.iLike]: `%${search}%` } },
+        { providerSku: { [Op.iLike]: `%${search}%` } },
+      ],
+    });
   }
-  if (status) where.status = String(status);
-  if (provider) where.provider = String(provider);
+  if (status) conditions.push({ status: String(status) });
+  if (provider) conditions.push({ provider: String(provider) });
+
+  // Visible = activo en la tienda (status active + active true). Oculto es su
+  // complemento, incluidos borradores y archivados.
+  if (visibility === "visible") {
+    conditions.push({ status: PRODUCT_STATUS.ACTIVE, active: true });
+  } else if (visibility === "hidden") {
+    conditions.push({
+      [Op.or]: [{ status: { [Op.ne]: PRODUCT_STATUS.ACTIVE } }, { active: false }],
+    });
+  }
+
+  // published=1: productos ya promovidos desde el proveedor (no borrador);
+  // published=0: solo borradores.
+  if (published !== undefined && published !== "") {
+    const flag = published === true || String(published) === "1" || String(published) === "true";
+    conditions.push({
+      status: flag ? { [Op.ne]: PRODUCT_STATUS.DRAFT } : PRODUCT_STATUS.DRAFT,
+    });
+  }
+
+  if (hasCategory !== undefined && hasCategory !== "") {
+    const flag = hasCategory === true || String(hasCategory) === "true" || String(hasCategory) === "1";
+    const exists = `EXISTS (
+      SELECT 1 FROM product_categories pc
+       WHERE pc."productId" = "Product"."id"
+    )`;
+    conditions.push(literal(flag ? exists : `NOT ${exists}`));
+  }
+
+  if (stock === "in") conditions.push({ stock: { [Op.gt]: 0 } });
+  else if (stock === "out") conditions.push({ stock: 0 });
+
+  if (conditions.length > 0) where[Op.and] = conditions;
 
   const { rows, count } = await Product.findAndCountAll({
     where,
@@ -180,6 +234,79 @@ const listAdmin = async ({ q, status, provider, limit = 24, offset = 0 } = {}) =
   };
 };
 
+// ---------------------------------------------------------------------------
+// Bandeja global: importados sin publicar de TODOS los proveedores
+// ---------------------------------------------------------------------------
+
+// La curaduria de /admin/catalogo debe ver todo lo que entre por API, sin
+// importar de que proveedor venga. La publicacion sigue siendo por proveedor
+// (`/api/admin/suppliers/:slug/products/...`), pero la lectura es una sola.
+const listUnpublished = async ({
+  q,
+  availability,
+  provider,
+  page = 1,
+  limit = 20,
+} = {}) => {
+  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+  const safePage = Math.max(Number(page) || 1, 1);
+
+  const conditions = [
+    literal(`NOT EXISTS (
+      SELECT 1 FROM products p
+       WHERE p."supplierProductId" = "SupplierProduct"."id"
+    )`),
+  ];
+
+  const search = String(q || "").trim();
+  if (search) {
+    conditions.push({
+      [Op.or]: [
+        { name: { [Op.iLike]: `%${search}%` } },
+        { externalId: { [Op.iLike]: `%${search}%` } },
+      ],
+    });
+  }
+
+  if (availability === "true" || availability === true) {
+    conditions.push({ availability: true });
+  } else if (availability === "false" || availability === false) {
+    conditions.push({ availability: false });
+  }
+
+  const supplierSlug = String(provider || "").trim();
+
+  const { rows, count } = await SupplierProduct.findAndCountAll({
+    where: { [Op.and]: conditions },
+    include: [
+      {
+        model: Supplier,
+        as: "supplier",
+        attributes: ["id", "slug", "name"],
+        required: true,
+        ...(supplierSlug ? { where: { slug: supplierSlug } } : {}),
+      },
+      { model: SupplierProductAsset, as: "assets" },
+    ],
+    order: [["updatedAt", "DESC"]],
+    limit: safeLimit,
+    offset: (safePage - 1) * safeLimit,
+    distinct: true,
+  });
+
+  return {
+    products: rows.map((row) => {
+      const json = row.toJSON ? row.toJSON() : row;
+      json.assets = (json.assets || []).sort((a, b) => a.position - b.position);
+      json.published = null;
+      return json;
+    }),
+    total: count,
+    page: safePage,
+    limit: safeLimit,
+  };
+};
+
 const getAdmin = async (id) => {
   const product = await Product.findByPk(id, {
     include: [categoryInclude(), { model: ProductImage, as: "gallery" }],
@@ -200,7 +327,13 @@ const EDITABLE = {
   name: (value) => String(value || "").trim().slice(0, 255),
   description: (value) => (value ? String(value).trim() : null),
   active: (value) => Boolean(value),
-  status: (value) => String(value),
+  status: (value) => {
+    const status = String(value || "").trim();
+    if (!PRODUCT_STATUS_VALUES.includes(status)) {
+      throw new HttpError(400, "El estado del producto no es válido");
+    }
+    return status;
+  },
   destacadas: (value) => Boolean(value),
   stock: (value) => Math.max(0, Math.trunc(Number(value) || 0)),
   descuentoPorcentaje: (value) => {
@@ -213,9 +346,33 @@ const EDITABLE = {
   },
 };
 
-const updateProduct = async ({ productId, patch = {} }) => {
+// Slug publico: minusculas, numeros y guiones. No se acepta vacio.
+const normalizeSlug = (value) => {
+  const slug = String(value || "").trim().toLowerCase();
+  if (!slug || slug.length > 180 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    throw new HttpError(
+      400,
+      "El slug solo admite minúsculas, números y guiones (máx. 180)",
+    );
+  }
+  return slug;
+};
+
+const updateProduct = async ({
+  productId,
+  patch = {},
+  confirmSlugChange = false,
+} = {}) => {
   const product = await Product.findByPk(productId);
   if (!product) throw new HttpError(404, "Producto no encontrado");
+
+  // El stock de un producto de proveedor solo lo mueve la sincronizacion.
+  if (patch.stock !== undefined && product.supplierProductId) {
+    throw new HttpError(
+      422,
+      "El stock lo actualiza el proveedor; no se puede editar desde UPBUY",
+    );
+  }
 
   const updates = {};
   const overrides = { ...(product.manualOverrides || {}) };
@@ -226,6 +383,27 @@ const updateProduct = async ({ productId, patch = {} }) => {
     updates[field] = transform(patch[field]);
     if (["price", "name", "description", "active", "stock"].includes(field)) {
       overrides[field] = true;
+    }
+  }
+
+  if (patch.slug !== undefined) {
+    const slug = normalizeSlug(patch.slug);
+    if (slug !== product.slug) {
+      // Cambiar la URL de un producto visible rompe enlaces: exige confirmacion.
+      if (isVisible(product) && !confirmSlugChange) {
+        throw new HttpError(
+          409,
+          "El producto está visible: confirma el cambio de slug para no romper enlaces",
+        );
+      }
+      const occupied = await Product.findOne({
+        where: { slug, id: { [Op.ne]: product.id } },
+        attributes: ["id"],
+      });
+      if (occupied) {
+        throw new HttpError(409, "Ya existe un producto con ese slug");
+      }
+      updates.slug = slug;
     }
   }
 
@@ -255,6 +433,7 @@ module.exports = {
   listPublished,
   getBySlugOrSku,
   listAdmin,
+  listUnpublished,
   getAdmin,
   updateProduct,
 };

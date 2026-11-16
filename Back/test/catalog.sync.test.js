@@ -23,6 +23,7 @@ const { importPage } = require("../Services/catalog/catalogImport.service.js");
 const {
   publishSupplierProduct,
   syncPublishedProducts,
+  autoPublishNewProducts,
   unpublishProduct,
 } = require("../Services/catalog/catalogSync.service.js");
 
@@ -143,6 +144,7 @@ test("actualiza el stock real y respeta el precio del administrador", async (t) 
     const product = await publishSupplierProduct({
       supplierProductId: supplierProduct.id,
       price: 55500,
+      visibility: "visible",
     });
     assert.equal(product.price, 55500);
     assert.equal(product.stock, 10);
@@ -176,6 +178,7 @@ test("sin disponibilidad el producto se desactiva pero NO se borra", async (t) =
     const product = await publishSupplierProduct({
       supplierProductId: supplierProduct.id,
       price: 10000,
+      visibility: "visible",
     });
     assert.equal(product.active, true);
 
@@ -278,5 +281,159 @@ test("reimportar conserva la posición y el orden de los assets", async (t) => {
     });
     assert.equal(image.position, 1);
     assert.equal(image.isPrimary, true, "la imagen principal no se pierde");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Politica de publicacion automatica
+// ---------------------------------------------------------------------------
+
+test("policy manual: no publica nada y lo cuenta como omitido", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  await withTempSupplier(async (supplier) => {
+    await supplier.update({ publishPolicy: "manual" });
+    await importPage({
+      supplierId: supplier.id,
+      items: [RAW_PRODUCT(`manual-${Date.now()}`)],
+    });
+
+    const result = await autoPublishNewProducts({ supplier });
+
+    assert.equal(result.policy, "manual");
+    assert.equal(result.created, 0);
+    assert.equal(
+      await Product.count({ where: { supplierId: supplier.id } }),
+      0,
+      "manual nunca crea productos sin curaduria",
+    );
+  });
+});
+
+test("policy auto_draft: crea el producto en borrador", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  await withTempSupplier(async (supplier) => {
+    await supplier.update({ publishPolicy: "auto_draft" });
+    await importPage({
+      supplierId: supplier.id,
+      items: [RAW_PRODUCT(`draft-${Date.now()}`)],
+    });
+
+    const result = await autoPublishNewProducts({ supplier });
+    assert.equal(result.created, 1);
+
+    const product = await Product.findOne({ where: { supplierId: supplier.id } });
+    assert.ok(product, "el producto nuevo debe existir");
+    assert.equal(product.status, "draft");
+    assert.equal(product.active, false);
+  });
+});
+
+test("policy auto_visible: crea el producto visible", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  await withTempSupplier(async (supplier) => {
+    await supplier.update({ publishPolicy: "auto_visible" });
+    await importPage({
+      supplierId: supplier.id,
+      items: [RAW_PRODUCT(`visible-${Date.now()}`)],
+    });
+
+    const result = await autoPublishNewProducts({ supplier });
+    assert.equal(result.created, 1);
+
+    const product = await Product.findOne({ where: { supplierId: supplier.id } });
+    assert.equal(product.status, "active");
+    assert.equal(product.active, true);
+  });
+});
+
+test("la publicacion automatica es idempotente", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  await withTempSupplier(async (supplier) => {
+    await supplier.update({ publishPolicy: "auto_visible" });
+    await importPage({
+      supplierId: supplier.id,
+      items: [RAW_PRODUCT(`idem-auto-${Date.now()}`)],
+    });
+
+    const first = await autoPublishNewProducts({ supplier });
+    const second = await autoPublishNewProducts({ supplier });
+
+    assert.equal(first.created, 1);
+    assert.equal(second.created, 0, "no vuelve a publicar lo ya publicado");
+    assert.equal(
+      await Product.count({ where: { supplierId: supplier.id } }),
+      1,
+    );
+  });
+});
+
+test("un producto sin disponibilidad no se publica automaticamente", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  await withTempSupplier(async (supplier) => {
+    await supplier.update({ publishPolicy: "auto_visible" });
+    await importPage({
+      supplierId: supplier.id,
+      items: [RAW_PRODUCT(`nostock-${Date.now()}`)],
+    });
+    await SupplierProduct.update(
+      { availability: false, totalQuantity: 0 },
+      { where: { supplierId: supplier.id } },
+    );
+
+    const result = await autoPublishNewProducts({ supplier });
+
+    assert.equal(result.created, 0);
+    assert.equal(result.skipped, 1);
+    assert.equal(
+      await Product.count({ where: { supplierId: supplier.id } }),
+      0,
+    );
+  });
+});
+
+test("la conciliacion cuenta los productos ocultados", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  await withTempSupplier(async (supplier) => {
+    await importPage({
+      supplierId: supplier.id,
+      items: [RAW_PRODUCT(`hidden-${Date.now()}`)],
+    });
+    const supplierProduct = await SupplierProduct.findOne({
+      where: { supplierId: supplier.id },
+    });
+
+    const product = await publishSupplierProduct({
+      supplierProductId: supplierProduct.id,
+      price: 10000,
+      visibility: "visible",
+    });
+    assert.equal(product.active, true);
+
+    // El proveedor deja de ofrecerlo: se oculta, no se borra.
+    await supplierProduct.update({ availability: false, totalQuantity: 0 });
+    const result = await sequelize.transaction((transaction) =>
+      syncPublishedProducts({ supplierId: supplier.id, transaction }),
+    );
+
+    assert.equal(result.hidden, 1);
+    assert.equal(result.updated, 1);
+
+    // Correr de nuevo no vuelve a contar el mismo cambio.
+    const again = await sequelize.transaction((transaction) =>
+      syncPublishedProducts({ supplierId: supplier.id, transaction }),
+    );
+    assert.equal(again.hidden, 0);
+    assert.equal(again.updated, 0);
+    assert.equal(again.unchanged, 1);
+
+    const refreshed = await Product.findByPk(product.id);
+    assert.ok(refreshed, "ocultar no borra");
+    assert.equal(refreshed.active, false);
   });
 });

@@ -12,7 +12,9 @@ const {
   sync,
   syncHistory,
   publish,
+  publishBulk,
   unpublish,
+  updateSettings,
 } = require("../../Controllers/suppliers/mastershop.controller.js");
 
 const router = express.Router();
@@ -30,10 +32,13 @@ router.post("/test-connection", testConnection);
 router.get("/sync-history", syncHistory);
 
 router.get("/products", listProducts);
+// Ruta fija antes de /products/:id.
+router.post("/products/publish-bulk", publishBulk);
 router.get("/products/:id", getProduct);
 router.post("/products/:id/publish", publish);
 router.post("/products/:id/unpublish", unpublish);
 
+router.patch("/settings", updateSettings);
 router.post("/sync", sync);
 
 // MasterShop solo se integra como catalogo: pedidos, billetera y webhooks no

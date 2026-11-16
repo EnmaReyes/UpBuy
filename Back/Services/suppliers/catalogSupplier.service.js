@@ -7,15 +7,19 @@
 // asi que la unica diferencia entre proveedores son los textos y si guardan
 // credenciales rotables (Venndelo) o solo una llave estatica en el entorno
 // (MasterShop).
-const { Op } = require("sequelize");
+const { Op, literal } = require("sequelize");
 const {
   Product,
+  Category,
   SupplierProduct,
   SupplierProductVariation,
   SupplierProductAsset,
   SupplierCredential,
 } = require("../../DataBase/models/index.js");
-const { CATALOG_SYNC_TRIGGER } = require("../../DataBase/models/enums.js");
+const {
+  CATALOG_SYNC_TRIGGER,
+  PUBLISH_POLICY_VALUES,
+} = require("../../DataBase/models/enums.js");
 const { getSupplierAdapter } = require("../../integrations/suppliers/index.js");
 const runs = require("../catalog/catalogRuns.service.js");
 const {
@@ -78,6 +82,8 @@ const createCatalogSupplierService = ({
         name: supplier.name,
         isActive: supplier.isActive,
         baseUrl: supplier.baseUrl,
+        publishPolicy: supplier.publishPolicy || "manual",
+        defaultCategoryId: supplier.defaultCategoryId || null,
       },
       configured: adapter.isConfigured(),
       token: {
@@ -133,6 +139,7 @@ const createCatalogSupplierService = ({
   const listStoredProducts = async ({
     q,
     availability,
+    published,
     page = 1,
     limit = 20,
   } = {}) => {
@@ -155,6 +162,20 @@ const createCatalogSupplierService = ({
       where.availability = false;
     }
 
+    // published=0 => bandeja del proveedor (aun sin fila en `products`).
+    // published=1 => ya promovidos al catalogo UPBUY.
+    if (published !== undefined && published !== "") {
+      const flag =
+        published === true ||
+        String(published) === "1" ||
+        String(published) === "true";
+      const exists = `EXISTS (
+        SELECT 1 FROM products p
+         WHERE p."supplierProductId" = "SupplierProduct"."id"
+      )`;
+      where[Op.and] = [literal(flag ? exists : `NOT ${exists}`)];
+    }
+
     const { rows, count } = await SupplierProduct.findAndCountAll({
       where,
       include: [
@@ -169,7 +190,7 @@ const createCatalogSupplierService = ({
 
     // Trae el producto publicado (si existe) para cada fila.
     const ids = rows.map((row) => row.id);
-    const published = ids.length
+    const publishedRows = ids.length
       ? await Product.findAll({
           where: { supplierProductId: { [Op.in]: ids } },
           attributes: [
@@ -184,7 +205,10 @@ const createCatalogSupplierService = ({
         })
       : [];
     const publishedBySupplierProduct = new Map(
-      published.map((product) => [product.supplierProductId, product.toJSON()]),
+      publishedRows.map((product) => [
+        product.supplierProductId,
+        product.toJSON(),
+      ]),
     );
 
     return {
@@ -245,6 +269,7 @@ const createCatalogSupplierService = ({
     categoryIds,
     price,
     markup,
+    visibility,
     actorUserId,
   }) => {
     const supplier = await runs.getSupplierRow(slug);
@@ -260,6 +285,7 @@ const createCatalogSupplierService = ({
       categoryIds,
       price,
       markup,
+      visibility,
       actorUserId,
     });
 
@@ -289,6 +315,131 @@ const createCatalogSupplierService = ({
     return unpublishProduct({ productId: targetId });
   };
 
+  // POST /products/publish-bulk
+  //
+  // Publica en lote reutilizando publishSupplierProduct (idempotente: si el
+  // producto ya existe, lo actualiza). Nunca falla completo por un producto:
+  // los errores se devuelven en `skipped`.
+  const publishBulk = async ({
+    productIds,
+    filters = {},
+    markup,
+    visibility,
+    actorUserId,
+  } = {}) => {
+    const supplier = await runs.getSupplierRow(slug);
+    const where = { supplierId: supplier.id };
+    const requestedIds =
+      Array.isArray(productIds) && productIds.length > 0
+        ? [...new Set(productIds.map((id) => String(id || "").trim()).filter(Boolean))]
+        : null;
+
+    if (requestedIds) {
+      where.id = { [Op.in]: requestedIds };
+    } else {
+      const search = String(filters.q || "").trim();
+      if (search) {
+        where[Op.or] = [
+          { name: { [Op.iLike]: `%${search}%` } },
+          { externalId: { [Op.iLike]: `%${search}%` } },
+        ];
+      }
+      if (filters.availability === "true" || filters.availability === true) {
+        where.availability = true;
+      } else if (
+        filters.availability === "false" ||
+        filters.availability === false
+      ) {
+        where.availability = false;
+      }
+      if (filters.published !== undefined && filters.published !== "") {
+        const flag =
+          filters.published === true ||
+          String(filters.published) === "1" ||
+          String(filters.published) === "true";
+        const exists = `EXISTS (
+          SELECT 1 FROM products p
+           WHERE p."supplierProductId" = "SupplierProduct"."id"
+        )`;
+        where[Op.and] = [literal(flag ? exists : `NOT ${exists}`)];
+      }
+    }
+
+    const rows = await SupplierProduct.findAll({
+      where,
+      order: [["updatedAt", "DESC"]],
+    });
+
+    const foundIds = new Set(rows.map((row) => row.id));
+    const skipped = requestedIds
+      ? requestedIds
+          .filter((id) => !foundIds.has(id))
+          .map((id) => ({ id, motivo: "Producto del proveedor no encontrado" }))
+      : [];
+
+    let updated = 0;
+    for (const row of rows) {
+      try {
+        await publishSupplierProduct({
+          supplierProductId: row.id,
+          markup,
+          visibility,
+          actorUserId,
+        });
+        updated += 1;
+      } catch (error) {
+        skipped.push({
+          id: row.id,
+          motivo: error?.message || "No se pudo publicar",
+        });
+      }
+    }
+
+    return {
+      requested: requestedIds ? requestedIds.length : rows.length,
+      updated,
+      skipped,
+    };
+  };
+
+  // PATCH /settings
+  const updateSettings = async ({ publishPolicy, defaultCategoryId } = {}) => {
+    const supplier = await runs.getSupplierRow(slug);
+    const updates = {};
+
+    if (publishPolicy !== undefined) {
+      const policy = String(publishPolicy || "").trim();
+      if (!PUBLISH_POLICY_VALUES.includes(policy)) {
+        throw new HttpError(400, "La política de publicación no es válida");
+      }
+      updates.publishPolicy = policy;
+    }
+
+    if (defaultCategoryId !== undefined) {
+      if (defaultCategoryId === null || defaultCategoryId === "") {
+        updates.defaultCategoryId = null;
+      } else {
+        const category = await Category.findByPk(String(defaultCategoryId), {
+          attributes: ["id"],
+        });
+        if (!category) {
+          throw new HttpError(400, "La categoría por defecto no existe");
+        }
+        updates.defaultCategoryId = category.id;
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await supplier.update(updates);
+    }
+
+    return {
+      slug: supplier.slug,
+      publishPolicy: supplier.publishPolicy || "manual",
+      defaultCategoryId: supplier.defaultCategoryId || null,
+    };
+  };
+
   // GET /sync-history
   const getSyncHistory = async ({ limit, offset } = {}) => {
     const supplier = await runs.getSupplierRow(slug);
@@ -303,7 +454,9 @@ const createCatalogSupplierService = ({
     getStoredProduct,
     sync,
     publish,
+    publishBulk,
     unpublish,
+    updateSettings,
     getSyncHistory,
   };
 };

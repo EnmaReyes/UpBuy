@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Mail,
   Package,
+  PackageSearch,
   ShieldCheck,
   TrendingUp,
   Truck,
@@ -42,6 +43,13 @@ const NAV_ITEMS: AdminNavItem[] = [
     label: "Pedidos",
     icon: Package,
     permission: "orders.read",
+    available: true,
+  },
+  {
+    href: "/admin/catalogo",
+    label: "Catálogo",
+    icon: PackageSearch,
+    permission: "catalog.write",
     available: true,
   },
   {

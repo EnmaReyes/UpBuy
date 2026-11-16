@@ -4,32 +4,46 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CircleAlert, Eye, EyeOff, Loader2, PackageSearch } from "lucide-react";
 import { ApiError } from "@/services/api/client";
+import type { CatalogSupplierSlug } from "@/services/admin/providers";
 import {
-  publishVenndeloProduct,
-  unpublishVenndeloProduct,
+  publishCatalogSupplierProduct,
+  unpublishCatalogSupplierProduct,
 } from "@/services/admin/providers.actions";
 import { formatDateTime, formatPrice } from "@/lib/format";
-import type { AdminVenndeloProduct } from "@/types/admin";
+import type { AdminSupplierCatalogProduct } from "@/types/admin";
 
-// Catálogo de Venndelo Pro (ADM-4): publicar/despublicar en el catálogo de
-// UpBuy. Despublicar lo saca de la tienda pública; el original se conserva.
+// Catálogo de un proveedor (ADM-4): publicar y archivar en el catálogo de
+// UPBUY. Archivar lo saca de la tienda pública; el original se conserva.
+// Compartido por Venndelo y MasterShop.
 
 function priceOf(value: string | number | null | undefined): number {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
-export function VenndeloCatalog({ products }: { products: AdminVenndeloProduct[] }) {
+export function SupplierCatalog({
+  slug,
+  providerName,
+  products,
+}: {
+  slug: CatalogSupplierSlug;
+  providerName: string;
+  products: AdminSupplierCatalogProduct[];
+}) {
   if (products.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card px-4 py-14 text-center">
-        <PackageSearch className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+        <PackageSearch
+          className="h-8 w-8 text-muted-foreground"
+          aria-hidden="true"
+        />
         <h2 className="font-heading text-lg font-semibold text-carbon">
           No hay productos importados
         </h2>
         <p className="max-w-md text-sm text-muted-foreground">
-          Sincroniza el catálogo para traer productos de Venndelo Pro. Después
-          podrás publicarlos en la tienda.
+          Sincroniza el catálogo para traer productos de {providerName}. Después
+          podrás publicarlos en borrador desde la bandeja y darles visibilidad
+          en el catálogo UPBUY.
         </p>
       </div>
     );
@@ -41,17 +55,29 @@ export function VenndeloCatalog({ products }: { products: AdminVenndeloProduct[]
         <table className="w-full min-w-[820px] text-left text-sm">
           <thead className="bg-muted/50 text-xs tracking-wide text-coffee-deep uppercase">
             <tr>
-              <th scope="col" className="px-4 py-2.5 font-semibold">Producto</th>
-              <th scope="col" className="px-4 py-2.5 font-semibold">Stock</th>
-              <th scope="col" className="px-4 py-2.5 font-semibold">Precio proveedor</th>
-              <th scope="col" className="px-4 py-2.5 font-semibold">Precio de venta</th>
-              <th scope="col" className="px-4 py-2.5 font-semibold">Estado</th>
-              <th scope="col" className="px-4 py-2.5 text-right font-semibold">Acción</th>
+              <th scope="col" className="px-4 py-2.5 font-semibold">
+                Producto
+              </th>
+              <th scope="col" className="px-4 py-2.5 font-semibold">
+                Stock
+              </th>
+              <th scope="col" className="px-4 py-2.5 font-semibold">
+                Precio proveedor
+              </th>
+              <th scope="col" className="px-4 py-2.5 font-semibold">
+                Precio de venta
+              </th>
+              <th scope="col" className="px-4 py-2.5 font-semibold">
+                Estado
+              </th>
+              <th scope="col" className="px-4 py-2.5 text-right font-semibold">
+                Acción
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {products.map((product) => (
-              <ProductRow key={product.id} product={product} />
+              <ProductRow key={product.id} slug={slug} product={product} />
             ))}
           </tbody>
         </table>
@@ -60,7 +86,7 @@ export function VenndeloCatalog({ products }: { products: AdminVenndeloProduct[]
       <ul className="grid gap-3 md:hidden">
         {products.map((product) => (
           <li key={product.id}>
-            <ProductCard product={product} />
+            <ProductCard slug={slug} product={product} />
           </li>
         ))}
       </ul>
@@ -68,7 +94,13 @@ export function VenndeloCatalog({ products }: { products: AdminVenndeloProduct[]
   );
 }
 
-function ProductRow({ product }: { product: AdminVenndeloProduct }) {
+function ProductRow({
+  slug,
+  product,
+}: {
+  slug: CatalogSupplierSlug;
+  product: AdminSupplierCatalogProduct;
+}) {
   return (
     <tr className="align-top">
       <td className="px-4 py-3">
@@ -77,12 +109,19 @@ function ProductRow({ product }: { product: AdminVenndeloProduct }) {
           {product.externalId}
         </p>
         <p className="text-[11px] text-muted-foreground">
-          Sincronizado {product.lastSyncedAt ? formatDateTime(product.lastSyncedAt) : "—"}
+          Sincronizado{" "}
+          {product.lastSyncedAt ? formatDateTime(product.lastSyncedAt) : "—"}
         </p>
       </td>
       <td className="px-4 py-3 [font-variant-numeric:tabular-nums]">
         <p className="font-semibold text-carbon">{product.totalQuantity}</p>
-        <p className={product.availability ? "text-xs text-emerald-800" : "text-xs text-rose-800"}>
+        <p
+          className={
+            product.availability
+              ? "text-xs text-emerald-800"
+              : "text-xs text-rose-800"
+          }
+        >
           {product.availability ? "Disponible" : "Sin stock"}
         </p>
       </td>
@@ -96,7 +135,7 @@ function ProductRow({ product }: { product: AdminVenndeloProduct }) {
               {formatPrice(priceOf(product.published.price))}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              {product.published.active ? "Publicado" : "Despublicado"}
+              {publishedLabel(product.published)}
             </p>
           </>
         ) : (
@@ -104,16 +143,22 @@ function ProductRow({ product }: { product: AdminVenndeloProduct }) {
         )}
       </td>
       <td className="px-4 py-3">
-        <PublishedBadge published={Boolean(product.published)} />
+        <PublishedBadge published={product.published} />
       </td>
       <td className="px-4 py-3 text-right">
-        <PublishButton product={product} />
+        <PublishButton slug={slug} product={product} />
       </td>
     </tr>
   );
 }
 
-function ProductCard({ product }: { product: AdminVenndeloProduct }) {
+function ProductCard({
+  slug,
+  product,
+}: {
+  slug: CatalogSupplierSlug;
+  product: AdminSupplierCatalogProduct;
+}) {
   return (
     <article className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
@@ -123,7 +168,7 @@ function ProductCard({ product }: { product: AdminVenndeloProduct }) {
             {product.externalId}
           </p>
         </div>
-        <PublishedBadge published={Boolean(product.published)} />
+        <PublishedBadge published={product.published} />
       </div>
 
       <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
@@ -148,31 +193,52 @@ function ProductCard({ product }: { product: AdminVenndeloProduct }) {
       </dl>
 
       <div className="mt-3">
-        <PublishButton product={product} full />
+        <PublishButton slug={slug} product={product} full />
       </div>
     </article>
   );
 }
 
-function PublishedBadge({ published }: { published: boolean }) {
+function PublishedBadge({
+  published,
+}: {
+  published: AdminSupplierCatalogProduct["published"];
+}) {
+  const label = publishedLabel(published);
+  const tone =
+    published?.status === "draft"
+      ? "border-sky-200 bg-sky-50 text-sky-800"
+      : published?.active
+        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+        : "border-border bg-muted text-coffee-deep";
+
   return (
     <span
-      className={
-        published
-          ? "inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800"
-          : "inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold text-coffee-deep"
-      }
+      className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone}`}
     >
-      {published ? "Publicado" : "No publicado"}
+      {label}
     </span>
   );
 }
 
+// La publicacion desde el panel deja el producto en borrador. «Archivado» es
+// el resultado de despublicar: se conserva para no perder historial.
+function publishedLabel(
+  published: AdminSupplierCatalogProduct["published"],
+): string {
+  if (!published) return "No publicado";
+  if (published.status === "draft") return "Borrador";
+  if (published.status === "archived") return "Archivado";
+  return published.active ? "Visible" : "Oculto";
+}
+
 function PublishButton({
+  slug,
   product,
   full,
 }: {
-  product: AdminVenndeloProduct;
+  slug: CatalogSupplierSlug;
+  product: AdminSupplierCatalogProduct;
   full?: boolean;
 }) {
   const router = useRouter();
@@ -184,9 +250,9 @@ function PublishButton({
     setError(null);
     try {
       if (product.published) {
-        await unpublishVenndeloProduct(product.id);
+        await unpublishCatalogSupplierProduct(slug, product.id);
       } else {
-        await publishVenndeloProduct(product.id);
+        await publishCatalogSupplierProduct(slug, product.id);
       }
       router.refresh();
     } catch (caught) {
@@ -201,12 +267,18 @@ function PublishButton({
   };
 
   return (
-    <div className={full ? "flex flex-col gap-1" : "flex flex-col items-end gap-1"}>
+    <div
+      className={
+        full ? "flex flex-col gap-1" : "flex flex-col items-end gap-1"
+      }
+    >
       <button
         type="button"
         onClick={toggle}
         disabled={busy || !product.availability}
-        title={!product.availability ? "Sin stock: no se puede publicar" : undefined}
+        title={
+          !product.availability ? "Sin stock: no se puede publicar" : undefined
+        }
         className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 text-xs font-semibold text-carbon transition-colors hover:border-carbon focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? (
@@ -216,11 +288,7 @@ function PublishButton({
         ) : (
           <Eye className="h-3.5 w-3.5" aria-hidden="true" />
         )}
-        {busy
-          ? "Guardando…"
-          : product.published
-            ? "Despublicar"
-            : "Publicar"}
+        {busy ? "Guardando…" : product.published ? "Archivar" : "Publicar"}
       </button>
       {error ? (
         <p

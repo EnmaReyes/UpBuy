@@ -11,7 +11,7 @@ import {
   OutOfSyncCard,
   ProvidersNamingNote,
 } from "@/components/admin/providers/ProviderCards";
-import { VenndeloActions } from "@/components/admin/providers/VenndeloActions";
+import { CatalogSupplierActions } from "@/components/admin/providers/CatalogSupplierActions";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +45,12 @@ export default async function AdminProvidersPage() {
           </p>
         </div>
         {venndelo ? (
-          <VenndeloActions configured={venndelo.configured} />
+          <CatalogSupplierActions
+            slug="venndelo"
+            providerName="Venndelo Pro"
+            configured={venndelo.configured}
+            envHint="VENNDELO_CLIENT_ID, VENNDELO_CLIENT_SECRET y VENNDELO_REFRESH_TOKEN"
+          />
         ) : null}
       </header>
 
@@ -92,8 +97,8 @@ export default async function AdminProvidersPage() {
               key={provider.id}
               provider={provider}
               href={
-                provider.slug === "venndelo"
-                  ? "/admin/proveedores/venndelo"
+                provider.slug === "venndelo" || provider.slug === "mastershop"
+                  ? `/admin/proveedores/${provider.slug}`
                   : undefined
               }
             />

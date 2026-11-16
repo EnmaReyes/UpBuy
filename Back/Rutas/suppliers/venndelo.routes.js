@@ -12,7 +12,9 @@ const {
   sync,
   syncHistory,
   publish,
+  publishBulk,
   unpublish,
+  updateSettings,
 } = require("../../Controllers/suppliers/venndelo.controller.js");
 const accountController = require("../../Controllers/suppliers/venndelo.account.controller.js");
 
@@ -42,10 +44,13 @@ router.post("/orders/:id/cancel", accountController.cancelOrder);
 router.post("/orders/:id/confirmation", accountController.modifyConfirmation);
 
 router.get("/products", listProducts);
+// Ruta fija antes de /products/:id.
+router.post("/products/publish-bulk", publishBulk);
 router.get("/products/:id", getProduct);
 router.post("/products/:id/publish", publish);
 router.post("/products/:id/unpublish", unpublish);
 
+router.patch("/settings", updateSettings);
 router.post("/sync", sync);
 
 module.exports = router;

@@ -35,6 +35,25 @@ const Supplier = sequelize.define(
       type: DataTypes.STRING(255),
       allowNull: true,
     },
+    // Politica de publicacion de este proveedor (manual | auto_draft |
+    // auto_visible). La sync la respeta al crear productos publicados.
+    publishPolicy: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: "manual",
+      validate: { isIn: [["manual", "auto_draft", "auto_visible"]] },
+    },
+    // Categoria que se asigna al publicar si el producto no trae una.
+    defaultCategoryId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: "categories",
+        key: "id",
+      },
+      onUpdate: "CASCADE",
+      onDelete: "SET NULL",
+    },
   },
   {
     tableName: "suppliers",

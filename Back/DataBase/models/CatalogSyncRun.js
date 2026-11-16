@@ -88,6 +88,31 @@ const CatalogSyncRun = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
+    // Efecto sobre el catalogo publicado:
+    //   publishedCreated  -> nuevos publicados por la politica automatica
+    //   publishedUpdated  -> ya publicados que cambiaron al sincronizar
+    //   hidden            -> ocultados porque el proveedor dejo de ofrecerlos
+    //   skipped           -> no publicados (sin disponibilidad o error)
+    publishedCreated: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    publishedUpdated: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    hidden: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    skipped: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
     // Lista corta de errores (producto + motivo), para diagnostico.
     errorSummary: {
       type: DataTypes.JSONB,

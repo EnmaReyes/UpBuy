@@ -38,9 +38,15 @@ const createCatalogSupplierController = ({ service, providerName } = {}) => {
   // GET /api/admin/suppliers/<slug>/products
   const listProducts = async (req, res) => {
     try {
-      const { q, availability, page, limit } = req.query || {};
+      const { q, availability, published, page, limit } = req.query || {};
       return res.json(
-        await service.listStoredProducts({ q, availability, page, limit }),
+        await service.listStoredProducts({
+          q,
+          availability,
+          published,
+          page,
+          limit,
+        }),
       );
     } catch (error) {
       return sendError(
@@ -94,7 +100,7 @@ const createCatalogSupplierController = ({ service, providerName } = {}) => {
   const publish = async (req, res) => {
     try {
       const { id } = req.params;
-      const { categoryIds, price, markup } = req.body || {};
+      const { categoryIds, price, markup, visibility } = req.body || {};
 
       if (categoryIds !== undefined && !Array.isArray(categoryIds)) {
         throw new HttpError(400, "categoryIds debe ser un arreglo de ids");
@@ -105,12 +111,20 @@ const createCatalogSupplierController = ({ service, providerName } = {}) => {
           throw new HttpError(400, "El precio no es válido");
         }
       }
+      if (
+        visibility !== undefined &&
+        visibility !== "draft" &&
+        visibility !== "visible"
+      ) {
+        throw new HttpError(400, "La visibilidad debe ser draft o visible");
+      }
 
       const product = await service.publish({
         supplierProductId: id,
         categoryIds,
         price,
         markup,
+        visibility,
         actorUserId: req.user?.id || null,
       });
 
@@ -132,6 +146,47 @@ const createCatalogSupplierController = ({ service, providerName } = {}) => {
     }
   };
 
+  // POST /products/publish-bulk
+  const publishBulk = async (req, res) => {
+    try {
+      const { productIds, filters, markup, visibility } = req.body || {};
+
+      if (productIds !== undefined && !Array.isArray(productIds)) {
+        throw new HttpError(400, "productIds debe ser un arreglo de ids");
+      }
+      if (
+        visibility !== undefined &&
+        visibility !== "draft" &&
+        visibility !== "visible"
+      ) {
+        throw new HttpError(400, "La visibilidad debe ser draft o visible");
+      }
+
+      const result = await service.publishBulk({
+        productIds,
+        filters: filters && typeof filters === "object" ? filters : {},
+        markup,
+        visibility,
+        actorUserId: req.user?.id || null,
+      });
+      return res.json(result);
+    } catch (error) {
+      return sendError(res, error, "No se pudo publicar el lote de productos");
+    }
+  };
+
+  // PATCH /settings
+  const updateSettings = async (req, res) => {
+    try {
+      const { publishPolicy, defaultCategoryId } = req.body || {};
+      return res.json(
+        await service.updateSettings({ publishPolicy, defaultCategoryId }),
+      );
+    } catch (error) {
+      return sendError(res, error, "No se pudo actualizar la configuración");
+    }
+  };
+
   return {
     status,
     testConnection,
@@ -140,7 +195,9 @@ const createCatalogSupplierController = ({ service, providerName } = {}) => {
     sync,
     syncHistory,
     publish,
+    publishBulk,
     unpublish,
+    updateSettings,
   };
 };
 

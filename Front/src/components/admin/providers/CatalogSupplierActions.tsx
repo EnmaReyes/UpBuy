@@ -4,29 +4,43 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CircleAlert, Loader2, PlugZap, RefreshCw } from "lucide-react";
 import { ApiError } from "@/services/api/client";
+import type { CatalogSupplierSlug } from "@/services/admin/providers";
 import {
-  syncVenndeloCatalog,
-  testVenndeloConnection,
+  syncCatalogSupplier,
+  testCatalogSupplierConnection,
 } from "@/services/admin/providers.actions";
 
-// Acciones de conexión de Venndelo Pro (ADM-4). Un fallo se muestra con el
-// mensaje real del backend y una pista accionable, nunca con una pantalla rota.
+// Acciones de conexión de un proveedor de catálogo (ADM-4). Sirve para
+// Venndelo y MasterShop: solo cambian los textos y las variables de entorno
+// que se sugieren cuando falta configuración.
 
-const errorMessage = (error: unknown): string => {
-  if (error instanceof ApiError) {
-    if (error.status === 503) {
-      return `${error.message}. Configura VENNDELO_CLIENT_ID, VENNDELO_CLIENT_SECRET y VENNDELO_REFRESH_TOKEN en el backend.`;
-    }
-    return error.message;
+const buildTestMessage = (
+  result: Awaited<ReturnType<typeof testCatalogSupplierConnection>>,
+): string => {
+  const parts = [result.message, `${result.latencyMs} ms`];
+  if (result.totalProducts !== undefined) {
+    parts.push(`${result.totalProducts} producto(s) visibles para la llave`);
   }
-  return "No se pudo completar la acción. Revisa la conexión con la API.";
+  if (result.tokenExpiresAt) {
+    parts.push(
+      `token válido hasta ${new Date(result.tokenExpiresAt).toLocaleString("es-CO")}`,
+    );
+  }
+  return parts.join(" · ");
 };
 
-export function VenndeloActions({
+export function CatalogSupplierActions({
+  slug,
+  providerName,
   configured,
+  envHint,
   size = "default",
 }: {
+  slug: CatalogSupplierSlug;
+  providerName: string;
   configured: boolean;
+  /** Variables de entorno que faltan cuando el proveedor no está configurado. */
+  envHint: string;
   size?: "default" | "compact";
 }) {
   const router = useRouter();
@@ -40,19 +54,32 @@ export function VenndeloActions({
     setError(null);
     try {
       if (kind === "test") {
-        const result = await testVenndeloConnection();
-        setMessage(
-          `${result.message} · ${result.latencyMs} ms · token válido hasta ${result.tokenExpiresAt ? new Date(result.tokenExpiresAt).toLocaleString("es-CO") : "sin fecha"}.`,
-        );
+        setMessage(buildTestMessage(await testCatalogSupplierConnection(slug)));
       } else {
-        const result = await syncVenndeloCatalog();
+        const result = await syncCatalogSupplier(slug);
         setMessage(
-          `Sincronización iniciada. Recibidos: ${result.received ?? 0} · creados: ${result.created ?? 0} · actualizados: ${result.updated ?? 0}.`,
+          [
+            "Sincronización completada.",
+            `Recibidos: ${result.received ?? 0}`,
+            `importados: ${result.created ?? 0}`,
+            `actualizados: ${result.updated ?? 0}`,
+            `publicados: ${result.publishedCreated ?? 0}`,
+            `ocultados: ${result.hidden ?? 0}`,
+            `omitidos: ${result.skipped ?? 0}`,
+          ].join(" · "),
         );
         router.refresh();
       }
     } catch (caught) {
-      setError(errorMessage(caught));
+      if (caught instanceof ApiError) {
+        setError(
+          caught.status === 503
+            ? `${caught.message}. Configura ${envHint} en el backend.`
+            : caught.message,
+        );
+      } else {
+        setError("No se pudo completar la acción. Revisa la conexión con la API.");
+      }
     } finally {
       setBusy(null);
     }
@@ -97,7 +124,7 @@ export function VenndeloActions({
 
       {!configured ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs leading-relaxed text-amber-900">
-          Venndelo Pro no tiene credenciales. Las acciones de API están
+          {providerName} no tiene credenciales. Las acciones de API están
           deshabilitadas hasta configurarlas; el catálogo ya importado sigue
           visible.
         </p>

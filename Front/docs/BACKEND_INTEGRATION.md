@@ -32,10 +32,16 @@ expone en `/api/products`. El front ya **no** usa `mock-data.ts` para el
 catálogo: consume estos endpoints.
 
 - Solo aparecen productos `status="active"` y `active=true` (publicados).
-- El stock son **unidades reales**; si llega a 0, el producto se desactiva y
-  desaparece del listado.
+- El stock son **unidades reales**. Si llega a 0 el producto **sigue visible**
+  como agotado; solo se oculta cuando el proveedor deja de ofrecerlo (sin
+  borrarlo).
 - Las categorías son **internas de Upbuy** (el proveedor no las entrega):
-  `/api/products?category=<slug>` filtra por slug de categoría.
+  `/api/products?category=<slug>` filtra por slug de categoría. Un producto
+  puede tener **varias** (`product_categories` es N:M) y la ficha del panel
+  permite crearlas al vuelo (`POST /api/admin/categories`).
+- El home muestra las cuatro primeras categorías activas (sin
+  `sin-clasificar`) desde `GET /api/categories`; si la API falla, usa un
+  respaldo local con masculino, femenino, accesorios y calzado.
 - Siguen **eliminados** (sin reemplazo): `/banner`, `/dtf`, `/posts`,
   `/prices`, `/shipping/*`, `/admin/campaigns`. Modelos eliminados: `Banner`,
   `Campaign`, `Dtf`, `PriceVariant`, `ProductPrice`, `ShippingRate`, `Articulos`
@@ -120,19 +126,47 @@ El panel usa tres lecturas y reutiliza las rutas Venndelo ya existentes:
 | GET | `/admin/orders?outOfSync=1` | Pedidos desincronizados (enlace del contador) |
 | GET | `/admin/orders/export.csv` | Exportación operativa con los filtros de la lista |
 
-`overview` devuelve `catalogProviders[]` (Venndelo Pro: `configured`, productos
-importados/publicados, última corrida), `orderProviders[]` (Vendelo y Dropi:
-`configured`, `mode` `api`/`manual`, total y desincronizados, último sync),
-`outOfSync` y `health.services[]`. Exige `providers.manage`. El front **no**
-interpreta estados crudos: solo muestra `label`, `mode`, contadores y la salud
-ya calculada.
+`overview` devuelve `catalogProviders[]` (Venndelo Pro y MasterShop:
+`configured`, productos importados/publicados, última corrida),
+`orderProviders[]` (Vendelo y Dropi: `configured`, `mode` `api`/`manual`, total y
+desincronizados, último sync), `outOfSync` y `health.services[]`. Exige
+`providers.manage`. El front **no** interpreta estados crudos: solo muestra
+`label`, `mode`, contadores y la salud ya calculada.
 
 Catálogo (`/admin/suppliers/venndelo/*` y `/admin/suppliers/mastershop/*`): la
 UI de catálogo, publicación, stock, precio, sincronización e historial usa las
-rutas existentes; no hay endpoint nuevo. Pedidos, wallet e historial operativo
-de Venndelo también se consumen tal cual (`/admin/suppliers/venndelo/...` y
-`/admin/orders`). MasterShop solo expone catálogo: no tiene rutas de pedidos ni
-de billetera.
+rutas de proveedor; no se duplican por slug. Pedidos, wallet e historial
+operativo de Venndelo también se consumen tal cual
+(`/admin/suppliers/venndelo/...` y `/admin/orders`). MasterShop solo expone
+catálogo: no tiene rutas de pedidos ni de billetera. Los paneles
+`/admin/proveedores/venndelo` y `/admin/proveedores/mastershop` comparten
+estado, acciones, catálogo e historial (`CatalogSupplierParts`,
+`CatalogSupplierSections`, `SupplierCatalog`).
+
+Curaduría del catálogo publicado (`/admin/catalogo`), con permiso
+`catalog.write`:
+
+| Método | Ruta | Uso en el front |
+|---|---|---|
+| GET | `/admin/products` | Listado con `q`, `status`, `provider`, `visibility`, `hasCategory`, `published`, `stock` |
+| PATCH | `/admin/products/:id` | Edición de ficha (el stock de proveedor es solo lectura) |
+| POST | `/admin/products/:id/visibility` | Mostrar/ocultar; ocultar exige step-up `catalog.unpublish` |
+| POST | `/admin/products/bulk` | Acciones en lote: `make_visible`, `hide`, `archive`, `restore_draft`, `apply_markup`, `set_categories`, `feature` |
+| PUT | `/admin/products/:id/images` | Galería por URL (máx. 8, `https`); marca `manualOverrides.images` |
+| POST | `/admin/products/:id/images/restore` | Vuelve a las imágenes del proveedor |
+| GET | `/admin/suppliers/:slug/products?published=0` | Bandeja por proveedor (endpoint de proveedor) |
+| GET | `/admin/products/unpublished` | Bandeja global: sin publicar de todos los proveedores conectados |
+| POST | `/admin/suppliers/:slug/products/publish-bulk` | Publicar seleccionados (respeta la política del proveedor) |
+| PATCH | `/admin/suppliers/:slug/settings` | `publishPolicy` y `defaultCategoryId` |
+
+La política se configura en el panel de cada proveedor (`/admin/proveedores/<slug>`,
+pestaña Catálogo): `manual` no publica, `auto_draft` crea en borrador y
+`auto_visible` crea visible si hay stock. Se aplica a los productos nuevos desde
+la próxima sincronización; la bandeja sigue siendo manual.
+
+Cada corrida de sync devuelve `publishPolicy`, `publishedCreated`,
+`publishedUpdated`, `hidden` y `skipped`; el historial del proveedor los muestra
+en la columna “Auto-publicación”.
 
 `export.csv` responde `text/csv` con BOM UTF-8 y `X-Upbuy-Rows`. Se descarga con
 `apiDownload`, nunca con `apiFetch`, porque la respuesta no es JSON.
@@ -506,8 +540,10 @@ elegido (respaldo ante un fallback inesperado).
 |---|---|---|
 | Catálogo / listado de productos | ✅ `/products` | ✅ `/productos` (búsqueda, categoría, destacados, paginación) |
 | Detalle de producto | ✅ `/products/:slug` | ✅ `/producto/[slug]` (galería, ficha, relacionados, JSON-LD) |
-| Categorías | ✅ `/categories` | ✅ Pills de filtro en `/productos` |
-| Importar/sincronizar catálogo | ✅ `/admin/suppliers/venndelo/*` · `/admin/suppliers/mastershop/*` | ✅ `/admin/proveedores/venndelo` (catálogo, publicación, stock, precio, historial) |
+| Categorías | ✅ `/categories` · `/admin/categories` | ✅ Pills de filtro en `/productos`, portada en el home y alta/asignación múltiple en la ficha del producto |
+| Importar/sincronizar catálogo | ✅ `/admin/suppliers/venndelo/*` · `/admin/suppliers/mastershop/*` | ✅ `/admin/proveedores/venndelo` y `/admin/proveedores/mastershop` (catálogo, política de publicación, publicación, stock, precio, historial) |
+| Curaduría del catálogo UPBUY | ✅ `/admin/products/*` + bandeja global `/admin/products/unpublished` + `PATCH /settings` | ✅ `/admin/catalogo` (filtros, selección múltiple, lote, drawer de ficha, bandeja global) |
+| Catálogo de Dropi | ❌ Sin API de catálogo; carga manual | N/A (decisión: sin importador CSV por ahora) |
 | Venta manual | ✅ `/admin/orders/manual` (+ `/preview`) | ✅ `/admin/pedidos/nuevo` |
 | Importación CSV de pedidos | ✅ `/admin/orders/import` | ✅ `/admin/pedidos/importar` (vista previa + confirmación) |
 | Exportación CSV de pedidos | ✅ `/admin/orders/export.csv` | ✅ `/admin/proveedores/pedidos` |

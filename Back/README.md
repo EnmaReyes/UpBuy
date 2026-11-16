@@ -187,6 +187,10 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 | GET/POST | `/api/admin/orders/:id/payments` |
 | PATCH | `/api/admin/orders/:id/payments/:paymentId` |
 | GET/PATCH | `/api/admin/products` · `/api/admin/products/:id` |
+| POST | `/api/admin/products/:id/visibility` |
+| POST | `/api/admin/products/bulk` |
+| PUT | `/api/admin/products/:id/images` |
+| POST | `/api/admin/products/:id/images/restore` |
 | GET/POST/PUT/DELETE | `/api/admin/categories` · `/api/admin/categories/:id` |
 | GET | `/api/admin/suppliers` |
 | GET | `/api/admin/suppliers/overview` |
@@ -194,12 +198,16 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 | POST | `/api/admin/suppliers/venndelo/test-connection` |
 | GET | `/api/admin/suppliers/venndelo/products` (+ `/:id`) |
 | POST | `/api/admin/suppliers/venndelo/products/:id/publish` (+ `/unpublish`) |
+| POST | `/api/admin/suppliers/venndelo/products/publish-bulk` |
+| PATCH | `/api/admin/suppliers/venndelo/settings` |
 | POST | `/api/admin/suppliers/venndelo/sync` |
 | GET | `/api/admin/suppliers/venndelo/sync-history` |
 | GET | `/api/admin/suppliers/mastershop/status` |
 | POST | `/api/admin/suppliers/mastershop/test-connection` |
 | GET | `/api/admin/suppliers/mastershop/products` (+ `/:id`) |
 | POST | `/api/admin/suppliers/mastershop/products/:id/publish` (+ `/unpublish`) |
+| POST | `/api/admin/suppliers/mastershop/products/publish-bulk` |
+| PATCH | `/api/admin/suppliers/mastershop/settings` |
 | POST | `/api/admin/suppliers/mastershop/sync` |
 | GET | `/api/admin/suppliers/mastershop/sync-history` |
 | GET | `/api/admin/admins/sessions` |
@@ -396,6 +404,70 @@ estado de cumplimiento, transportadora, guía, `providerOrderId`, referencia
 externa y notas. Los estados van **traducidos** y nunca incluye
 `providerStatus`. Exige `orders.read`; la ruta se registra antes de `/:id`.
 
+#### Catálogo UPBUY: visibilidad y curaduría
+
+Importar, publicar y ser visible son tres pasos distintos. Publicar crea la fila
+en `products`; nace en `draft` salvo que el proveedor tenga
+`publishPolicy = auto_visible`. Un producto es visible con
+`status = active AND active = true`; el stock 0 se muestra como agotado y no
+oculta el producto.
+
+Cada corrida de sincronización hace, en este orden: **importar** el catálogo del
+proveedor, **sincronizar** los productos ya publicados y **auto-publicar** los
+nuevos según `suppliers.publishPolicy`:
+
+| Política | Efecto en productos nuevos |
+| --- | --- |
+| `manual` | No publica nada: el administrador decide desde la bandeja |
+| `auto_draft` | Publica en borrador para revisar la ficha |
+| `auto_visible` | Publica y activa si el proveedor lo tiene disponible |
+
+La política y la categoría por defecto se editan en el panel del proveedor
+(`/admin/proveedores/<slug>`, pestaña Catálogo) con
+`PATCH /api/admin/suppliers/:slug/settings`. El cambio se aplica a los productos
+nuevos desde la **próxima sincronización**; no publica lo que ya está pendiente
+en la bandeja.
+
+La auto-publicación solo mira productos **sin fila en `products`**: nunca
+resucita archivados, no pisa `manualOverrides` y omite los que no tienen
+disponibilidad (se publican cuando el proveedor los repone).
+
+El resumen de la corrida incluye `publishPolicy`, `publishedCreated`,
+`publishedUpdated`, `hidden` y `skipped`; los mismos contadores se guardan en
+`catalog_sync_runs` y se muestran en el historial del panel.
+
+Dropi no tiene catálogo por API: sus productos se cargan **manualmente**. No hay
+importador CSV mientras no exista un contrato; la integración de pedidos no
+cambia.
+
+`GET /api/admin/products` acepta `q`, `status`, `provider`, `visibility`
+(`visible`/`hidden`), `hasCategory` (`true`/`false`), `published` (`1`/`0`) y
+`stock` (`in`/`out`).
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| POST | `/api/admin/products/:id/visibility` | `{ visible: boolean }`. Ocultar exige step-up `catalog.unpublish` |
+| POST | `/api/admin/products/bulk` | `{ ids, action, payload }`; acciones `make_visible`, `hide`, `archive`, `restore_draft`, `apply_markup`, `set_categories`, `feature` |
+| GET | `/api/admin/products/unpublished` | Bandeja global: importados de **todos** los proveedores sin fila en `products`; filtros `q`, `availability`, `provider` (slug) |
+| PUT | `/api/admin/products/:id/images` | `{ images: [{ url }] }`, máximo 8 URLs `https`; marca `manualOverrides.images` |
+| POST | `/api/admin/products/:id/images/restore` | Quita el override y reconstruye desde `supplier_product_assets` |
+| POST | `/api/admin/suppliers/:slug/products/publish-bulk` | `{ productIds?, filters?, markup?, visibility? }`; idempotente, devuelve `{ requested, updated, skipped }` |
+| PATCH | `/api/admin/suppliers/:slug/settings` | `{ publishPolicy?, defaultCategoryId? }` |
+
+`PATCH /api/admin/products/:id` ya no acepta `stock` cuando el producto viene de
+un proveedor (422): solo la sincronización mueve el stock. El `slug` solo se
+puede cambiar en borradores o con `confirmSlugChange: true` si el producto está
+visible. La sincronización respeta `manualOverrides` de precio, nombre,
+descripción, stock, imágenes y visibilidad; publicar de nuevo no resucita un
+producto oculto o archivado. Si no se elige categoría, se usa
+`suppliers.defaultCategoryId` o la categoría `Sin clasificar`.
+
+La relación producto–categoría es N:M (`product_categories`): un producto puede
+tener varias. `PATCH /api/admin/products/:id` acepta `categoryIds` y reemplaza
+la selección; `POST /api/admin/categories` crea una categoría al vuelo. En una
+base nueva se siembran `masculino`, `femenino`, `accesorios` y `calzado` (solo
+si ninguna existe); el home las muestra desde `GET /api/categories`.
+
 #### Avisos de compra en vivo (ADM-5)
 
 `GET /api/admin/orders/recent?since=<ISO>` alimenta el polling del panel y
@@ -467,7 +539,7 @@ Las acciones destructivas exigen un segundo factor **reciente**
 |---|---|---|
 | Reembolso / anulación de pago | `orders.refund` | `PATCH /api/admin/orders/:id/payments/:paymentId` |
 | Cancelación de pedido | `orders.write` | `PATCH /api/admin/orders/:id/status` cuando el destino es `cancelled` |
-| Despublicar producto | `catalog.write` | `PATCH /api/admin/products/:id` con `active: false` o `status != "active"` |
+| Despublicar producto | `catalog.write` | `PATCH /api/admin/products/:id` con `active: false` o `status != "active"`; `POST /:id/visibility` con `visible: false`; `POST /bulk` con `hide` o `archive` |
 | Cambiar rol o estado de un admin | `admins.manage` | `PATCH /api/admin/admins/:id` |
 | Envío de campañas | `campaigns.send` | `POST /api/admin/campaigns` (creación y envío de lotes, email y WhatsApp) |
 | Desactivar cuenta de cliente | `users.write` | `PATCH /api/admin/users/:id` **solo** cuando el payload cambia `disabled` (editar contacto no la exige) |
@@ -614,20 +686,23 @@ Proveedores de catálogo disponibles hoy:
 
 ### Importación y sincronización
 
-- `POST /api/admin/suppliers/<slug>/sync` importa el catálogo original y aplica
-  los cambios a los productos publicados. Es idempotente: correrlo dos veces no
-  duplica nada.
+- `POST /api/admin/suppliers/<slug>/sync` importa el catálogo original, aplica
+  los cambios a los productos publicados y auto-publica los nuevos según la
+  política del proveedor. Es idempotente: correrlo dos veces no duplica nada ni
+  republica lo ya publicado.
 - Paginación: **cursor** en Venndelo (`page_token` / `next_page_token`;
   `page_size` ≤ 500) e **índice de página** en MasterShop (`page` ≥ 1,
   `limit` ≤ 50, fin por `resultsCount.totalProducts`).
 - Reglas: el **stock** sigue a las unidades reales del proveedor; el **precio de
   venta nunca se pisa**; si un producto deja de estar disponible se
-  **desactiva** (no se borra); un producto con pedidos jamás se elimina.
+  **oculta** (no se borra); un producto con pedidos jamás se elimina. El stock
+  0 no oculta: se muestra agotado.
 - La importación **no borra** productos que falten en una página parcial.
 - Concurrencia: un advisory lock de Postgres impide dos corridas a la vez (409).
   Hay una clave de lock por proveedor.
 - El cron `/api/cron/sync-catalog` sincroniza **todos** los proveedores
-  configurados; si uno falla, los demás continúan.
+  configurados; si uno falla, los demás continúan. Cada corrida importa,
+  concilia lo publicado y auto-publica según la política del proveedor.
 
 ### Publicar
 

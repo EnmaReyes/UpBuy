@@ -236,7 +236,13 @@ categorías de Upbuy son internas.
 3. La sincronización aplica cambios de stock/descripción/imágenes, **desactiva**
    lo no disponible y **nunca** pisa precio ni campos editados por el admin
    (`products.manualOverrides`).
-4. Automatización: `GET /api/cron/sync-catalog` (Bearer `CRON_SECRET`).
+4. Auto-publicación: tras sincronizar, los productos del proveedor que aún no
+   tienen fila en `products` se publican según `suppliers.publishPolicy`
+   (`manual` no publica; `auto_draft` crea en borrador; `auto_visible` crea
+   activo). Los que no tienen disponibilidad se omiten hasta que vuelvan a
+   tener stock. La corrida guarda `publishedCreated`, `publishedUpdated`,
+   `hidden` y `skipped`.
+5. Automatización: `GET /api/cron/sync-catalog` (Bearer `CRON_SECRET`).
 
 Estados de la corrida en `catalog_sync_runs`: `running`, `success`, `error`.
 
@@ -331,7 +337,8 @@ completo se conserva en `supplier_products.rawData`.
 - `baseCurrencyPrice` → moneda (si no es ISO de 3 letras, `COP`).
 - `urlImageProduct` → un único asset (`externalAssetId: "img-1"`, posición 1).
 - SKU publicado: `MS-<idProduct>`; slug: nombre + fragmento del id.
-- Un producto sin stock se **desactiva**; nunca se borra.
+- Un producto sin stock sigue **visible como agotado**; solo se oculta cuando el
+  proveedor deja de ofrecerlo. Nunca se borra.
 
 ## 14. Errores del proveedor
 
@@ -354,16 +361,20 @@ Bajo `/api/admin/suppliers/mastershop`, con sesión revocable y permiso
 ```
 GET  /status
 POST /test-connection
-GET  /products            (siempre desde PostgreSQL)
+GET  /products            (siempre desde PostgreSQL; `published=0` = bandeja)
 GET  /products/:id
 GET  /sync-history
 POST /products/:id/publish
 POST /products/:id/unpublish
+POST /products/publish-bulk
+PATCH /settings           ({ publishPolicy, defaultCategoryId })
 POST /sync
 ```
 
 No existen rutas de billetera ni de pedidos: MasterShop se integra solo como
-catálogo.
+catálogo. `publishPolicy` (`manual` | `auto_draft` | `auto_visible`) y
+`defaultCategoryId` viven en `suppliers`; publicar sin `visibility` explícita
+crea el producto en borrador salvo que la política sea `auto_visible`.
 
 ## 16. Cron
 
@@ -374,6 +385,9 @@ uno y `ok` global.
 
 ## 17. Limitaciones conocidas
 
+- **Dropi**: no hay catálogo por API. Decisión vigente: sus cargas se hacen
+  **manualmente**; no se implementa el importador CSV de la Fase 6 mientras no
+  exista contrato. La integración de pedidos de Dropi sigue como estaba.
 - **Pedidos**: sin integrar. `POST /api/orders` exige un esquema de
   `variation[]` que no está documentado y `orders.provider` solo acepta
   `vendelo`/`dropi`.

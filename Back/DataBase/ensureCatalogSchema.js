@@ -24,6 +24,10 @@
 // se deja intacta y se registra un aviso (nunca se pierden datos por arrancar).
 
 const { sequelize } = require("./db.js");
+const {
+  DEFAULT_CATEGORY_SLUG,
+  DEFAULT_CATEGORY_NAME,
+} = require("./models/enums.js");
 
 const SCHEMA_LOCK_KEY = 2147483003;
 
@@ -56,6 +60,21 @@ const getSchemaState = async (transaction) => {
        ) AS "hasManualOverrides",
        EXISTS (
          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'suppliers'
+            AND column_name = 'publishPolicy'
+       ) AS "hasSupplierPublishPolicy",
+       EXISTS (
+         SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'suppliers'
+            AND column_name = 'defaultCategoryId'
+       ) AS "hasSupplierDefaultCategoryId",
+       EXISTS (
+         SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'catalog_sync_runs'
+            AND column_name = 'publishedCreated'
+       ) AS "hasCatalogRunPublishCounters",
+       EXISTS (
+         SELECT 1 FROM information_schema.columns
           WHERE table_schema = 'public' AND table_name = 'order_items'
             AND column_name = 'supplierProductId'
        ) AS "hasOrderItemSupplierProductId",
@@ -85,6 +104,9 @@ const needsMigration = (state) => {
     !state.hasCatalogSyncRuns ||
     !state.hasSupplierProductId ||
     !state.hasManualOverrides ||
+    !state.hasSupplierPublishPolicy ||
+    !state.hasSupplierDefaultCategoryId ||
+    !state.hasCatalogRunPublishCounters ||
     !state.hasOrderItemSupplierProductId ||
     state.hasLegacyArticles ||
     state.hasLegacyDtfs ||
@@ -193,6 +215,95 @@ const countSeededSuppliers = async () => {
   const slugs = SUPPLIER_SEEDS.map((seed) => `'${seed.slug}'`).join(", ");
   const [rows] = await sequelize.query(
     `SELECT count(*)::int AS n FROM suppliers WHERE slug IN (${slugs})`,
+  );
+  return rows?.[0]?.n || 0;
+};
+
+// Categoria de respaldo: se asigna al publicar un producto sin categoria y
+// cuando el proveedor no define una por defecto. Se siembra una sola vez.
+const seedDefaultCategory = async (transaction) => {
+  await sequelize.query(
+    `INSERT INTO categories (id, name, slug, description, "sortOrder", "isActive", "createdAt", "updatedAt")
+     VALUES (gen_random_uuid(), :name, :slug, :description, 999, true, now(), now())
+     ON CONFLICT (slug) DO NOTHING`,
+    {
+      transaction,
+      replacements: {
+        name: DEFAULT_CATEGORY_NAME,
+        slug: DEFAULT_CATEGORY_SLUG,
+        description: "Productos que aun no tienen categoria asignada.",
+      },
+    },
+  );
+};
+
+const countDefaultCategory = async () => {
+  const [rows] = await sequelize.query(
+    `SELECT count(*)::int AS n FROM categories WHERE slug = :slug`,
+    { replacements: { slug: DEFAULT_CATEGORY_SLUG } },
+  );
+  return rows?.[0]?.n || 0;
+};
+
+// Categorias iniciales que la tienda muestra en "Encuentra tu estilo".
+// Se siembran una sola vez: si el administrador las edita o desactiva, no se
+// vuelven a tocar. Solo se crean cuando ninguna de las cuatro existe, para no
+// resucitar una categoria que el administrador borro a proposito.
+const SHOWCASE_CATEGORY_SEEDS = [
+  {
+    name: "Masculino",
+    slug: "masculino",
+    description: "Prendas y basicos pensados para el dia a dia masculino.",
+    sortOrder: 1,
+  },
+  {
+    name: "Femenino",
+    slug: "femenino",
+    description: "Siluetas y esenciales para un estilo femenino actual.",
+    sortOrder: 2,
+  },
+  {
+    name: "Accesorios",
+    slug: "accesorios",
+    description: "Detalles que terminan de contar tu estilo.",
+    sortOrder: 3,
+  },
+  {
+    name: "Calzado",
+    slug: "calzado",
+    description: "Pisadas comodas para acompanar cada look.",
+    sortOrder: 4,
+  },
+];
+
+const seedShowcaseCategories = async (transaction) => {
+  for (const seed of SHOWCASE_CATEGORY_SEEDS) {
+    await sequelize.query(
+      `INSERT INTO categories (id, name, slug, description, "sortOrder", "isActive", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), :name, :slug, :description, :sortOrder, true, now(), now())
+       ON CONFLICT (slug) DO NOTHING`,
+      {
+        transaction,
+        replacements: {
+          name: seed.name,
+          slug: seed.slug,
+          description: seed.description,
+          sortOrder: seed.sortOrder,
+        },
+      },
+    );
+  }
+};
+
+// Comprobacion de solo lectura: cuantas categorias de portada ya existen.
+const countShowcaseCategories = async () => {
+  const [rows] = await sequelize.query(
+    `SELECT count(*)::int AS n FROM categories WHERE slug IN (:slugs)`,
+    {
+      replacements: {
+        slugs: SHOWCASE_CATEGORY_SEEDS.map((seed) => seed.slug),
+      },
+    },
   );
   return rows?.[0]?.n || 0;
 };
@@ -448,6 +559,38 @@ const applySchema = async (transaction, state) => {
     { transaction },
   );
 
+  // Politica de publicacion y categoria por defecto del proveedor. Se agregan
+  // despues de `categories` para poder crear la FK.
+  await sequelize.query(
+    `ALTER TABLE suppliers
+       ADD COLUMN IF NOT EXISTS "publishPolicy" VARCHAR(20) NOT NULL DEFAULT 'manual',
+       ADD COLUMN IF NOT EXISTS "defaultCategoryId" UUID`,
+    { transaction },
+  );
+  await addForeignKeyIfPossible(transaction, {
+    table: "suppliers",
+    column: "defaultCategoryId",
+    refTable: "categories",
+    onDelete: "SET NULL",
+    name: "suppliers_default_category_fkey",
+  });
+  await sequelize.query(
+    `DO $policy$
+     BEGIN
+       IF NOT EXISTS (
+         SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'suppliers'::regclass
+            AND conname = 'suppliers_publish_policy_check'
+       ) THEN
+         ALTER TABLE suppliers
+           ADD CONSTRAINT suppliers_publish_policy_check
+           CHECK ("publishPolicy" IN ('manual', 'auto_draft', 'auto_visible'));
+       END IF;
+     END
+     $policy$`,
+    { transaction },
+  );
+
   await sequelize.query(
     `CREATE TABLE IF NOT EXISTS product_categories (
       "productId" UUID NOT NULL REFERENCES products(id) ON UPDATE CASCADE ON DELETE CASCADE,
@@ -509,6 +652,10 @@ const applySchema = async (transaction, state) => {
       updated INTEGER NOT NULL DEFAULT 0,
       unchanged INTEGER NOT NULL DEFAULT 0,
       errors INTEGER NOT NULL DEFAULT 0,
+      "publishedCreated" INTEGER NOT NULL DEFAULT 0,
+      "publishedUpdated" INTEGER NOT NULL DEFAULT 0,
+      hidden INTEGER NOT NULL DEFAULT 0,
+      skipped INTEGER NOT NULL DEFAULT 0,
       "errorSummary" JSONB NOT NULL DEFAULT '[]'::jsonb,
       "triggeredBy" UUID,
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -527,6 +674,16 @@ const applySchema = async (transaction, state) => {
   );
   await sequelize.query(
     `CREATE INDEX IF NOT EXISTS catalog_sync_runs_started_idx ON catalog_sync_runs ("startedAt")`,
+    { transaction },
+  );
+  // Contadores del efecto sobre el catalogo publicado (politica automatica y
+  // conciliacion de disponibilidad). Idempotente sobre bases existentes.
+  await sequelize.query(
+    `ALTER TABLE catalog_sync_runs
+       ADD COLUMN IF NOT EXISTS "publishedCreated" INTEGER NOT NULL DEFAULT 0,
+       ADD COLUMN IF NOT EXISTS "publishedUpdated" INTEGER NOT NULL DEFAULT 0,
+       ADD COLUMN IF NOT EXISTS hidden INTEGER NOT NULL DEFAULT 0,
+       ADD COLUMN IF NOT EXISTS skipped INTEGER NOT NULL DEFAULT 0`,
     { transaction },
   );
 
@@ -556,6 +713,8 @@ const applySchema = async (transaction, state) => {
   // 7. Semillas
   // -------------------------------------------------------------------------
   await seedSuppliers(transaction);
+  await seedDefaultCategory(transaction);
+  await seedShowcaseCategories(transaction);
 };
 
 // ---------------------------------------------------------------------------
@@ -566,11 +725,24 @@ const ensureCatalogSchema = async () => {
   const initialState = await getSchemaState();
   if (!needsMigration(initialState)) {
     // El esquema puede estar al dia y faltar una semilla nueva (un proveedor
-    // agregado despues). Se comprueba en solo lectura y solo se siembra si
-    // falta: en el arranque normal no se escribe nada.
-    if ((await countSeededSuppliers()) < SUPPLIER_SEEDS.length) {
+    // o la categoria de respaldo agregados despues). Se comprueba en solo
+    // lectura y solo se siembra si falta: en el arranque normal no se escribe.
+    const [supplierSeeds, categorySeeds, showcaseSeeds] = await Promise.all([
+      countSeededSuppliers(),
+      countDefaultCategory(),
+      countShowcaseCategories(),
+    ]);
+    if (supplierSeeds < SUPPLIER_SEEDS.length) {
       await seedSuppliers();
       console.log("✅ Semillas de proveedores de catálogo completadas");
+    }
+    if (categorySeeds === 0) {
+      await seedDefaultCategory();
+      console.log("✅ Categoría de respaldo del catálogo creada");
+    }
+    if (showcaseSeeds === 0) {
+      await seedShowcaseCategories();
+      console.log("✅ Categorías iniciales de la tienda creadas");
     }
     console.log("✅ Esquema de catálogo al día");
     return { migrated: false };

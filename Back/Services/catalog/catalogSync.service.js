@@ -9,7 +9,8 @@
 // Reglas de negocio implementadas:
 //   - El stock se actualiza con las unidades REALES del proveedor.
 //   - El precio de venta NUNCA se pisa (solo se sugiere al publicar).
-//   - Si el producto deja de estar disponible se DESACTIVA; no se borra.
+//   - Si el producto deja de estar disponible se OCULTA; no se borra.
+//   - La politica `publishPolicy` decide si lo nuevo se publica solo.
 //   - Un producto con pedidos jamas se elimina.
 //   - Nunca se sobrescribe un campo que el admin haya marcado en
 //     `manualOverrides`.
@@ -24,10 +25,14 @@ const {
   SupplierProductVariation,
   SupplierProductAsset,
 } = require("../../DataBase/models/index.js");
+const { Op, literal } = require("sequelize");
 const {
   CATALOG_SYNC_STATUS,
   CATALOG_SYNC_TRIGGER,
   PRODUCT_STATUS,
+  PUBLISH_POLICY,
+  DEFAULT_CATEGORY_SLUG,
+  DEFAULT_CATEGORY_NAME,
 } = require("../../DataBase/models/enums.js");
 const { DEFAULT_MARKUP_PERCENT } = require("../../config.js");
 const HttpError = require("../../Utils/HttpError.js");
@@ -41,6 +46,10 @@ const {
 } = require("../../integrations/suppliers/venndelo/venndelo.normalize.js");
 const { importCatalog } = require("./catalogImport.service.js");
 const runs = require("./catalogRuns.service.js");
+const {
+  resolvePublishPolicy,
+  resolvePublishVisibility,
+} = require("./visibility.service.js");
 
 const log = createLogger("catalog.sync");
 
@@ -104,6 +113,8 @@ const applyToPublished = async (
   const overrides = product.manualOverrides || {};
   const updates = {};
   let changed = false;
+  // Un producto que el proveedor deja de ofrecer se oculta (no se borra).
+  let hidden = false;
 
   const setIf = (field, value) => {
     if (product[field] !== value) {
@@ -141,18 +152,44 @@ const applyToPublished = async (
   const firstSku = variations.find((v) => v.sku)?.sku || null;
   if (firstSku && !overrides.name) setIf("providerSku", firstSku);
 
-  // Imagenes: solo si el admin no las personalizo.
+  // Imagenes: solo si el admin no las personalizo. Se reescriben unicamente
+  // cuando cambian: si no, la corrida contaria como "actualizado" infinidad de
+  // veces el mismo producto.
   if (!overrides.images) {
     const assets = await SupplierProductAsset.findAll({
       where: { supplierProductId: supplierProduct.id },
       transaction,
     });
-    const urls = await rebuildProductImages(product, assets, transaction);
-    updates.images = urls;
-    changed = true;
+    const ordered = [...assets].sort((a, b) => a.position - b.position);
+    const urls = ordered.map((asset) => asset.url);
+    const current = await ProductImage.findAll({
+      where: { productId: product.id },
+      order: [["position", "ASC"]],
+      transaction,
+    });
+    const sameRows =
+      current.length === ordered.length &&
+      ordered.every((asset, index) => {
+        const row = current[index];
+        return (
+          row.url === asset.url &&
+          row.position === asset.position &&
+          row.externalAssetId === asset.externalAssetId
+        );
+      });
+    const sameCache =
+      JSON.stringify(product.images || []) === JSON.stringify(urls);
+
+    if (!sameRows || !sameCache) {
+      await rebuildProductImages(product, assets, transaction);
+      updates.images = urls;
+      changed = true;
+    }
   }
 
   // Disponibilidad -> visibilidad. `active` es el interruptor de la tienda.
+  // Un producto sin stock sigue visible como agotado; solo se oculta cuando el
+  // proveedor deja de ofrecerlo.
   if (!overrides.active) {
     const shouldBeActive =
       product.status === PRODUCT_STATUS.ACTIVE &&
@@ -160,6 +197,7 @@ const applyToPublished = async (
     if (Boolean(product.active) !== shouldBeActive) {
       updates.active = shouldBeActive;
       changed = true;
+      if (!shouldBeActive) hidden = true;
     }
   }
 
@@ -167,7 +205,7 @@ const applyToPublished = async (
     await product.update(updates, { transaction });
   }
 
-  return changed;
+  return { changed, hidden };
 };
 
 // Sincroniza todos los productos publicados de un proveedor.
@@ -183,6 +221,7 @@ const syncPublishedProducts = async ({
 
   let updated = 0;
   let unchanged = 0;
+  let hidden = 0;
 
   for (const product of products) {
     if (!product.supplierProductId) continue;
@@ -193,17 +232,18 @@ const syncPublishedProducts = async ({
     );
     if (!supplierProduct) continue;
 
-    const changed = await applyToPublished(
+    const outcome = await applyToPublished(
       product,
       supplierProduct,
       transaction,
       helpers,
     );
-    if (changed) updated += 1;
+    if (outcome.changed) updated += 1;
     else unchanged += 1;
+    if (outcome.hidden) hidden += 1;
   }
 
-  return { candidates: products.length, updated, unchanged };
+  return { candidates: products.length, updated, unchanged, hidden };
 };
 
 // ---------------------------------------------------------------------------
@@ -220,12 +260,45 @@ const resolveCategoryIds = async (categoryIds, transaction) => {
   return rows.map((row) => row.id);
 };
 
+// Categoria que se asigna cuando el producto no trae una: la del proveedor o,
+// si no existe, la categoria de respaldo "Sin clasificar".
+const resolveDefaultCategoryIds = async (supplier, transaction) => {
+  if (supplier?.defaultCategoryId) {
+    const preferred = await Category.findByPk(supplier.defaultCategoryId, {
+      attributes: ["id"],
+      transaction,
+    });
+    if (preferred) return [preferred.id];
+  }
+
+  const fallback = await Category.findOne({
+    where: { slug: DEFAULT_CATEGORY_SLUG },
+    attributes: ["id"],
+    transaction,
+  });
+  if (fallback) return [fallback.id];
+
+  // Defensa: una base sin la semilla igual puede publicar; la categoria se
+  // crea aqui de forma idempotente.
+  const created = await Category.create(
+    {
+      name: DEFAULT_CATEGORY_NAME,
+      slug: DEFAULT_CATEGORY_SLUG,
+      description: "Productos que aun no tienen categoria asignada.",
+      sortOrder: 999,
+    },
+    { transaction },
+  );
+  return [created.id];
+};
+
 // Publica (o actualiza) un producto del proveedor en la tienda.
 const publishSupplierProduct = async ({
   supplierProductId,
   categoryIds = [],
   price,
   markup,
+  visibility,
   actorUserId = null,
 } = {}) => {
   const result = await sequelize.transaction(async (transaction) => {
@@ -275,6 +348,13 @@ const publishSupplierProduct = async ({
 
     const ids = await resolveCategoryIds(categoryIds, transaction);
 
+    // Visibilidad: por defecto todo nace en borrador salvo que el proveedor
+    // tenga `auto_visible` o el llamador pida `visibility: "visible"`.
+    const explicitVisibility = visibility === "visible" || visibility === "draft";
+    const policy = resolvePublishPolicy(supplier);
+    const wantVisible =
+      resolvePublishVisibility({ visibility, policy }) === "visible";
+
     let product = await Product.findOne({
       where: { supplierProductId: supplierProduct.id },
       transaction,
@@ -287,8 +367,8 @@ const publishSupplierProduct = async ({
       description: supplierProduct.description,
       cost,
       stock: Number(supplierProduct.totalQuantity) || 0,
-      status: PRODUCT_STATUS.ACTIVE,
-      active: Boolean(supplierProduct.availability),
+      status: wantVisible ? PRODUCT_STATUS.ACTIVE : PRODUCT_STATUS.DRAFT,
+      active: wantVisible ? Boolean(supplierProduct.availability) : false,
       providerSku: variations.find((v) => v.sku)?.sku || null,
       sizes: helpers.productSizes(variations),
     };
@@ -341,11 +421,17 @@ const publishSupplierProduct = async ({
         supplierId: base.supplierId,
         supplierProductId: base.supplierProductId,
         cost: base.cost,
-        status: base.status,
-        active: base.active,
         providerSku: base.providerSku,
         sizes: base.sizes,
       };
+      // El estado y la visibilidad del producto ya publicado son decisiones
+      // del administrador: re-publicar no debe resucitar un producto oculto o
+      // archivado. Solo se tocan si el llamador pide una visibilidad explicita
+      // y el admin no fijo `active` en manualOverrides.
+      if (explicitVisibility) {
+        updates.status = base.status;
+        if (!overrides.active) updates.active = base.active;
+      }
       if (!overrides.name) updates.name = base.name;
       if (!overrides.description) updates.description = base.description;
       if (!overrides.stock) updates.stock = base.stock;
@@ -363,17 +449,120 @@ const publishSupplierProduct = async ({
       await product.update(updates, { transaction });
     }
 
-    const urls = await rebuildProductImages(product, assets, transaction);
-    await product.update({ images: urls }, { transaction });
+    // Imagenes: si el admin personalizo la galeria, se respeta.
+    if (!(product.manualOverrides || {}).images) {
+      const urls = await rebuildProductImages(product, assets, transaction);
+      await product.update({ images: urls }, { transaction });
+    }
 
-    if (ids.length > 0) {
-      await product.setCategories(ids, { transaction });
+    // Categorias: las elegidas mandan. Si no hay ninguna y el producto aun no
+    // tiene categoria, se asigna la del proveedor o "Sin clasificar".
+    let finalCategoryIds = ids;
+    if (finalCategoryIds.length === 0) {
+      const current = await product.getCategories({
+        attributes: ["id"],
+        transaction,
+      });
+      if (!current || current.length === 0) {
+        finalCategoryIds = await resolveDefaultCategoryIds(supplier, transaction);
+      }
+    }
+    if (finalCategoryIds.length > 0) {
+      await product.setCategories(finalCategoryIds, { transaction });
     }
 
     return product;
   });
 
   return result.toJSON();
+};
+
+// ---------------------------------------------------------------------------
+// Publicacion automatica (politica del proveedor)
+// ---------------------------------------------------------------------------
+
+// Productos del proveedor que aun no tienen fila en `products`.
+const notPublishedLiteral = () =>
+  literal(`NOT EXISTS (
+    SELECT 1 FROM products p
+     WHERE p."supplierProductId" = "SupplierProduct"."id"
+  )`);
+
+// Aplica la politica del proveedor a los productos nuevos:
+//   - manual: no publica nada (el admin decide desde la bandeja).
+//   - auto_draft: publica en borrador para revisar la ficha.
+//   - auto_visible: publica y activa (si el proveedor lo tiene disponible).
+//
+// Nunca resucita lo archivado ni pisa overrides: solo mira productos sin
+// publicar. Un producto sin disponibilidad no se publica; queda pendiente para
+// cuando el proveedor lo reponga.
+const autoPublishNewProducts = async ({
+  supplier,
+  policy,
+  actorUserId = null,
+} = {}) => {
+  const resolvedPolicy = policy || resolvePublishPolicy(supplier);
+  const result = {
+    policy: resolvedPolicy,
+    created: 0,
+    skipped: 0,
+    skippedDetails: [],
+  };
+
+  if (resolvedPolicy === PUBLISH_POLICY.MANUAL) return result;
+
+  const visibility = resolvePublishVisibility({ policy: resolvedPolicy });
+  const pending = await SupplierProduct.findAll({
+    where: {
+      supplierId: supplier.id,
+      availability: true,
+      [Op.and]: [notPublishedLiteral()],
+    },
+    order: [["updatedAt", "ASC"]],
+  });
+
+  for (const candidate of pending) {
+    try {
+      await publishSupplierProduct({
+        supplierProductId: candidate.id,
+        visibility,
+        actorUserId,
+      });
+      result.created += 1;
+    } catch (error) {
+      result.skipped += 1;
+      if (result.skippedDetails.length < 20) {
+        result.skippedDetails.push({
+          externalId: candidate.externalId,
+          motivo: error.message,
+        });
+      }
+      log.warn("No se pudo publicar un producto nuevo", {
+        externalId: candidate.externalId,
+        error: error.message,
+      });
+    }
+  }
+
+  const unavailable = await SupplierProduct.count({
+    where: {
+      supplierId: supplier.id,
+      availability: false,
+      [Op.and]: [notPublishedLiteral()],
+    },
+  });
+
+  if (unavailable > 0) {
+    result.skipped += unavailable;
+    if (result.skippedDetails.length < 20) {
+      result.skippedDetails.push({
+        externalId: null,
+        motivo: `${unavailable} producto(s) sin disponibilidad; se publican cuando vuelvan a tener stock`,
+      });
+    }
+  }
+
+  return result;
 };
 
 // Despublica sin borrar: el producto conserva historico y pedidos.
@@ -428,11 +617,27 @@ const runCatalogSync = async ({
         filters,
       });
 
-      // 2. Aplicar a los productos ya publicados.
+      // 2. Aplicar a los productos ya publicados (stock, costo, precio de
+      //    sugerencia y visibilidad si el proveedor dejo de ofrecerlo).
       const helpers = helpersForSlug(supplierSlug);
       const published = await sequelize.transaction((transaction) =>
         syncPublishedProducts({ supplierId: supplier.id, transaction, helpers }),
       );
+
+      // 3. Publicar automaticamente los productos nuevos segun la politica del
+      //    proveedor. `manual` no hace nada: la bandeja decide.
+      const autoPublish = await autoPublishNewProducts({
+        supplier,
+        policy: resolvePublishPolicy(supplier),
+        actorUserId: triggeredBy,
+      });
+
+      const counters = {
+        publishedCreated: autoPublish.created,
+        publishedUpdated: published.updated,
+        hidden: published.hidden,
+        skipped: autoPublish.skipped,
+      };
 
       await runs.finishRun(run, {
         status:
@@ -449,7 +654,17 @@ const runCatalogSync = async ({
         errors: imported.errors,
         errorSummary: imported.errorSummary,
         cursor: imported.cursor || null,
+        ...counters,
       });
+
+      if (autoPublish.skippedDetails.length > 0) {
+        log.info("Auto-publicación dejó productos pendientes", {
+          supplier: supplierSlug,
+          policy: autoPublish.policy,
+          skipped: autoPublish.skipped,
+          details: autoPublish.skippedDetails,
+        });
+      }
 
       const summary = {
         supplier: supplierSlug,
@@ -461,6 +676,11 @@ const runCatalogSync = async ({
         unchanged: imported.unchanged,
         errors: imported.errors,
         pages: imported.pages,
+        publishPolicy: autoPublish.policy,
+        publishedCreated: counters.publishedCreated,
+        publishedUpdated: counters.publishedUpdated,
+        hidden: counters.hidden,
+        skipped: counters.skipped,
         published,
       };
 
@@ -480,6 +700,7 @@ module.exports = {
   runCatalogSync,
   syncPublishedProducts,
   applyToPublished,
+  autoPublishNewProducts,
   publishSupplierProduct,
   unpublishProduct,
   rebuildProductImages,

@@ -286,6 +286,11 @@ export function ProvidersNamingNote() {
           catálogo. Importa productos, stock y precios.
         </li>
         <li>
+          <strong>MasterShop</strong> (<code>MASTERSHOP_API_KEY</code>): proveedor
+          de catálogo con llave estática. Solo importa catálogo; no tiene
+          pedidos, billetera ni webhooks.
+        </li>
+        <li>
           <strong>Vendelo</strong> (<code>VENDELO_*</code>): proveedor de
           pedidos. Recibe y actualiza el cumplimiento.
         </li>

@@ -5,11 +5,19 @@ const {
   requirePermission,
 } = require("../Middleware/auth.js");
 const { requireStepUp } = require("../Middlewares/requireStepUp.js");
-const { PRODUCT_STATUS } = require("../DataBase/models/enums.js");
+const {
+  PRODUCT_STATUS,
+  PRODUCT_BULK_ACTION,
+} = require("../DataBase/models/enums.js");
 const {
   listAdmin,
+  listUnpublished,
   detailAdmin,
   update,
+  visibility,
+  bulk,
+  setImages,
+  restoreImages,
 } = require("../Controllers/catalog.controller.js");
 
 const router = express.Router();
@@ -17,7 +25,28 @@ const router = express.Router();
 router.use(requireAuth, requireAdminSession);
 
 router.get("/", listAdmin);
+
+// Las rutas fijas van antes de las que llevan parametro.
+router.get(
+  "/unpublished",
+  requirePermission("providers.manage"),
+  listUnpublished,
+);
+
+router.post(
+  "/bulk",
+  requirePermission("catalog.write"),
+  requireStepUp("catalog.unpublish", {
+    when: (req) =>
+      [PRODUCT_BULK_ACTION.HIDE, PRODUCT_BULK_ACTION.ARCHIVE].includes(
+        String(req.body?.action || ""),
+      ),
+  }),
+  bulk,
+);
+
 router.get("/:id", detailAdmin);
+
 const isUnpublish = (req) => {
   const body = req.body || {};
   if (body.active !== undefined && body.active === false) return true;
@@ -32,6 +61,22 @@ router.patch(
   requirePermission("catalog.write"),
   requireStepUp("catalog.unpublish", { when: isUnpublish }),
   update,
+);
+
+router.post(
+  "/:id/visibility",
+  requirePermission("catalog.write"),
+  requireStepUp("catalog.unpublish", {
+    when: (req) => req.body?.visible === false,
+  }),
+  visibility,
+);
+
+router.put("/:id/images", requirePermission("catalog.write"), setImages);
+router.post(
+  "/:id/images/restore",
+  requirePermission("catalog.write"),
+  restoreImages,
 );
 
 module.exports = router;
