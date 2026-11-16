@@ -97,6 +97,16 @@ const PRODUCT_BULK_ACTION = {
 
 const PRODUCT_BULK_ACTION_VALUES = Object.values(PRODUCT_BULK_ACTION);
 
+// Secciones curadas de la Home. Los valores viajan en la API y coinciden con
+// el CHECK de `product_home_sections.section`.
+const HOME_SECTION = {
+  FEATURED: "seleccion",
+  NEW_ARRIVALS: "novedades",
+  FAVORITES: "favoritos",
+};
+
+const HOME_SECTION_VALUES = Object.values(HOME_SECTION);
+
 // Categoria de respaldo cuando se publica sin categoria y el proveedor no
 // tiene una por defecto.
 const DEFAULT_CATEGORY_SLUG = "sin-clasificar";
@@ -376,6 +386,8 @@ module.exports = {
   PUBLISH_POLICY_VALUES,
   PRODUCT_BULK_ACTION,
   PRODUCT_BULK_ACTION_VALUES,
+  HOME_SECTION,
+  HOME_SECTION_VALUES,
   DEFAULT_CATEGORY_SLUG,
   DEFAULT_CATEGORY_NAME,
   SUPPLIER_SLUG,

@@ -10,13 +10,10 @@ import {
 } from "@/components/products/CatalogStates";
 import { Reveal } from "@/components/shared/Reveal";
 import { DotFieldBackground } from "@/components/shared/DotFieldBackground";
-import {
-  getCoverImage,
-  listCategories,
-  listProducts,
-} from "@/services/catalog";
+import { listCategories, listProducts } from "@/services/catalog";
+import { toCardData } from "@/services/catalog/mappers";
 import { ApiError } from "@/services/api/client";
-import type { Category, PublicProduct } from "@/types/catalog";
+import type { Category } from "@/types/catalog";
 
 const PAGE_SIZE = 12;
 
@@ -28,6 +25,8 @@ type ProductosPageProps = {
     q?: string;
     categoria?: string;
     destacados?: string;
+    nuevos?: string;
+    mas_vendidos?: string;
     pagina?: string;
   }>;
 };
@@ -39,33 +38,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/productos" },
 };
 
-function toCardData(product: PublicProduct) {
-  const base =
-    product.discountPercent > 0 && product.priceBase > product.price
-      ? product.priceBase
-      : null;
-  const compareAt =
-    product.compareAtPrice && product.compareAtPrice > product.price
-      ? product.compareAtPrice
-      : base;
-
-  return {
-    id: product.id,
-    slug: product.slug,
-    name: product.name,
-    price: product.price,
-    compareAtPrice: compareAt,
-    discountPercent: product.discountPercent,
-    sizes: product.sizes,
-    stock: product.stock,
-    combo: product.combo,
-    categoryLabel: product.categories[0]?.name ?? null,
-    badge: null,
-    available: product.available,
-    image: getCoverImage(product),
-  };
-}
-
 export default async function ProductosPage({ searchParams }: ProductosPageProps) {
   const params = await searchParams;
   const q = typeof params.q === "string" && params.q.trim() ? params.q.trim() : null;
@@ -74,6 +46,8 @@ export default async function ProductosPage({ searchParams }: ProductosPageProps
       ? params.categoria.trim()
       : null;
   const featured = params.destacados === "1";
+  const onlyNew = params.nuevos === "1";
+  const bestSellers = params.mas_vendidos === "1";
   const page = Math.max(1, Number(params.pagina) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
@@ -83,6 +57,8 @@ export default async function ProductosPage({ searchParams }: ProductosPageProps
       q: q ?? undefined,
       category: categorySlug ?? undefined,
       featured: featured || undefined,
+      onlyNew: onlyNew || undefined,
+      sort: bestSellers ? "best_sellers" : undefined,
       limit: PAGE_SIZE,
       offset,
     }),
@@ -99,6 +75,8 @@ export default async function ProductosPage({ searchParams }: ProductosPageProps
     if (slug) query.set("categoria", slug);
     if (q) query.set("q", q);
     if (featured) query.set("destacados", "1");
+    if (onlyNew) query.set("nuevos", "1");
+    if (bestSellers) query.set("mas_vendidos", "1");
     const search = query.toString();
     return search ? `/productos?${search}` : "/productos";
   };
@@ -122,12 +100,22 @@ export default async function ProductosPage({ searchParams }: ProductosPageProps
                 Tienda
               </p>
               <h1 className="mt-4 font-heading text-[clamp(2.25rem,5.5vw,4.5rem)] leading-[1.02] font-bold tracking-tight uppercase">
-                {activeCategory ? activeCategory.name : "Toda la colección"}
+                {activeCategory
+                  ? activeCategory.name
+                  : onlyNew
+                    ? "Recién llegados"
+                    : bestSellers
+                      ? "Los más vendidos"
+                      : "Toda la colección"}
               </h1>
             </div>
             <p className="max-w-md text-sm leading-relaxed text-cream/70 sm:text-base lg:col-span-4">
               {activeCategory?.description ??
-                "Piezas pensadas para acompañar tu ritmo: cortes cómodos, materiales elegidos y una paleta que combina con todo."}
+                (onlyNew
+                  ? "Lo último que sumamos a la colección, listo para estrenar."
+                  : bestSellers
+                    ? "Las piezas que más eligen nuestros clientes en los últimos 90 días."
+                    : "Piezas pensadas para acompañar tu ritmo: cortes cómodos, materiales elegidos y una paleta que combina con todo.")}
             </p>
           </div>
         </div>
@@ -174,6 +162,8 @@ export default async function ProductosPage({ searchParams }: ProductosPageProps
                 q={q}
                 categorySlug={categorySlug}
                 featured={featured}
+                onlyNew={onlyNew}
+                bestSellers={bestSellers}
               />
 
               {productsResult.value.products.length > 0 ? (
@@ -194,7 +184,7 @@ export default async function ProductosPage({ searchParams }: ProductosPageProps
                 <CatalogEmpty
                   title="No encontramos productos"
                   description={
-                    q || featured || categorySlug
+                    q || featured || onlyNew || bestSellers || categorySlug
                       ? "Prueba con otros filtros o revisa la colección completa."
                       : "Todavía no hay productos publicados. Estamos preparando la primera colección."
                   }
@@ -209,6 +199,8 @@ export default async function ProductosPage({ searchParams }: ProductosPageProps
                   q: q ?? undefined,
                   categoria: categorySlug ?? undefined,
                   destacados: featured ? "1" : undefined,
+                  nuevos: onlyNew ? "1" : undefined,
+                  mas_vendidos: bestSellers ? "1" : undefined,
                 }}
               />
             </>

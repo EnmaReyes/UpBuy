@@ -17,6 +17,7 @@ const paymentsRoutes = require("./Rutas/payments.js");
 const webhooksRoutes = require("./Rutas/webhooks.js");
 const cronRoutes = require("./Rutas/cron.js");
 const productsRoutes = require("./Rutas/products.js");
+const homeRoutes = require("./Rutas/home.js");
 const categoriesRoutes = require("./Rutas/categories.js");
 const adminProductsRoutes = require("./Rutas/adminProducts.js");
 const adminCategoriesRoutes = require("./Rutas/adminCategories.js");
@@ -285,6 +286,7 @@ app.use("/api/notifications", notificationsRoutes);
 app.use("/api/orders", ordersRoutes);
 // Catalogo publico: productos publicados y categorias activas.
 app.use("/api/products", productsRoutes);
+app.use("/api/home", homeRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/admin", adminMeRoutes);
 app.use("/api/admin/orders", adminOrdersRoutes);

@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Home, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AdminProduct } from "@/types/admin";
 
@@ -43,6 +43,17 @@ export function FeaturedBadge() {
     <span className={cn(base, "bg-terracotta/10 text-terracotta-deep")}>
       <Star aria-hidden="true" className="h-3 w-3" />
       Destacado
+    </span>
+  );
+}
+
+/** Secciones de la portada donde está curado el producto. */
+export function HomeSectionBadges({ sections }: { sections: string[] }) {
+  if (sections.length === 0) return null;
+  return (
+    <span className={cn(base, "bg-coffee/10 text-coffee-deep")}>
+      <Home aria-hidden="true" className="h-3 w-3" />
+      Portada: {sections.join(" · ")}
     </span>
   );
 }

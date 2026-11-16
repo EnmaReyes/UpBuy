@@ -1133,6 +1133,34 @@ export type AdminCategoryList = {
   categories: AdminCategory[];
 };
 
+// ---------------------------------------------------------------------------
+// Curaduria de la portada
+// ---------------------------------------------------------------------------
+
+/** Clave canonica de una seccion de la Home (la que acepta el backend). */
+export type AdminHomeSectionKey = "seleccion" | "novedades" | "favoritos";
+
+/** Ranura curada dentro de una seccion de la portada. */
+export type AdminHomeSlot = {
+  productId: string;
+  name: string;
+  sku: string;
+  /** Posicion 1..4 dentro de la seccion. */
+  position: number;
+  /** Unidades vendidas en los ultimos 90 dias (0 si no hay ventas). */
+  unitsSold: number;
+  image?: string | null;
+};
+
+/** Respuesta de `GET /api/admin/products/home-sections`. */
+export type AdminHomeSections = {
+  featured: AdminHomeSlot[];
+  newArrivals: AdminHomeSlot[];
+  communityFavorites: AdminHomeSlot[];
+  /** Top 20 de favoritos por unidades vendidas (relleno automatico). */
+  ranking: AdminHomeSlot[];
+};
+
 /** Producto original del proveedor en la bandeja (aun sin publicar). */
 export type AdminSupplierTrayItem = {
   id: string;

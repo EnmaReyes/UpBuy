@@ -48,6 +48,12 @@ const getSchemaState = async (transaction) => {
        to_regclass('public.supplier_product_variations') IS NOT NULL AS "hasSupplierVariations",
        to_regclass('public.supplier_product_assets') IS NOT NULL  AS "hasSupplierAssets",
        to_regclass('public.catalog_sync_runs') IS NOT NULL        AS "hasCatalogSyncRuns",
+       to_regclass('public.product_home_sections') IS NOT NULL    AS "hasHomeSections",
+       EXISTS (
+         SELECT 1 FROM pg_constraint
+          WHERE conrelid = to_regclass('public.product_home_sections')
+            AND conname = 'product_home_sections_section_check'
+       ) AS "hasHomeSectionChecks",
        EXISTS (
          SELECT 1 FROM information_schema.columns
           WHERE table_schema = 'public' AND table_name = 'products'
@@ -102,6 +108,8 @@ const needsMigration = (state) => {
     !state.hasSupplierVariations ||
     !state.hasSupplierAssets ||
     !state.hasCatalogSyncRuns ||
+    !state.hasHomeSections ||
+    !state.hasHomeSectionChecks ||
     !state.hasSupplierProductId ||
     !state.hasManualOverrides ||
     !state.hasSupplierPublishPolicy ||
@@ -633,6 +641,76 @@ const applySchema = async (transaction, state) => {
     `CREATE INDEX IF NOT EXISTS product_images_product_idx ON product_images ("productId")`,
     { transaction },
   );
+
+  // Curaduria de la Home: hasta 4 productos por seccion, con posicion manual.
+  await sequelize.query(
+    `CREATE TABLE IF NOT EXISTS product_home_sections (
+      id UUID PRIMARY KEY,
+      "productId" UUID NOT NULL REFERENCES products(id) ON UPDATE CASCADE ON DELETE CASCADE,
+      section VARCHAR(20) NOT NULL
+              CHECK (section IN ('seleccion','novedades','favoritos')),
+      position SMALLINT NOT NULL CHECK (position BETWEEN 1 AND 4),
+      source VARCHAR(10) NOT NULL DEFAULT 'manual'
+             CHECK (source IN ('manual','default')),
+      "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+      "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`,
+    { transaction },
+  );
+  await sequelize.query(
+    `CREATE UNIQUE INDEX IF NOT EXISTS product_home_sections_product_section_uidx
+       ON product_home_sections ("productId", section)`,
+    { transaction },
+  );
+  await sequelize.query(
+    `CREATE INDEX IF NOT EXISTS product_home_sections_section_position_idx
+       ON product_home_sections (section, position)`,
+    { transaction },
+  );
+  // Una base creada por `sequelize.sync()` puede tener la tabla sin las
+  // restricciones: se agregan por nombre para que la migracion siga siendo
+  // idempotente y la curaduria quede igual de protegida en cualquier entorno.
+  await sequelize.query(
+    `DO $home_checks$
+     BEGIN
+       IF NOT EXISTS (
+         SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'product_home_sections'::regclass
+            AND conname = 'product_home_sections_section_check'
+       ) THEN
+         ALTER TABLE product_home_sections
+           ADD CONSTRAINT product_home_sections_section_check
+           CHECK (section IN ('seleccion','novedades','favoritos'));
+       END IF;
+       IF NOT EXISTS (
+         SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'product_home_sections'::regclass
+            AND conname = 'product_home_sections_position_check'
+       ) THEN
+         ALTER TABLE product_home_sections
+           ADD CONSTRAINT product_home_sections_position_check
+           CHECK (position BETWEEN 1 AND 4);
+       END IF;
+       IF NOT EXISTS (
+         SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'product_home_sections'::regclass
+            AND conname = 'product_home_sections_source_check'
+       ) THEN
+         ALTER TABLE product_home_sections
+           ADD CONSTRAINT product_home_sections_source_check
+           CHECK (source IN ('manual','default'));
+       END IF;
+     END
+     $home_checks$`,
+    { transaction },
+  );
+  await addForeignKeyIfPossible(transaction, {
+    table: "product_home_sections",
+    column: "productId",
+    refTable: "products",
+    onDelete: "CASCADE",
+    name: "product_home_sections_product_fkey",
+  });
 
   // -------------------------------------------------------------------------
   // 4. Bitacora de sincronizacion de catalogo

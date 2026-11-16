@@ -40,6 +40,8 @@ contener secretos**.
 | `npm run db:verify-migration` | Prueba destructiva de la migración de pedidos |
 | `npm run db:migrate:catalog` | Aplica el esquema de catálogo (`--down` revierte) |
 | `npm run db:verify-catalog` | Verifica el esquema de catálogo |
+| `npm run db:verify-home` | Verifica la curaduría de la portada (idempotente) |
+| `npm run db:seed-home` | Siembra los favoritos de la portada (`--dry-run`, `--section`, `--limit`) |
 | `npm run venndelo:check` | Prueba la conexión real con Venndelo |
 | `npm run db:create` | Crea la base local |
 | `npm run db:migrate:indexes` | Aplica los índices del panel (ADM-10); idempotente |
@@ -134,8 +136,9 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/api/products?q=&category=&featured=&limit=&offset=` | Catálogo publicado (solo activos) |
+| GET | `/api/products?q=&category=&featured=&new=1&sort=best_sellers&limit=&offset=` | Catálogo publicado (solo activos) |
 | GET | `/api/products/:slug` | Detalle (slug, sku o id) |
+| GET | `/api/home` | Portada: selección, novedades, favoritos y categorías |
 | GET | `/api/categories` | Categorías activas |
 | GET | `/api/orders/:id/tracking?phone=&email=` | Tracking sin sesión |
 | POST | `/api/webhooks/wompi` | Firma de Wompi |
@@ -451,6 +454,8 @@ cambia.
 | GET | `/api/admin/products/unpublished` | Bandeja global: importados de **todos** los proveedores sin fila en `products`; filtros `q`, `availability`, `provider` (slug) |
 | PUT | `/api/admin/products/:id/images` | `{ images: [{ url }] }`, máximo 8 URLs `https`; marca `manualOverrides.images` |
 | POST | `/api/admin/products/:id/images/restore` | Quita el override y reconstruye desde `supplier_product_assets` |
+| GET | `/api/admin/products/home-sections` | Curaduría de las tres secciones + ranking de ventas (`catalog.write`) |
+| PUT | `/api/admin/products/home-sections/:section` | `{ productIds }`; reemplaza la sección (`seleccion`, `novedades`, `favoritos`) |
 | POST | `/api/admin/suppliers/:slug/products/publish-bulk` | `{ productIds?, filters?, markup?, visibility? }`; idempotente, devuelve `{ requested, updated, skipped }` |
 | PATCH | `/api/admin/suppliers/:slug/settings` | `{ publishPolicy?, defaultCategoryId? }` |
 
@@ -467,6 +472,40 @@ tener varias. `PATCH /api/admin/products/:id` acepta `categoryIds` y reemplaza
 la selección; `POST /api/admin/categories` crea una categoría al vuelo. En una
 base nueva se siembran `masculino`, `femenino`, `accesorios` y `calzado` (solo
 si ninguna existe); el home las muestra desde `GET /api/categories`.
+
+#### Portada curada (`GET /api/home`)
+
+La portada tiene tres secciones de **máximo 4** productos publicados. El orden
+curado vive en `product_home_sections` (`productId`, `section`, `position`,
+`source`), con índice único `(productId, section)` y CHECK de sección/posición.
+`source` distingue lo que fija el admin (`manual`) de lo que siembra el script
+(`default`).
+
+Prioridad de cada sección: **pines `manual` → filas `default` → relleno
+automático**. Lo curado nunca se desplaza; el relleno solo ocupa huecos.
+
+| Sección (`section`) | Clave pública | Relleno automático | Badge |
+| --- | --- | --- | --- |
+| `seleccion` | `featured` | `destacadas = true` y luego `createdAt DESC` | `null` |
+| `novedades` | `newArrivals` | `COALESCE(publishedAt, createdAt)` en ventana de 30 días | `nuevo` |
+| `favoritos` | `communityFavorites` | unidades vendidas en 90 días (pedidos no cancelados) | `bestseller` |
+
+- `GET /api/home` devuelve `{ sections: { featured, newArrivals,
+  communityFavorites }, categories }`; cada producto suma `badge` y
+  `categoryLabel`. Un producto puede repetirse entre secciones.
+- `PUT /api/admin/products/home-sections/:section` reemplaza la sección en una
+  transacción: más de 4 ids, ids repetidos, producto inexistente o no publicado
+  → **422**; sección inválida → **400**.
+- `publishedAt` marca la **primera publicación real**: un borrador nace con
+  `null` y se fija al hacerlo visible (panel, lote o proveedor). Nunca se pisa
+  una fecha existente; así «Novedades» no depende de cuándo se importó.
+- La semilla es idempotente y no toca lo manual:
+  `npm run db:seed-home` (por defecto `favoritos`, 4). Acepta
+  `--dry-run`, `--section=<seccion>` y `--limit=<1..4>`. Cuando la tienda tenga
+  ventas, el ranking real complementa la semilla.
+- `npm run db:verify-home` comprueba la tabla, los índices y los CHECK.
+- `GET /api/products` acepta `new=1` (solo novedades) y
+  `sort=best_sellers` (orden por unidades vendidas de los últimos 90 días).
 
 #### Avisos de compra en vivo (ADM-5)
 

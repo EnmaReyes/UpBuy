@@ -156,6 +156,10 @@ pedido sigue su curso y queda marcado `providerOutOfSync` para reintentar.
 - No hay runner de migraciones en producción: los scripts de `Back/scripts/`
   se corren a mano (o `npm run db:bootstrap` contra una base Neon nueva).
 - El número de pedido usa la secuencia de Postgres `order_number_seq`.
+- **Portada:** `product_home_sections` guarda la curaduría (máx. 4 por sección:
+  `seleccion`, `novedades`, `favoritos`). Prioridad pines `manual` → semilla
+  `default` (`npm run db:seed-home`) → relleno automático. La lógica vive en
+  `Back/Services/catalog/home.service.js`; el front solo consume `GET /api/home`.
 
 ### Proveedores
 

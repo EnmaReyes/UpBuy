@@ -34,6 +34,8 @@ const setVisibility = async ({ productId, visible } = {}) => {
   await product.update({
     // Ocultar no cambia el estado editorial; hacer visible reactiva el estado.
     ...(visible ? { status: PRODUCT_STATUS.ACTIVE } : {}),
+    // Primera publicacion: la ventana de "Novedades" empieza a contar aqui.
+    ...(visible && !product.publishedAt ? { publishedAt: new Date() } : {}),
     active: visible,
     manualOverrides: overrides,
   });
@@ -111,6 +113,16 @@ const bulk = async ({ ids, action, payload = {} } = {}) => {
       }
 
       await product.update(item.values || {}, { transaction });
+
+      // Publicar en lote tambien fija la primera fecha de publicacion.
+      const values = item.values || {};
+      if (
+        values.status === PRODUCT_STATUS.ACTIVE &&
+        values.active === true &&
+        !product.publishedAt
+      ) {
+        await product.update({ publishedAt: new Date() }, { transaction });
+      }
 
       if (item.categoryIds) {
         const current = (product.categories || []).map((category) => category.id);

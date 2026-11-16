@@ -1,6 +1,7 @@
 import { apiSend } from "@/services/api/client";
 import type {
   AdminCategory,
+  AdminHomeSectionKey,
   AdminProduct,
   AdminProductBulkAction,
   AdminProductBulkResult,
@@ -71,6 +72,20 @@ export async function restoreAdminProductImages(
     `/api/admin/products/${encodeURIComponent(id)}/images/restore`,
     { body: {} },
   );
+}
+
+/**
+ * Reemplaza el orden completo de una seccion de la portada. El backend valida
+ * el permiso `catalog.write` y devuelve la seccion con los ids aplicados.
+ */
+export async function saveAdminHomeSection(
+  section: AdminHomeSectionKey,
+  productIds: string[],
+): Promise<{ section: AdminHomeSectionKey; productIds: string[] }> {
+  return apiSend(`/api/admin/products/home-sections/${section}`, {
+    method: "PUT",
+    body: { productIds },
+  });
 }
 
 /** Crea una categoria interna. Pensado para el alta rapida desde la ficha. */

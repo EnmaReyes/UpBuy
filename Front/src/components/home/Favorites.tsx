@@ -2,15 +2,17 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { ProductCard } from "@/components/products/ProductCard";
-import type { Product } from "@/lib/mock-data";
+import type { ProductCardData } from "@/types/catalog";
 
 type FavoritesProps = {
-  products: Product[];
+  products: ProductCardData[];
 };
 
-// Favoritos de la comunidad: misma lógica de tarjeta que el resto del catálogo.
-// La selección llegará del backend cuando exista el contrato de catálogo.
+// Favoritos de la comunidad: ranking real por unidades vendidas + pines del
+// admin. Sin productos no se pinta.
 export function Favorites({ products }: FavoritesProps) {
+  if (products.length === 0) return null;
+
   return (
     <section className="section-y bg-background">
       <div className="container-page">
@@ -30,7 +32,7 @@ export function Favorites({ products }: FavoritesProps) {
               selección que se mueve con nuestra gente.
             </p>
             <Link
-              href="/productos?destacados=1"
+              href="/productos?mas_vendidos=1"
               className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-carbon transition-colors hover:text-terracotta-deep"
             >
               Ver todos los productos
@@ -41,7 +43,7 @@ export function Favorites({ products }: FavoritesProps) {
 
         <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
           {products.map((product, index) => (
-            <Reveal key={product.id} delay={index * 0.06}>
+            <Reveal key={product.id ?? product.slug ?? index} delay={index * 0.06}>
               <ProductCard product={product} />
             </Reveal>
           ))}

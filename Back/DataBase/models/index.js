@@ -18,6 +18,7 @@ const {
 } = require("./SupplierProductVariation.js");
 const { SupplierProductAsset } = require("./SupplierProductAsset.js");
 const { CatalogSyncRun } = require("./CatalogSyncRun.js");
+const { ProductHomeSection } = require("./ProductHomeSection.js");
 const { Usuarios } = require("./Usuarios.js");
 const { Order } = require("./Order.js");
 const { OrderItem } = require("./OrderItem.js");
@@ -51,6 +52,7 @@ module.exports = {
   SupplierProductVariation,
   SupplierProductAsset,
   CatalogSyncRun,
+  ProductHomeSection,
   // Comercio
   Usuarios,
   Order,

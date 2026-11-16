@@ -39,6 +39,32 @@ export type PublicProduct = {
   featured: boolean;
   categories: CategoryRef[];
   createdAt: string;
+  /** Calculado por el backend según la sección de la Home donde se muestra. */
+  badge?: ProductBadge | null;
+  /** Nombre de la primera categoría, ya resuelto por el backend. */
+  categoryLabel?: string | null;
+};
+
+/** Insignia de tarjeta. Depende de la sección, no es un campo del producto. */
+export type ProductBadge = "bestseller" | "nuevo" | null;
+
+export type HomeSectionKey =
+  | "featured"
+  | "newArrivals"
+  | "communityFavorites";
+
+/** Categoría mínima que devuelve `GET /api/home`. */
+export type HomeCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+};
+
+/** Respuesta de `GET /api/home`: las tres secciones y las categorías. */
+export type HomePayload = {
+  sections: Record<HomeSectionKey, PublicProduct[]>;
+  categories: HomeCategory[];
 };
 
 export type Category = {
@@ -65,6 +91,10 @@ export type CatalogQuery = {
   q?: string;
   category?: string;
   featured?: boolean;
+  /** Solo novedades: publicado dentro de los últimos 30 días. */
+  onlyNew?: boolean;
+  /** Orden por unidades vendidas de los últimos 90 días. */
+  sort?: "best_sellers";
   limit?: number;
   offset?: number;
 };
@@ -84,7 +114,7 @@ export type ProductCardData = {
   stock?: number;
   combo?: boolean;
   categoryLabel?: string | null;
-  badge?: "bestseller" | "nuevo" | null;
+  badge?: ProductBadge;
   available?: boolean;
   image?: string | null;
 };

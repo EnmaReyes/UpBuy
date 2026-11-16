@@ -17,8 +17,9 @@ Autenticación: cookie `httpOnly` `access_token` (JWT, 12h). El frontend nunca l
 |---|---|---|---|
 | GET | `/` | Health básico | `{ message }` |
 | GET | `/health` | Health de BD | `{ ok, db, latencyMs }` |
-| GET | `/products?q=&category=&featured=&limit=&offset=` | **Catálogo publicado** | ver §2 |
+| GET | `/products?q=&category=&featured=&new=1&sort=best_sellers&limit=&offset=` | **Catálogo publicado** | ver §2 |
 | GET | `/products/:slug` | **Detalle** (slug, sku o id) | ver §2 |
+| GET | `/home` | **Portada curada** (selección, novedades, favoritos, categorías) | ver §2 |
 | GET | `/categories` | **Categorías activas** | `[{ id, name, slug, ... }]` |
 | GET | `/orders/:id/tracking?phone=&email=` | Tracking público | `phone` o `email` |
 | POST | `/webhooks/wompi` | Webhook Wompi (firma) | (backend) |
@@ -40,8 +41,8 @@ catálogo: consume estos endpoints.
   puede tener **varias** (`product_categories` es N:M) y la ficha del panel
   permite crearlas al vuelo (`POST /api/admin/categories`).
 - El home muestra las cuatro primeras categorías activas (sin
-  `sin-clasificar`) desde `GET /api/categories`; si la API falla, usa un
-  respaldo local con masculino, femenino, accesorios y calzado.
+  `sin-clasificar`) desde `GET /api/home`; si la API falla, la Home muestra un
+  estado vacío honesto (nunca productos de ejemplo).
 - Siguen **eliminados** (sin reemplazo): `/banner`, `/dtf`, `/posts`,
   `/prices`, `/shipping/*`, `/admin/campaigns`. Modelos eliminados: `Banner`,
   `Campaign`, `Dtf`, `PriceVariant`, `ProductPrice`, `ShippingRate`, `Articulos`
@@ -154,6 +155,8 @@ Curaduría del catálogo publicado (`/admin/catalogo`), con permiso
 | POST | `/admin/products/bulk` | Acciones en lote: `make_visible`, `hide`, `archive`, `restore_draft`, `apply_markup`, `set_categories`, `feature` |
 | PUT | `/admin/products/:id/images` | Galería por URL (máx. 8, `https`); marca `manualOverrides.images` |
 | POST | `/admin/products/:id/images/restore` | Vuelve a las imágenes del proveedor |
+| GET | `/admin/products/home-sections` | Curaduría de la portada (`featured`, `newArrivals`, `communityFavorites`, `ranking`) |
+| PUT | `/admin/products/home-sections/:section` | `{ productIds }` en orden; secciones `seleccion`, `novedades`, `favoritos` (máx. 4) |
 | GET | `/admin/suppliers/:slug/products?published=0` | Bandeja por proveedor (endpoint de proveedor) |
 | GET | `/admin/products/unpublished` | Bandeja global: sin publicar de todos los proveedores conectados |
 | POST | `/admin/suppliers/:slug/products/publish-bulk` | Publicar seleccionados (respeta la política del proveedor) |
@@ -345,6 +348,8 @@ Tabla `products`. La respuesta pública **no** incluye `cost` ni `markup`.
   featured: boolean;              // destacadas
   categories: { id, name, slug }[];
   createdAt: string;
+  badge?: "bestseller" | "nuevo" | null; // solo en GET /api/home
+  categoryLabel?: string | null;         // primera categoría resuelta
 }
 ```
 
@@ -355,7 +360,33 @@ Reglas:
 - Solo productos publicados y activos (`status="active"`, `active=true`).
 - `price` llega como entero COP; el front solo formatea (ver `src/lib/format.ts`).
 - `images` puede venir vacío: la UI ya tiene placeholders.
-- Filtros: `q` (nombre), `category` (slug), `featured`, `limit` (≤100), `offset`.
+- Filtros: `q` (nombre), `category` (slug), `featured`, `new=1` (publicados en
+  los últimos 30 días), `sort=best_sellers` (unidades vendidas de 90 días),
+  `limit` (≤100), `offset`.
+
+### Portada — `GET /api/home`
+
+```ts
+{
+  sections: {
+    featured: PublicProduct[];           // selección, máx. 4, badge null
+    newArrivals: PublicProduct[];        // badge "nuevo"
+    communityFavorites: PublicProduct[]; // badge "bestseller"
+  };
+  categories: { id, name, slug, description }[];
+}
+```
+
+- Cada sección trae **como máximo 4** productos publicados y nunca repite un
+  grid vacío en la UI (la sección no se renderiza si no hay productos).
+- Prioridad: pines `manual` del panel → filas `default` de la semilla →
+  relleno automático (destacadas, fecha o ventas según la sección).
+- El `badge` depende de la sección donde se muestra, no es un campo del
+  producto.
+- `publishedAt` es la primera publicación real; «Novedades» usa
+  `COALESCE(publishedAt, createdAt)`.
+- El front lo consume con `getHomePayload()` (`revalidate: 60`); si falla,
+  estado vacío honesto con enlace a `/productos`.
 
 ### Pedido (Order)
 
@@ -538,11 +569,13 @@ elegido (respaldo ante un fallback inesperado).
 
 | Funcionalidad | Estado backend | Front |
 |---|---|---|
-| Catálogo / listado de productos | ✅ `/products` | ✅ `/productos` (búsqueda, categoría, destacados, paginación) |
+| Catálogo / listado de productos | ✅ `/products` | ✅ `/productos` (búsqueda, categoría, destacados, novedades, más vendidos, paginación) |
 | Detalle de producto | ✅ `/products/:slug` | ✅ `/producto/[slug]` (galería, ficha, relacionados, JSON-LD) |
 | Categorías | ✅ `/categories` · `/admin/categories` | ✅ Pills de filtro en `/productos`, portada en el home y alta/asignación múltiple en la ficha del producto |
 | Importar/sincronizar catálogo | ✅ `/admin/suppliers/venndelo/*` · `/admin/suppliers/mastershop/*` | ✅ `/admin/proveedores/venndelo` y `/admin/proveedores/mastershop` (catálogo, política de publicación, publicación, stock, precio, historial) |
 | Curaduría del catálogo UPBUY | ✅ `/admin/products/*` + bandeja global `/admin/products/unpublished` + `PATCH /settings` | ✅ `/admin/catalogo` (filtros, selección múltiple, lote, drawer de ficha, bandeja global) |
+| Catálogo en la Home | ✅ `/home` | ✅ Home con secciones reales, estado vacío honesto, `sitemap.xml` solo con productos reales |
+| Curaduría de la portada | ✅ `/admin/products/home-sections` | ✅ `/admin/catalogo?tab=home` (3 columnas de 4 ranuras, orden, buscador, ranking, badges de sección en el listado) |
 | Catálogo de Dropi | ❌ Sin API de catálogo; carga manual | N/A (decisión: sin importador CSV por ahora) |
 | Venta manual | ✅ `/admin/orders/manual` (+ `/preview`) | ✅ `/admin/pedidos/nuevo` |
 | Importación CSV de pedidos | ✅ `/admin/orders/import` | ✅ `/admin/pedidos/importar` (vista previa + confirmación) |

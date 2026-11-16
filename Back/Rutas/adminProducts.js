@@ -19,6 +19,10 @@ const {
   setImages,
   restoreImages,
 } = require("../Controllers/catalog.controller.js");
+const {
+  homeSections,
+  replaceHomeSection,
+} = require("../Controllers/home.controller.js");
 
 const router = express.Router();
 
@@ -31,6 +35,14 @@ router.get(
   "/unpublished",
   requirePermission("providers.manage"),
   listUnpublished,
+);
+
+// Curaduria de la Home. Rutas fijas antes de las que llevan parametro.
+router.get("/home-sections", requirePermission("catalog.write"), homeSections);
+router.put(
+  "/home-sections/:section",
+  requirePermission("catalog.write"),
+  replaceHomeSection,
 );
 
 router.post(

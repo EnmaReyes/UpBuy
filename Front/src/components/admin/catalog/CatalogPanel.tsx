@@ -23,6 +23,7 @@ import { CatalogFilters } from "@/components/admin/catalog/CatalogFilters";
 import { CatalogPager } from "@/components/admin/catalog/CatalogPager";
 import {
   FeaturedBadge,
+  HomeSectionBadges,
   VisibilityBadge,
 } from "@/components/admin/catalog/CatalogBadges";
 import { ProductDrawer } from "@/components/admin/catalog/ProductDrawer";
@@ -35,6 +36,7 @@ import {
 import type {
   AdminCatalogFilters,
   AdminCategory,
+  AdminHomeSections,
   AdminProduct,
   AdminProductBulkAction,
 } from "@/types/admin";
@@ -86,6 +88,7 @@ export function CatalogPanel({
   filters,
   categories,
   canWrite,
+  homeSections = null,
 }: {
   products: AdminProduct[];
   total: number;
@@ -94,6 +97,8 @@ export function CatalogPanel({
   filters: AdminCatalogFilters;
   categories: AdminCategory[];
   canWrite: boolean;
+  /** Curaduría de la portada, para marcar en qué secciones está cada producto. */
+  homeSections?: AdminHomeSections | null;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [overrides, setOverrides] = useState<Record<string, AdminProduct>>({});
@@ -112,6 +117,26 @@ export function CatalogPanel({
     () => products.map((product) => overrides[product.id] ?? product),
     [products, overrides],
   );
+
+  // Secciones de la portada por producto. Se calcula una vez por pagina para
+  // no recorrer las tres listas en cada fila.
+  const homePlacement = useMemo(() => {
+    const placement = new Map<string, string[]>();
+    if (!homeSections) return placement;
+    const groups: [string, AdminHomeSections["featured"]][] = [
+      ["Selección", homeSections.featured],
+      ["Novedades", homeSections.newArrivals],
+      ["Favoritos", homeSections.communityFavorites],
+    ];
+    for (const [label, slots] of groups) {
+      for (const slot of slots) {
+        const current = placement.get(slot.productId) ?? [];
+        if (!current.includes(label)) current.push(label);
+        placement.set(slot.productId, current);
+      }
+    }
+    return placement;
+  }, [homeSections]);
 
   useEffect(() => {
     // Un refresh del servidor reemplaza la lista: los cambios locales ya
@@ -370,6 +395,13 @@ export function CatalogPanel({
                               <FeaturedBadge />
                             </span>
                           ) : null}
+                          {homePlacement.has(product.id) ? (
+                            <span className="mt-1 inline-flex">
+                              <HomeSectionBadges
+                                sections={homePlacement.get(product.id) ?? []}
+                              />
+                            </span>
+                          ) : null}
                         </div>
                       </div>
                     </td>
@@ -476,6 +508,11 @@ export function CatalogPanel({
                     <div className="mt-1 flex flex-wrap items-center gap-1">
                       <VisibilityBadge product={product} />
                       {product.destacadas ? <FeaturedBadge /> : null}
+                      {homePlacement.has(product.id) ? (
+                        <HomeSectionBadges
+                          sections={homePlacement.get(product.id) ?? []}
+                        />
+                      ) : null}
                     </div>
                   </div>
                 </div>

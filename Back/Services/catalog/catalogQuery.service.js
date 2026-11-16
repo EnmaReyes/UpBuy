@@ -17,7 +17,10 @@ const {
 } = require("../../DataBase/models/enums.js");
 const { aplicarDescuento } = require("../prices.js");
 const { isVisible } = require("./visibility.service.js");
+const { unitsSoldOrderExpression } = require("./bestSellers.service.js");
 const HttpError = require("../../Utils/HttpError.js");
+
+const NEW_ARRIVAL_WINDOW_DAYS = 30;
 
 const toArray = (value) => (Array.isArray(value) ? value : []);
 
@@ -68,6 +71,8 @@ const listPublished = async ({
   q,
   category,
   featured,
+  onlyNew,
+  sort,
   limit = 24,
   offset = 0,
   includeInactive = false,
@@ -86,16 +91,34 @@ const listPublished = async ({
   if (featured === true || featured === "true") {
     where.destacadas = true;
   }
+  if (onlyNew === true || onlyNew === "true" || onlyNew === "1") {
+    where[Op.and] = [
+      literal(
+        `COALESCE("Product"."publishedAt", "Product"."createdAt") >= NOW() - INTERVAL '${NEW_ARRIVAL_WINDOW_DAYS} days'`,
+      ),
+    ];
+  }
 
   const include = [categoryInclude(category ? { slug: String(category) } : null)];
+
+  // `best_sellers` ordena por unidades vendidas (90 dias); si no hay ventas
+  // cae al orden editorial: destacadas y luego las mas recientes.
+  const order =
+    String(sort || "") === "best_sellers"
+      ? [
+          [literal(unitsSoldOrderExpression()), "DESC"],
+          ["destacadas", "DESC"],
+          ["createdAt", "DESC"],
+        ]
+      : [
+          ["destacadas", "DESC"],
+          ["createdAt", "DESC"],
+        ];
 
   const { rows, count } = await Product.findAndCountAll({
     where,
     include,
-    order: [
-      ["destacadas", "DESC"],
-      ["createdAt", "DESC"],
-    ],
+    order,
     limit: safeLimit,
     offset: safeOffset,
     distinct: true,
@@ -381,7 +404,7 @@ const updateProduct = async ({
   for (const [field, transform] of Object.entries(EDITABLE)) {
     if (patch[field] === undefined) continue;
     updates[field] = transform(patch[field]);
-    if (["price", "name", "description", "active", "stock"].includes(field)) {
+    if (["price", "name", "description", "active", "stock", "destacadas"].includes(field)) {
       overrides[field] = true;
     }
   }
@@ -430,6 +453,7 @@ const updateProduct = async ({
 
 module.exports = {
   publicShape,
+  categoryInclude,
   listPublished,
   getBySlugOrSku,
   listAdmin,

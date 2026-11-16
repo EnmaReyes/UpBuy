@@ -242,7 +242,11 @@ categorías de Upbuy son internas.
    activo). Los que no tienen disponibilidad se omiten hasta que vuelvan a
    tener stock. La corrida guarda `publishedCreated`, `publishedUpdated`,
    `hidden` y `skipped`.
-5. Automatización: `GET /api/cron/sync-catalog` (Bearer `CRON_SECRET`).
+5. `publishedAt` marca la **primera publicación real**: se fija al crear el
+   producto ya visible o al hacerlo visible después (panel o proveedor) y no se
+   pisa si ya tiene fecha. Un borrador nace con `publishedAt = null`, así la
+   sección «Novedades» de la portada no cuenta desde la importación.
+6. Automatización: `GET /api/cron/sync-catalog` (Bearer `CRON_SECRET`).
 
 Estados de la corrida en `catalog_sync_runs`: `running`, `success`, `error`.
 

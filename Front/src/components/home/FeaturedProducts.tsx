@@ -1,14 +1,16 @@
 import { Reveal } from "@/components/shared/Reveal";
 import { ProductCard } from "@/components/products/ProductCard";
-import type { Product } from "@/lib/mock-data";
+import type { ProductCardData } from "@/types/catalog";
 
 type FeaturedProductsProps = {
-  products: Product[];
+  products: ProductCardData[];
 };
 
-// Productos destacados: selección del backend (por ahora datos mock).
-// Cuando exista el catálogo real, esta sección recibe /api/products?featured=true.
+// Productos destacados: curaduría del admin (`product_home_sections`).
+// Si la sección llega vacía no se pinta: nunca un grid vacío.
 export function FeaturedProducts({ products }: FeaturedProductsProps) {
+  if (products.length === 0) return null;
+
   return (
     <section className="section-y bg-background">
       <div className="container-page">
@@ -27,7 +29,7 @@ export function FeaturedProducts({ products }: FeaturedProductsProps) {
 
         <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
           {products.map((product, index) => (
-            <Reveal key={product.id} delay={index * 0.06}>
+            <Reveal key={product.id ?? product.slug ?? index} delay={index * 0.06}>
               <ProductCard product={product} />
             </Reveal>
           ))}

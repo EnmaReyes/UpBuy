@@ -1,5 +1,10 @@
 # PROMPT — Catálogo real en la Home + curaduría por secciones
 
+> ⚠️ **Versión vigente:** el prompt ejecutable por fases es
+> [`PROMPT_HOME_CATALOGO_FASES.md`](./PROMPT_HOME_CATALOGO_FASES.md). Este
+> documento queda como **diseño de referencia** (decisiones y alternativas
+> descartadas).
+>
 > Este documento es un **prompt ejecutable** para un agente de código que trabaja
 > en el monorepo **UPBUY**. Está escrito como instrucciones: contexto, decisiones
 > ya tomadas, plan por fases y criterios de aceptación.

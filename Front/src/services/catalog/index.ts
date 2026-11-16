@@ -20,6 +20,8 @@ export async function listProducts(
       q: query.q,
       category: query.category,
       featured: query.featured ? "true" : undefined,
+      new: query.onlyNew ? "1" : undefined,
+      sort: query.sort,
       limit: query.limit ?? DEFAULT_LIMIT,
       offset: query.offset ?? 0,
     },

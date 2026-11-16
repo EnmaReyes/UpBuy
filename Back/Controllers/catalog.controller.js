@@ -5,9 +5,17 @@ const catalogAdmin = require("../Services/catalog/catalogAdmin.service.js");
 // GET /api/products  (publico)
 const list = async (req, res) => {
   try {
-    const { q, category, featured, limit, offset } = req.query || {};
+    const { q, category, featured, sort, limit, offset } = req.query || {};
     return res.json(
-      await catalog.listPublished({ q, category, featured, limit, offset }),
+      await catalog.listPublished({
+        q,
+        category,
+        featured,
+        onlyNew: req.query?.new,
+        sort,
+        limit,
+        offset,
+      }),
     );
   } catch (error) {
     return sendError(res, error, "No se pudo listar el catálogo");

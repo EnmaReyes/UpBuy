@@ -7,20 +7,24 @@ type CatalogToolbarProps = {
   q: string | null;
   categorySlug: string | null;
   featured: boolean;
+  onlyNew: boolean;
+  bestSellers: boolean;
 };
 
-// Barra del catálogo: conteo, búsqueda y filtro de destacados.
+// Barra del catálogo: conteo, búsqueda y filtros de curaduría.
 // Es un formulario GET nativo: funciona sin JavaScript y los filtros quedan en
-// la URL (compartibles e indexables). El backend solo admite `q`, `category`,
-// `featured`, `limit` y `offset`; no se ofrece ordenación porque no existe.
+// la URL (compartibles e indexables). El backend admite `q`, `category`,
+// `featured`, `new`, `sort`, `limit` y `offset`.
 export function CatalogToolbar({
   total,
   activeCategoryName,
   q,
   categorySlug,
   featured,
+  onlyNew,
+  bestSellers,
 }: CatalogToolbarProps) {
-  const hasFilters = Boolean(q || categorySlug || featured);
+  const hasFilters = Boolean(q || categorySlug || featured || onlyNew || bestSellers);
 
   return (
     <div className="flex flex-col gap-4 border-b border-border pb-5 lg:flex-row lg:items-center lg:justify-between">
@@ -30,6 +34,8 @@ export function CatalogToolbar({
         </span>{" "}
         {total === 1 ? "producto" : "productos"}
         {activeCategoryName ? ` en ${activeCategoryName}` : ""}
+        {onlyNew ? " recién llegados" : ""}
+        {bestSellers ? " ordenados por ventas" : ""}
         {q ? ` para “${q}”` : ""}
       </p>
 
@@ -61,16 +67,21 @@ export function CatalogToolbar({
           />
         </div>
 
-        <label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-carbon">
-          <input
-            type="checkbox"
-            name="destacados"
-            value="1"
-            defaultChecked={featured}
-            className="h-4 w-4 rounded border-border accent-[#A94200]"
-          />
-          Destacados
-        </label>
+        <FilterCheckbox
+          name="destacados"
+          label="Destacados"
+          defaultChecked={featured}
+        />
+        <FilterCheckbox
+          name="nuevos"
+          label="Novedades"
+          defaultChecked={onlyNew}
+        />
+        <FilterCheckbox
+          name="mas_vendidos"
+          label="Más vendidos"
+          defaultChecked={bestSellers}
+        />
 
         <button
           type="submit"
@@ -89,5 +100,28 @@ export function CatalogToolbar({
         ) : null}
       </form>
     </div>
+  );
+}
+
+function FilterCheckbox({
+  name,
+  label,
+  defaultChecked,
+}: {
+  name: string;
+  label: string;
+  defaultChecked: boolean;
+}) {
+  return (
+    <label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-carbon">
+      <input
+        type="checkbox"
+        name={name}
+        value="1"
+        defaultChecked={defaultChecked}
+        className="h-4 w-4 rounded border-border accent-[#A94200]"
+      />
+      {label}
+    </label>
   );
 }

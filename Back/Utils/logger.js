@@ -104,7 +104,9 @@ const emit = (nivel, scope, mensaje, datos) => {
   }
 
   const extra =
-    payload.datos !== undefined ? ` ${JSON.stringify(payload.datos)}` : "";
+    datos && typeof datos === "object"
+      ? ` ${JSON.stringify(redact(datos))}`
+      : "";
   const linea = `[${payload.at}] ${nivel.toUpperCase().padEnd(5)} [${scope}] ${mensaje}${extra}`;
 
   if (nivel === "error") console.error(linea);

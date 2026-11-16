@@ -3,9 +3,11 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { DotFieldBackground } from "@/components/shared/DotFieldBackground";
 import { CatalogPanel } from "@/components/admin/catalog/CatalogPanel";
-import { CatalogTabs } from "@/components/admin/catalog/CatalogTabs";
+import { CatalogTabs, type CatalogTab } from "@/components/admin/catalog/CatalogTabs";
+import { HomeSectionsPanel } from "@/components/admin/catalog/HomeSectionsPanel";
 import { SupplierTrayPanel } from "@/components/admin/catalog/SupplierTrayPanel";
 import {
+  getAdminHomeSections,
   listAdminCategories,
   listAdminProducts,
   listUnpublishedCatalog,
@@ -20,6 +22,7 @@ import {
 import {
   ADMIN_PRODUCT_STATUS_LABELS,
   type AdminCatalogFilters,
+  type AdminHomeSections,
   type AdminSupplierTrayFilters,
   type AdminSupplierTrayResult,
 } from "@/types/admin";
@@ -71,13 +74,38 @@ async function loadTray(
   }
 }
 
+// La curaduria de la portada no debe tumbar el catalogo: si falla (por ejemplo,
+// porque la migracion no esta aplicada) la pestana muestra el error y el resto
+// del panel sigue funcionando.
+async function loadHomeSections(): Promise<{
+  data: AdminHomeSections | null;
+  error: string | null;
+}> {
+  try {
+    return { data: await getAdminHomeSections(), error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error:
+        error instanceof ApiError
+          ? error.message
+          : "No se pudo cargar la curaduría de la portada.",
+    };
+  }
+}
+
 export default async function AdminCatalogPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
   const raw = await searchParams;
-  const tab = one(raw.tab) === "bandeja" ? "bandeja" : "catalogo";
+  const tab: CatalogTab =
+    one(raw.tab) === "bandeja"
+      ? "bandeja"
+      : one(raw.tab) === "home"
+        ? "home"
+        : "catalogo";
 
   const filters: AdminCatalogFilters = {
     q: one(raw.q).trim(),
@@ -126,9 +154,10 @@ export default async function AdminCatalogPage({
   let categories;
   let catalogResult;
   let trayState;
+  let homeState;
 
   try {
-    [admin, categories, catalogResult, trayState] = await Promise.all([
+    [admin, categories, catalogResult, trayState, homeState] = await Promise.all([
       getAdminMe(),
       listAdminCategories(),
       listAdminProducts(filters, {
@@ -136,6 +165,7 @@ export default async function AdminCatalogPage({
         offset: (requestedPage - 1) * CATALOG_PAGE_SIZE,
       }),
       loadTray(trayFilters, requestedTrayPage),
+      loadHomeSections(),
     ]);
   } catch (error) {
     return <CatalogError error={error} />;
@@ -205,6 +235,7 @@ export default async function AdminCatalogPage({
         tab={tab}
         catalogHref={buildCatalogHref(filters, page)}
         trayHref={buildTrayHref(trayFilters, trayPage)}
+        homeHref="/admin/catalogo?tab=home"
         trayCount={trayState.result.total}
         catalog={
           <CatalogPanel
@@ -215,6 +246,14 @@ export default async function AdminCatalogPage({
             filters={filters}
             categories={categories.categories}
             canWrite={canWrite}
+            homeSections={homeState.data}
+          />
+        }
+        home={
+          <HomeSectionsPanel
+            sections={homeState.data}
+            canWrite={canWrite}
+            loadError={homeState.error}
           />
         }
         tray={

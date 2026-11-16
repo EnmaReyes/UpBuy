@@ -14,6 +14,7 @@ import {
   getProductBySlug,
   listProducts,
 } from "@/services/catalog";
+import { toCardData } from "@/services/catalog/mappers";
 import type { PublicProduct } from "@/types/catalog";
 
 export const dynamic = "force-dynamic";
@@ -51,33 +52,6 @@ export async function generateMetadata({
   } catch {
     return { title: "Producto — UPBUY" };
   }
-}
-
-function toCardData(product: PublicProduct) {
-  const base =
-    product.discountPercent > 0 && product.priceBase > product.price
-      ? product.priceBase
-      : null;
-  const compareAt =
-    product.compareAtPrice && product.compareAtPrice > product.price
-      ? product.compareAtPrice
-      : base;
-
-  return {
-    id: product.id,
-    slug: product.slug,
-    name: product.name,
-    price: product.price,
-    compareAtPrice: compareAt,
-    discountPercent: product.discountPercent,
-    sizes: product.sizes,
-    stock: product.stock,
-    combo: product.combo,
-    categoryLabel: product.categories[0]?.name ?? null,
-    badge: null,
-    available: product.available,
-    image: getCoverImage(product),
-  };
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {

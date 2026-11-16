@@ -17,6 +17,8 @@
     "db:verify-migration": "node scripts/verifyDropshippingMigration.js",
     "db:migrate:catalog": "node scripts/migrateSupplierCatalog.js",
     "db:verify-catalog": "node scripts/verifySupplierCatalogMigration.js",
+    "db:verify-home": "node scripts/verifyHomeSectionsMigration.js",
+    "db:seed-home": "node scripts/seedHomeSections.js",
     "db:migrate:admin": "node scripts/migrateAdminSecurity.js",
     "db:migrate:campaigns": "node scripts/migrateCampaignSchema.js",
     "db:migrate:indexes": "node scripts/migratePanelIndexes.js",

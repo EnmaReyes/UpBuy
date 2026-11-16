@@ -6,10 +6,10 @@ import { motion } from "motion/react";
 import GlitchText from "@/components/GlitchText";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { formatPrice } from "@/lib/format";
-import type { Product } from "@/lib/mock-data";
+import type { ProductCardData } from "@/types/catalog";
 
 type HeroProps = {
-  featured: Product;
+  featured: ProductCardData | null;
 };
 
 // Hero editorial: titular grande con GlitchText, texto comercial breve y dos CTAs.
@@ -127,29 +127,35 @@ export function Hero({ featured }: HeroProps) {
               </span>
             </div>
 
-            {/* Producto destacado superpuesto, como en la referencia editorial. */}
-            <Link
-              href={`/producto/${featured.slug}`}
-              className="absolute inset-x-4 bottom-4 flex items-center gap-4 rounded-xl bg-cream/95 p-3 pr-5 text-carbon transition-colors hover:bg-cream sm:inset-x-6 sm:bottom-6"
-            >
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-[linear-gradient(140deg,#EDE0CE_0%,#D9C9B3_100%)]">
-                <span className="text-[8px] font-semibold tracking-[0.14em] text-coffee-deep uppercase">
-                  Foto
-                </span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold tracking-[0.2em] text-coffee-deep uppercase">
-                  Producto destacado
-                </p>
-                <p className="mt-1 truncate font-heading text-base font-semibold">
-                  {featured.name}
-                </p>
-                <p className="text-sm font-semibold [font-variant-numeric:tabular-nums]">
-                  {formatPrice(featured.price)}
-                </p>
-              </div>
-              <ArrowUpRight className="h-5 w-5 shrink-0 text-coffee-deep" aria-hidden="true" />
-            </Link>
+            {/* Producto destacado superpuesto, como en la referencia editorial.
+                Si la portada no tiene productos, la imagen editorial queda sola. */}
+            {featured ? (
+              <Link
+                href={`/producto/${featured.slug}`}
+                className="absolute inset-x-4 bottom-4 flex items-center gap-4 rounded-xl bg-cream/95 p-3 pr-5 text-carbon transition-colors hover:bg-cream sm:inset-x-6 sm:bottom-6"
+              >
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-[linear-gradient(140deg,#EDE0CE_0%,#D9C9B3_100%)]">
+                  <span className="text-[8px] font-semibold tracking-[0.14em] text-coffee-deep uppercase">
+                    Foto
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold tracking-[0.2em] text-coffee-deep uppercase">
+                    Producto destacado
+                  </p>
+                  <p className="mt-1 truncate font-heading text-base font-semibold">
+                    {featured.name}
+                  </p>
+                  <p className="text-sm font-semibold [font-variant-numeric:tabular-nums]">
+                    {formatPrice(featured.price)}
+                  </p>
+                </div>
+                <ArrowUpRight
+                  className="h-5 w-5 shrink-0 text-coffee-deep"
+                  aria-hidden="true"
+                />
+              </Link>
+            ) : null}
           </div>
         </motion.div>
       </div>

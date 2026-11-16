@@ -3,6 +3,7 @@ import type {
   AdminCatalogFilters,
   AdminCatalogSupplierStatus,
   AdminCategoryList,
+  AdminHomeSections,
   AdminProduct,
   AdminProductListResult,
   AdminSupplierTrayFilters,
@@ -40,6 +41,11 @@ export async function getAdminProduct(id: string): Promise<AdminProduct> {
 
 export async function listAdminCategories(): Promise<AdminCategoryList> {
   return serverFetch<AdminCategoryList>("/api/admin/categories");
+}
+
+/** Curaduria de las tres secciones de la portada y el ranking de ventas. */
+export async function getAdminHomeSections(): Promise<AdminHomeSections> {
+  return serverFetch<AdminHomeSections>("/api/admin/products/home-sections");
 }
 
 /** Productos importados de cualquier proveedor que aun no estan publicados. */

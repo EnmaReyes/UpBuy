@@ -2,15 +2,17 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
 import { ProductCard } from "@/components/products/ProductCard";
-import type { Product } from "@/lib/mock-data";
+import type { ProductCardData } from "@/types/catalog";
 
 type NewArrivalsProps = {
-  products: Product[];
+  products: ProductCardData[];
 };
 
 // Sección editorial de novedades. Reutiliza ProductCard para no duplicar
-// la lógica de tarjetas.
+// la lógica de tarjetas. Sin productos no se pinta.
 export function NewArrivals({ products }: NewArrivalsProps) {
+  if (products.length === 0) return null;
+
   return (
     <section className="section-y bg-carbon text-cream">
       <div className="container-page">
@@ -30,7 +32,7 @@ export function NewArrivals({ products }: NewArrivalsProps) {
               acompañar tus días más activos.
             </p>
             <Link
-              href="/productos"
+              href="/productos?nuevos=1"
               className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-terracotta transition-colors hover:text-cream"
             >
               Ver todas las novedades
@@ -41,7 +43,7 @@ export function NewArrivals({ products }: NewArrivalsProps) {
 
         <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
           {products.map((product, index) => (
-            <Reveal key={product.id} delay={index * 0.08}>
+            <Reveal key={product.id ?? product.slug ?? index} delay={index * 0.08}>
               <ProductCard product={product} />
             </Reveal>
           ))}

@@ -124,6 +124,7 @@ test("publicar deja borrador y asigna Sin clasificar", async (t) => {
 
     assert.equal(product.status, PRODUCT_STATUS.DRAFT);
     assert.equal(product.active, false);
+    assert.equal(product.publishedAt, null);
 
     const categories = await Category.findAll({
       include: [
@@ -144,6 +145,10 @@ test("publicar deja borrador y asigna Sin clasificar", async (t) => {
     });
     assert.equal(visible.status, PRODUCT_STATUS.ACTIVE);
     assert.equal(visible.active, true);
+    assert.ok(
+      visible.publishedAt,
+      "publicar desde el panel fija la primera fecha de publicacion",
+    );
   });
 });
 
@@ -163,6 +168,7 @@ test("auto_visible publica activo desde el primer momento", async (t) => {
 
     assert.equal(product.status, PRODUCT_STATUS.ACTIVE);
     assert.equal(product.active, true);
+    assert.ok(product.publishedAt, "auto_visible fija publishedAt al publicar");
   });
 });
 

@@ -1,27 +1,34 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Inbox, Package } from "lucide-react";
+import { Inbox, LayoutGrid, Package } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import SmoothTab from "@/components/kokonutui/smooth-tab";
 
 // Pestanas del catalogo. SmoothTab maneja el gesto y el indicador; aqui solo
 // se sincroniza la pestana con la URL para que los filtros sean compartibles.
 
+export type CatalogTab = "catalogo" | "bandeja" | "home";
+
 export function CatalogTabs({
   tab,
   catalogHref,
   trayHref,
+  homeHref,
   trayCount,
   catalog,
   tray,
+  home,
 }: {
-  tab: "catalogo" | "bandeja";
+  tab: CatalogTab;
   catalogHref: string;
   trayHref: string;
+  homeHref: string;
   trayCount?: number;
   catalog: ReactNode;
   tray: ReactNode;
+  /** Curaduria de la portada; se omite si el rol no puede escribir. */
+  home?: ReactNode;
 }) {
   const router = useRouter();
   const [value, setValue] = useState(tab);
@@ -31,11 +38,16 @@ export function CatalogTabs({
   }, [tab]);
 
   const change = (next: string) => {
-    const target = next === "bandeja" ? "bandeja" : "catalogo";
+    const target: CatalogTab =
+      next === "bandeja" ? "bandeja" : next === "home" ? "home" : "catalogo";
     setValue(target);
-    router.replace(target === "bandeja" ? trayHref : catalogHref, {
-      scroll: false,
-    });
+    const href =
+      target === "bandeja"
+        ? trayHref
+        : target === "home"
+          ? homeHref
+          : catalogHref;
+    router.replace(href, { scroll: false });
   };
 
   return (
@@ -49,6 +61,12 @@ export function CatalogTabs({
           title: "Catálogo UPBUY",
           icon: Package,
           content: catalog,
+        },
+        {
+          id: "home",
+          title: "Portada",
+          icon: LayoutGrid,
+          content: home ?? null,
         },
         {
           id: "bandeja",

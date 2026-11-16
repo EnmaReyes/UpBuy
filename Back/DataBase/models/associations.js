@@ -29,6 +29,7 @@ const {
 } = require("./SupplierProductVariation.js");
 const { SupplierProductAsset } = require("./SupplierProductAsset.js");
 const { CatalogSyncRun } = require("./CatalogSyncRun.js");
+const { ProductHomeSection } = require("./ProductHomeSection.js");
 const { Campaign } = require("./Campaign.js");
 const { CampaignRecipient } = require("./CampaignRecipient.js");
 
@@ -327,6 +328,19 @@ Category.belongsToMany(Product, {
   timestamps: false,
 });
 
+// Curaduria de la Home: cada producto puede ocupar una posicion en varias
+// secciones. Al borrar el producto se borran sus filas.
+Product.hasMany(ProductHomeSection, {
+  foreignKey: "productId",
+  as: "homeSections",
+  onDelete: "CASCADE",
+});
+
+ProductHomeSection.belongsTo(Product, {
+  foreignKey: "productId",
+  as: "product",
+});
+
 // El autor del producto (usuario que lo publico).
 Usuarios.hasMany(Product, {
   foreignKey: "uid",
@@ -364,4 +378,5 @@ module.exports = {
   SupplierProductVariation,
   SupplierProductAsset,
   CatalogSyncRun,
+  ProductHomeSection,
 };

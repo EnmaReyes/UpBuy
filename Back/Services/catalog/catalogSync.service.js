@@ -372,7 +372,6 @@ const publishSupplierProduct = async ({
       providerSku: variations.find((v) => v.sku)?.sku || null,
       sizes: helpers.productSizes(variations),
     };
-
     if (!product) {
       const sku = helpers.buildProductSku(supplierProduct.externalId);
       const slug = helpers.buildProductSlug(
@@ -402,7 +401,9 @@ const publishSupplierProduct = async ({
                 )
               : null,
           currency: supplierProduct.currency || "COP",
-          publishedAt: new Date(),
+          // `publishedAt` es la primera publicacion real: un borrador no la
+          // tiene hasta que se hace visible (se fija en la visibilidad).
+          publishedAt: wantVisible ? new Date() : null,
           uid: actorUserId,
           // Un precio fijado al publicar es una decision comercial: se marca
           // para que ninguna sincronizacion lo pise.
@@ -435,6 +436,21 @@ const publishSupplierProduct = async ({
       if (!overrides.name) updates.name = base.name;
       if (!overrides.description) updates.description = base.description;
       if (!overrides.stock) updates.stock = base.stock;
+
+      // Primera publicacion desde el proveedor: si el producto deja de estar
+      // en borrador y pasa a visible, se marca la fecha. Nunca se pisa una
+      // fecha ya existente.
+      const nextStatus = updates.status ?? product.status;
+      const nextActive = overrides.active
+        ? product.active
+        : updates.active ?? product.active;
+      if (
+        !product.publishedAt &&
+        nextStatus === PRODUCT_STATUS.ACTIVE &&
+        nextActive === true
+      ) {
+        updates.publishedAt = new Date();
+      }
 
       if (!overrides.price && Number(product.price) <= 0) {
         updates.price = salePrice;
