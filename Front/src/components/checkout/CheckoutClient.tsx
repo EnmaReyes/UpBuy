@@ -32,6 +32,7 @@ export function CheckoutClient({
   const [paymentMethod, setPaymentMethod] = useState<"wompi" | "cod_vendelo">(
     "wompi",
   );
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [pending, setPending] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +47,11 @@ export function CheckoutClient({
       return;
     }
     setError(null);
+    if (!acceptedLegal) {
+      setError("Debes aceptar los Términos y Condiciones y la Política de Privacidad.");
+      throw new Error("Aceptación legal pendiente");
+    }
+
     const address = addresses.find((item) => item.id === addressId);
     if (!address) {
       setError("Selecciona una dirección de envío.");
@@ -254,13 +260,50 @@ export function CheckoutClient({
           <div className="mt-5 grid gap-3">
             {error ? <FormMessage kind="error">{error}</FormMessage> : null}
 
+            <div className="flex items-start gap-3">
+              <input
+                id="checkout-legal"
+                type="checkbox"
+                checked={acceptedLegal}
+                onChange={(event) => setAcceptedLegal(event.target.checked)}
+                disabled={pending || completed}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[#0B0B0B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
+              />
+              <label
+                htmlFor="checkout-legal"
+                className="text-xs leading-relaxed text-muted-foreground"
+              >
+                He leído y acepto los{" "}
+                <Link
+                  href="/terminos-y-condiciones"
+                  className="font-semibold text-carbon underline underline-offset-4 transition-colors hover:text-terracotta-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
+                >
+                  Términos y Condiciones
+                </Link>{" "}
+                y la{" "}
+                <Link
+                  href="/politica-de-privacidad"
+                  className="font-semibold text-carbon underline underline-offset-4 transition-colors hover:text-terracotta-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
+                >
+                  Política de Privacidad
+                </Link>
+                .
+              </label>
+            </div>
+
             <SlideToConfirm
               key={`${paymentMethod}-${addressId ?? "sin-direccion"}`}
               label="Desliza para continuar"
               confirmingLabel="Creando pedido"
               doneLabel="Pedido creado"
               onConfirm={confirmOrder}
-              disabled={pending || completed || !addressId || items.length === 0}
+              disabled={
+                pending ||
+                completed ||
+                !acceptedLegal ||
+                !addressId ||
+                items.length === 0
+              }
               resetAfter={null}
               className="max-w-none"
             />

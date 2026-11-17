@@ -57,8 +57,37 @@ catálogo: consume estos endpoints.
 | POST | `/auth/login` | Login | `{ username, password }` | Usuario (sin password) + cookie |
 | POST | `/auth/logout` | Logout | — | 204 |
 | GET | `/auth/me` | Sesión actual | — | Usuario o 401 |
-| POST | `/auth/google` | Login social Google | token Google | Usuario + cookie |
-| POST | `/auth/facebook` | Login social Facebook | token Facebook | Usuario + cookie |
+| POST | `/auth/google` | Login social Google | `{ credential }` (ID token de GIS) | Usuario + cookie |
+| POST | `/auth/facebook` | Login social Facebook | `{ accessToken }` (token del SDK JS) | Usuario + cookie |
+
+#### Login social (Google y Facebook)
+
+- **Google**: Google Identity Services en el navegador. El botón oficial
+  (`renderButton`) devuelve un `credential` (ID token JWT) que se envía tal
+  cual. El backend verifica firma, audiencia (`GOOGLE_CLIENT_ID`) y
+  `email_verified`. No se usa el flujo de redirección OAuth y el front nunca ve
+  el secreto de la app de Google.
+- **Facebook**: SDK de JavaScript cargado bajo demanda al pulsar el botón.
+  `FB.login` con `scope: "email,public_profile"`, `cookie: false` y Graph API
+  `v27.0` (constante `GRAPH_VERSION` en `src/lib/facebook-sdk.ts`). Solo viaja
+  el `accessToken`; el secreto de la app queda en el backend.
+- Ambos responden **igual que `/auth/login`**: usuario + cookie, o
+  `202 { mfaRequired: true, challengeId, expiresAt }` para administradores con
+  MFA, o `403 { code: "ADMIN_MFA_SETUP_REQUIRED", enrollmentTicket }` si aún no
+  lo configuraron. El front reutiliza `AdminMfaForm` sin duplicar el flujo.
+- Errores visibles en el front:
+
+| Respuesta | Cuándo | Texto en la UI |
+|---|---|---|
+| `400` | Falta `credential`/`accessToken` | Error genérico del proveedor |
+| `401` | Token inválido, expirado o de otra app | «No pudimos validar tu cuenta…» |
+| `409` | Facebook: el correo ya tiene cuenta (no auto-vincula) | Enlace a `/login` |
+| `422` | Sin correo verificado (Google) o sin correo (Facebook) | Enlace a `/registro` |
+| `429` | `authLimiter` compartido con `/auth/login` | «Demasiados intentos…» |
+| `503` | Proveedor sin credenciales en el backend | Botón deshabilitado + aviso |
+
+Si `NEXT_PUBLIC_GOOGLE_CLIENT_ID` o `NEXT_PUBLIC_FACEBOOK_APP_ID` faltan, el
+botón correspondiente no se renderiza y el login tradicional sigue intacto.
 
 ### Comprador autenticado (`requireAuth`)
 
@@ -586,7 +615,7 @@ elegido (respaldo ante un fallback inesperado).
 | Envío (rates/quote) | ❌ Eliminado (antes `/shipping/*`) | **Bloqueado** (se resolverá en checkout) |
 | Sync de proveedores (Vendelo/Dropi) | ✅ `/cron/sync-providers` (Bearer `CRON_SECRET`) | N/A (backend) |
 | Proveedores (lista/estado) | ✅ `/admin/suppliers/overview` + `/admin/orders/providers` | ✅ `/admin/proveedores` (tarjetas, salud, contador, sync) |
-| Registro/login/logout | ✅ `/auth/*` | ✅ `/login`, `/registro` (social **no** implementado) |
+| Registro/login/logout | ✅ `/auth/*` | ✅ `/login`, `/registro` (incluye Google y Facebook, mostrar/ocultar contraseña y MFA de administradores) |
 | Perfil y direcciones | ✅ `/users/me*` | ✅ `/cuenta/perfil`, `/cuenta/direcciones` |
 | Pedidos (crear/listar/detalle) | ✅ `/orders*` | ✅ Crear, confirmar y listar (`/checkout`, `/pedido/[id]`, `/cuenta/pedidos`) |
 | Cancelar pedido | ✅ `/orders/:id/cancel` + `canCancel` | ✅ `/pedido/[id]` (FASE 7) |
@@ -618,16 +647,22 @@ elegido (respaldo ante un fallback inesperado).
 
 ## 5. Variables de entorno del front
 
-Solo se usa una. El mercado está fijado en `src/config/market.config.ts`
+Se usan tres. El mercado está fijado en `src/config/market.config.ts`
 (Colombia, COP, `es-CO`), así que no hay variables separadas para país/moneda
 hasta que exista un segundo mercado.
 
 ```
 NEXT_PUBLIC_API_URL=http://localhost:3000   # backend (sin barra final)
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=               # Client ID público de GIS
+NEXT_PUBLIC_FACEBOOK_APP_ID=                # App ID público de Meta
 ```
 
-Plantilla versionada: `Front/.env.example`. El valor real va en `Front/.env.local`
-(ignorado por git).
+Las tres se **incrustan en build**: al cambiar la URL del backend o cualquiera
+de los IDs hay que volver a desplegar el frontend. Los secretos del backend
+(de Google, Facebook, JWT, etc.) viven solo allí y no se copian a `Front/`.
+
+Plantilla versionada: `Front/.env.example`. Los valores reales van en
+`Front/.env.local` (ignorado por git).
 
 El backend usa `FRONTEND_URL` para CORS. En desarrollo `Back/config.js` ya
 apunta a `http://localhost:3001`, que es el puerto fijo del frontend

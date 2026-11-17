@@ -9,6 +9,8 @@ import { safeInternalPath } from "@/lib/safe-url";
 import { getDashboardRoute } from "@/lib/dashboard-route";
 import { AdminMfaForm } from "./AdminMfaForm";
 import { Field, FormMessage, SubmitButton, inputClass } from "./fields";
+import { PasswordInput } from "./PasswordInput";
+import { SocialLogin, type SocialMfaState } from "./SocialLogin";
 
 type MfaState =
   | { mode: "challenge"; challengeId: string }
@@ -30,8 +32,13 @@ export function LoginForm() {
   const nextPath = requestedPath ?? "/cuenta/perfil";
 
   const [pending, setPending] = useState(false);
+  const [socialPending, setSocialPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mfa, setMfa] = useState<MfaState | null>(null);
+
+  const handleSocialMfa = (state: SocialMfaState) => {
+    setMfa(state);
+  };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -121,23 +128,33 @@ export function LoginForm() {
         </Field>
 
         <Field id="login-password" label="Contraseña">
-          <input
+          <PasswordInput
             id="login-password"
             name="password"
-            type="password"
             autoComplete="current-password"
-            required
-            className={inputClass}
             placeholder="••••••••"
           />
         </Field>
 
         {error ? <FormMessage kind="error">{error}</FormMessage> : null}
 
-        <SubmitButton pending={pending} className="w-full">
+        <SubmitButton
+          pending={pending}
+          disabled={socialPending}
+          busy={socialPending}
+          className="w-full"
+        >
           Entrar
         </SubmitButton>
       </form>
+
+      <SocialLogin
+        disabled={pending}
+        requestedPath={requestedPath}
+        onMfa={handleSocialMfa}
+        onStart={() => setError(null)}
+        onPendingChange={setSocialPending}
+      />
 
       <p className="mt-6 text-sm text-muted-foreground">
         ¿Todavía no tienes cuenta?{" "}

@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { Camera, Play, Music2 } from "lucide-react";
+import { CookieSettingsLink } from "@/components/layout/CookieSettingsLink";
 
-const FOOTER_LINKS = {
+type FooterLink = {
+  label: string;
+  href: string;
+  cookieSettings?: boolean;
+};
+
+const FOOTER_LINKS: Record<string, FooterLink[]> = {
   Tienda: [
     { label: "Todos los productos", href: "/productos" },
     { label: "Novedades", href: "/productos" },
@@ -11,12 +18,17 @@ const FOOTER_LINKS = {
   ],
   Ayuda: [
     { label: "Contacto", href: "/contacto" },
-    { label: "Envíos", href: "/nosotros" },
-    { label: "Cambios y devoluciones", href: "/nosotros" },
+    { label: "Envíos", href: "/terminos-y-condiciones#envios" },
+    { label: "Cambios y devoluciones", href: "/terminos-y-condiciones#retracto" },
   ],
   Políticas: [
-    { label: "Términos y condiciones", href: "/nosotros" },
-    { label: "Privacidad", href: "/nosotros" },
+    { label: "Términos y condiciones", href: "/terminos-y-condiciones" },
+    { label: "Política de privacidad", href: "/politica-de-privacidad" },
+    {
+      label: "Preferencias de cookies",
+      href: "/preferencias-de-cookies#preferencias",
+      cookieSettings: true,
+    },
   ],
 };
 
@@ -48,16 +60,24 @@ export function Footer() {
             <nav key={title} aria-label={title}>
               <h3 className="font-heading text-sm font-semibold tracking-wide uppercase">{title}</h3>
               <ul className="mt-4 space-y-2">
-                {links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-cream/70 transition-colors hover:text-terracotta"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
+                {links.map((link) => {
+                  const linkClass =
+                    "inline-flex min-h-11 items-center text-sm text-cream/70 transition-colors hover:text-terracotta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta";
+
+                  return (
+                    <li key={link.label}>
+                      {link.cookieSettings ? (
+                        <CookieSettingsLink className={linkClass}>
+                          {link.label}
+                        </CookieSettingsLink>
+                      ) : (
+                        <Link href={link.href} className={linkClass}>
+                          {link.label}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </nav>
           ))}
@@ -86,7 +106,7 @@ function SocialLink({
       href={href}
       aria-label={label}
       title={label}
-      className="flex h-10 w-10 items-center justify-center rounded-lg border border-cream/20 text-cream/80 transition-colors hover:border-terracotta hover:text-terracotta"
+      className="flex h-11 w-11 items-center justify-center rounded-lg border border-cream/20 text-cream/80 transition-colors hover:border-terracotta hover:text-terracotta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
     >
       {children}
     </Link>

@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import { CartProvider } from "@/context/cart-context";
 
 // Layout del grupo (store): navbar + contenido + footer.
@@ -12,6 +13,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />
+        <CookieConsentBanner />
       </div>
     </CartProvider>
   );

@@ -4,6 +4,7 @@ import {
   hasSessionMarker,
   setSessionMarker,
 } from "@/lib/session-marker";
+import { disableGoogleAutoSelect } from "@/lib/google-gis";
 import type { AuthUser, Credentials, RegisterInput } from "@/types/auth";
 
 // Autenticación (client): registro, login, MFA de administradores y logout.
@@ -28,19 +29,15 @@ type LoginResponse =
   | { mfaRequired: true; challengeId: string; expiresAt?: string };
 
 /**
- * Inicia sesión. Un administrador con MFA no recibe la cookie todavía: la API
- * responde `202` con un reto (segundo paso) o `403 ADMIN_MFA_SETUP_REQUIRED`
- * con un ticket de enrolamiento. En ambos casos se devuelve el estado para que
- * el formulario continúe el flujo.
+ * Interpreta la respuesta común de login (local, Google y Facebook): usuario
+ * con cookie emitida, reto MFA o ticket de enrolamiento. Es el único lugar que
+ * traduce el contrato del backend para que los tres flujos se comporten igual.
  */
-export async function login({
-  username,
-  password,
-}: Credentials): Promise<LoginResult> {
+async function interpretLoginResponse(
+  request: Promise<LoginResponse>,
+): Promise<LoginResult> {
   try {
-    const result = await apiSend<LoginResponse>("/api/auth/login", {
-      body: { username, password },
-    });
+    const result = await request;
 
     if (
       result &&
@@ -73,6 +70,52 @@ export async function login({
     }
     throw error;
   }
+}
+
+/**
+ * Inicia sesión. Un administrador con MFA no recibe la cookie todavía: la API
+ * responde `202` con un reto (segundo paso) o `403 ADMIN_MFA_SETUP_REQUIRED`
+ * con un ticket de enrolamiento. En ambos casos se devuelve el estado para que
+ * el formulario continúe el flujo.
+ */
+export async function login({
+  username,
+  password,
+}: Credentials): Promise<LoginResult> {
+  return interpretLoginResponse(
+    apiSend<LoginResponse>("/api/auth/login", {
+      body: { username, password },
+    }),
+  );
+}
+
+/**
+ * Inicio de sesión con Google Identity Services. El front envía el ID token
+ * (`credential`); el backend verifica firma y audiencia. El secreto de Google
+ * nunca llega al navegador.
+ */
+export async function loginWithGoogle(
+  credential: string,
+): Promise<LoginResult> {
+  return interpretLoginResponse(
+    apiSend<LoginResponse>("/api/auth/google", {
+      body: { credential },
+    }),
+  );
+}
+
+/**
+ * Inicio de sesión con Facebook. Solo viaja el accessToken de corta duración;
+ * el backend lo valida contra el Graph API con el secreto de la app.
+ */
+export async function loginWithFacebook(
+  accessToken: string,
+): Promise<LoginResult> {
+  return interpretLoginResponse(
+    apiSend<LoginResponse>("/api/auth/facebook", {
+      body: { accessToken },
+    }),
+  );
 }
 
 /** Segundo paso del login administrativo: TOTP o código de respaldo. */
@@ -129,6 +172,9 @@ export async function logout(): Promise<void> {
   try {
     await apiSend<void>("/api/auth/logout");
   } finally {
+    // El SDK de Google recuerda la cuenta anterior entre visitas: se desactiva
+    // para que el siguiente usuario no entre con una sesión ajena.
+    disableGoogleAutoSelect();
     // Aunque falle la llamada, el marcador se limpia: la cookie real se
     // reconcilia en la siguiente sonda.
     clearSessionMarker();

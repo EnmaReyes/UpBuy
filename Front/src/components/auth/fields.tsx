@@ -63,17 +63,25 @@ export function FormMessage({
 
 export function SubmitButton({
   pending,
+  disabled = false,
+  busy,
   children,
   className,
 }: {
   pending: boolean;
+  /** Bloquea el envío sin cambiar el texto (p. ej. mientras carga un SDK). */
+  disabled?: boolean;
+  /** `aria-busy` explícito; por defecto sigue a `pending`. */
+  busy?: boolean;
   children: React.ReactNode;
   className?: string;
 }) {
+  const isDisabled = pending || disabled;
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={isDisabled}
+      aria-busy={busy ?? pending}
       className={cn(
         "inline-flex h-12 items-center justify-center rounded-lg bg-carbon px-6 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep disabled:cursor-not-allowed disabled:opacity-60",
         className,

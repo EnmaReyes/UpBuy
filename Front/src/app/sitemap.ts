@@ -20,6 +20,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${origin}/productos`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${origin}/nosotros`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/contacto`, changeFrequency: "monthly", priority: 0.5 },
+    {
+      url: `${origin}/politica-de-privacidad`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${origin}/terminos-y-condiciones`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${origin}/preferencias-de-cookies`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
   ];
 
   let productRoutes: MetadataRoute.Sitemap = [];

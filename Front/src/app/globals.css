@@ -169,3 +169,46 @@
 @utility section-y {
   @apply py-16 sm:py-20 lg:py-24;
 }
+
+/* Documentos legales: se imprimen y se adjuntan a reclamaciones. La salida
+   debe ser limpia: sin navbar, footer, índice ni fondos oscuros. */
+@media print {
+  @page {
+    margin: 18mm;
+  }
+
+  header,
+  footer,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  [data-legal-doc],
+  [data-legal-doc] * {
+    color: #000 !important;
+    background: transparent !important;
+    border-color: #999 !important;
+    box-shadow: none !important;
+  }
+
+  [data-legal-doc] a {
+    text-decoration: underline;
+  }
+
+  [data-legal-doc] section,
+  [data-legal-doc] aside,
+  [data-legal-doc] tr {
+    break-inside: avoid;
+  }
+
+  [data-legal-doc] h1,
+  [data-legal-doc] h2,
+  [data-legal-doc] h3 {
+    break-after: avoid;
+  }
+}

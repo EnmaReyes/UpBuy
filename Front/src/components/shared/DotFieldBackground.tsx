@@ -10,7 +10,8 @@ export type DotFieldVariant =
   | "nosotros"
   | "contacto"
   | "perfil"
-  | "carrito";
+  | "carrito"
+  | "legal";
 
 // Configuracion centralizada por Hero. `spacing` es la distancia entre puntos
 // en escritorio; el componente la aumenta solo en tablet y movil.
@@ -28,6 +29,8 @@ const PRESETS: Record<
   perfil: { opacity: 0.85, spacing: 15, seed: 23 },
   // Acompana el resumen del carrito sin distraer.
   carrito: { opacity: 0.42, spacing: 22, seed: 31 },
+  // Texto legal: fondo sobrio para una lectura larga.
+  legal: { opacity: 0.38, spacing: 24, seed: 37 },
 };
 
 // Capa de fondo decorativa para los Hero. Se apoya en el componente original

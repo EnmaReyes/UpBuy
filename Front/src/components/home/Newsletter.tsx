@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { Check } from "lucide-react";
 
 // Newsletter: el formulario queda preparado, pero NO simula una suscripción.
@@ -29,28 +30,49 @@ export function Newsletter() {
           </div>
 
           <div className="lg:col-span-6">
-            <form onSubmit={onSubmit} className="flex flex-col gap-3 sm:flex-row">
-              <div className="flex-1">
-                <label htmlFor="newsletter-email" className="sr-only">
-                  Correo electrónico
-                </label>
-                <input
-                  id="newsletter-email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="tu@correo.com"
-                  className="h-12 w-full rounded-lg border border-cream/30 bg-transparent px-4 text-sm text-cream placeholder:text-cream/60 focus-visible:border-terracotta focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
-                />
+            <form onSubmit={onSubmit} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="flex-1">
+                  <label htmlFor="newsletter-email" className="sr-only">
+                    Correo electrónico
+                  </label>
+                  <input
+                    id="newsletter-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="tu@correo.com"
+                    className="h-12 w-full rounded-lg border border-cream/30 bg-transparent px-4 text-sm text-cream placeholder:text-cream/60 focus-visible:border-terracotta focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={status === "pending"}
+                  className="h-12 rounded-full bg-terracotta-deep px-7 text-sm font-semibold text-cream transition-colors hover:bg-[#8F3900] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Suscribirme
+                </button>
               </div>
-              <button
-                type="submit"
-                disabled={status === "pending"}
-                className="h-12 rounded-full bg-terracotta-deep px-7 text-sm font-semibold text-cream transition-colors hover:bg-[#8F3900] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                Suscribirme
-              </button>
+
+              <label className="flex min-h-11 cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-cream/70">
+                <input
+                  type="checkbox"
+                  name="marketingConsent"
+                  required
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#D35400] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
+                />
+                <span>
+                  Acepto recibir novedades de UPBUY y he leído la{" "}
+                  <Link
+                    href="/politica-de-privacidad"
+                    className="font-semibold text-cream underline decoration-terracotta/60 underline-offset-4 transition-colors hover:text-terracotta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
+                  >
+                    Política de Privacidad
+                  </Link>
+                  .
+                </span>
+              </label>
             </form>
 
             {status === "pending" ? (
