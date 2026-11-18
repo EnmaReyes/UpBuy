@@ -38,8 +38,11 @@ const {
   canCustomerCancel,
 } = require("./statusMachine.js");
 const HttpError = require("../Utils/HttpError.js");
+const { createLogger } = require("../Utils/logger.js");
 const { assertUuid } = require("../Utils/ids.js");
 const { STOCK_RESERVATION_ENABLED } = require("../config.js");
+
+const log = createLogger("orders");
 
 const REQUIRED_SHIPPING_FIELDS = [
   "recipientName",
@@ -617,10 +620,10 @@ const createOrderCore = async ({
           clave: `pedido:${full.id}:creado`,
         });
       } catch (error) {
-        console.error(
-          "No se pudo crear la notificación del pedido:",
-          error.message,
-        );
+        log.error("No se pudo crear la notificación del pedido", {
+          orderId: full.id,
+          error: error.message,
+        });
       }
 
       // Aviso al administrador por cada compra web. En bloque separado: si
@@ -630,10 +633,10 @@ const createOrderCore = async ({
         const { notifyAdminsOfNewOrder } = require("./notifications.js");
         await notifyAdminsOfNewOrder(full);
       } catch (error) {
-        console.error(
-          "No se pudo avisar la compra al administrador:",
-          error.message,
-        );
+        log.error("No se pudo avisar la compra al administrador", {
+          orderId: full.id,
+          error: error.message,
+        });
       }
     }
 
@@ -979,10 +982,10 @@ const cancelOrder = async ({ orderId, userId }) => {
         clave: `pedido:${full.id}:cancelado`,
       });
     } catch (error) {
-      console.error(
-        "No se pudo crear la notificación del pedido:",
-        error.message,
-      );
+      log.error("No se pudo crear la notificación del pedido", {
+        orderId: full.id,
+        error: error.message,
+      });
     }
 
     return full;

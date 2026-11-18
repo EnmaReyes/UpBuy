@@ -129,7 +129,7 @@ const googleLogin = async (req, res) => {
 
     return await issueSession(res, user, req);
   } catch (error) {
-    console.error("Error en login con Google:", error.message);
+    log.error("Error en login con Google", { error: error.message });
     return res.status(500).json("Error interno del servidor");
   }
 };
@@ -245,7 +245,7 @@ const facebookLogin = async (req, res) => {
 
     return await issueSession(res, user, req);
   } catch (error) {
-    console.error("Error en login con Facebook:", error.message);
+    log.error("Error en login con Facebook", { error: error.message });
     return res.status(500).json("Error interno del servidor");
   }
 };

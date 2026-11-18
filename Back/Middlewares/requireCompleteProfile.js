@@ -8,6 +8,9 @@
 
 const { Usuarios, Address } = require("../DataBase/models/index.js");
 const { findMissingProfileFields } = require("../Services/profile.js");
+const { createLogger } = require("../Utils/logger.js");
+
+const log = createLogger("profile");
 
 const requireCompleteProfile = async (req, res, next) => {
   try {
@@ -40,7 +43,10 @@ const requireCompleteProfile = async (req, res, next) => {
 
     return next();
   } catch (error) {
-    console.error("Error al validar el perfil:", error.message);
+    log.error("Error al validar el perfil", {
+      userId: req.user?.id,
+      error: error.message,
+    });
     return res.status(500).json("Error interno del servidor");
   }
 };

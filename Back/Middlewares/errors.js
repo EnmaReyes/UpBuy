@@ -1,4 +1,7 @@
 const { describeError } = require("../Utils/respond.js");
+const { createLogger } = require("../Utils/logger.js");
+
+const log = createLogger("http");
 
 // ---------------------------------------------------------------------------
 // Red de seguridad de la API (Fase E).
@@ -32,11 +35,12 @@ const errorHandler = (err, req, res, next) => {
 
   if (!known) {
     // Log del servidor con contexto util; el cliente nunca ve esto.
-    console.error(
-      `❌ [${req.method} ${req.originalUrl}] ${err?.name || "Error"}: ${
-        err?.message || "sin mensaje"
-      }`,
-    );
+    log.error("Error no controlado", {
+      method: req.method,
+      url: req.originalUrl,
+      name: err?.name || "Error",
+      error: err?.message || "sin mensaje",
+    });
     return res.status(500).json("Error interno del servidor");
   }
 

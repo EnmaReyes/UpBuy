@@ -257,3 +257,22 @@ test("userFacingMessage distingue cancelado de devolución", () => {
     /pagas al recibir/i,
   );
 });
+
+test("userFacingMessage distingue entregado COD de entregado online", () => {
+  assert.match(
+    userFacingMessage({
+      fulfillmentStatus: "delivered",
+      paymentState: "collected",
+      paymentMethodCode: "cod_vendelo",
+    }),
+    /pagado al recibir/i,
+  );
+  assert.equal(
+    userFacingMessage({
+      fulfillmentStatus: "delivered",
+      paymentState: "settled",
+      paymentMethodCode: "wompi",
+    }),
+    "Entregado ✓",
+  );
+});

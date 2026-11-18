@@ -15,7 +15,10 @@ const { restoreOrderStock, detectStockConflicts } = require("./orders.js");
 const { notifyAdmins } = require("./notifications.js");
 const { transitionFulfillment } = require("./orderService.js");
 const HttpError = require("../Utils/HttpError.js");
+const { createLogger } = require("../Utils/logger.js");
 const { assertUuid } = require("../Utils/ids.js");
+
+const log = createLogger("payments");
 
 // ---------------------------------------------------------------------------
 // Pagos de un pedido.
@@ -174,10 +177,10 @@ const notifyStockConflicts = async (order, conflicts) => {
       claveForAdmin: (adminId) => `stock-conflicto:${order.id}:${adminId}`,
     });
   } catch (error) {
-    console.error(
-      "No se pudo avisar la posible sobreventa:",
-      error.message,
-    );
+    log.error("No se pudo avisar la posible sobreventa", {
+      orderId: order.id,
+      error: error.message,
+    });
   }
 };
 
@@ -218,16 +221,19 @@ const applyPaymentStatus = async ({
     nextStatus === PAYMENT_STATUS.APROBADO &&
     order.fulfillmentStatus === FULFILLMENT_STATUS.PENDING_PAYMENT;
 
-  // Detector de sobreventa: se mira ANTES de devolver el producto al catalogo,
-  // porque restoreOrderStock vuelve a poner stock = true.
+  // Detector de sobreventa: se mira ANTES de descontar las unidades, porque
+  // restoreOrderStock hace stock = stock - cantidad y despues ya no se
+  // distingue un producto que estaba agotado de uno que este mismo pedido
+  // dejo en cero.
   const stockConflicts =
     nextStatus === PAYMENT_STATUS.APROBADO && !skipStockEffects
       ? await detectStockConflicts(order, transaction)
       : [];
 
-  // Regla de negocio (stock booleano): un pago aprobado devuelve el producto
-  // al catalogo, y un reembolso tambien (el producto existe fisicamente; si
-  // se dano, el administrador lo marca agotado a mano).
+  // Movimiento de inventario. El stock son unidades reales: sin reserva, este
+  // es el punto donde se descuentan las unidades del pedido (la venta ocurre
+  // al aprobarse el pago). Con la reserva activa ya se descontaron al crear
+  // el pedido y restoreOrderStock no hace nada.
   //
   // La importacion CSV no toca el inventario: registra ventas ya ocurridas,
   // no unidades que salen del catalogo ahora.

@@ -13,6 +13,7 @@ const { registerPayment } = require("./payments.js");
 const { getOrderForUser } = require("./orders.js");
 const { beginWebhookEvent, finishWebhookEvent } = require("./webhookEvents.js");
 const HttpError = require("../Utils/HttpError.js");
+const { createLogger } = require("../Utils/logger.js");
 const { assertUuid } = require("../Utils/ids.js");
 const {
   FRONTEND_URL,
@@ -56,19 +57,13 @@ const isVerifyConfigured = () => Boolean(WOMPI_PRIVATE_KEY);
 const sha256 = (value) =>
   crypto.createHash("sha256").update(String(value)).digest("hex");
 
-// Log estructurado (una linea JSON) para poder filtrar en Vercel / Neon por
+// Log estructurado con scope propio para poder filtrar en Vercel / Neon por
 // scope=wompi.webhook. Nunca incluye llaves ni datos del medio de pago.
-const logWebhook = (resultado, datos = {}, nivel = "info") => {
-  const linea = JSON.stringify({
-    scope: "wompi.webhook",
-    at: new Date().toISOString(),
-    resultado,
-    ...datos,
-  });
+const webhookLog = createLogger("wompi.webhook");
 
-  if (nivel === "warn") console.warn(linea);
-  else if (nivel === "error") console.error(linea);
-  else console.log(linea);
+const logWebhook = (resultado, datos = {}, nivel = "info") => {
+  const metodo = nivel === "warn" || nivel === "error" ? nivel : "info";
+  webhookLog[metodo](resultado, datos);
 };
 
 // Un evento con timestamp en el futuro es un reloj mal puesto o un intento de
@@ -259,7 +254,11 @@ const fetchTransaction = async (transactionId) => {
   }
   if (!response.ok) {
     const detalle = await response.text().catch(() => "");
-    console.error("Wompi respondió", response.status, detalle.slice(0, 300));
+    logWebhook(
+      "error_consulta",
+      { status: response.status, detalle: detalle.slice(0, 300) },
+      "error",
+    );
     throw new HttpError(502, "No se pudo consultar la transacción en Wompi");
   }
 
@@ -629,7 +628,62 @@ const verifyOrderPayment = async ({ orderId, userId, transactionId }) => {
     throw new HttpError(409, "La transacción no pertenece a este pedido");
   }
 
-  const result = await applyProviderTransaction({ providerTransaction });
+  // El respaldo manual tambien deja traza en webhook_events: el eventId lleva
+  // el prefijo "verify:" para no chocar con el evento real de Wompi (que usa
+  // un hash propio) y para poder distinguir el origen en la auditoria.
+  const eventId = `verify:${providerTransaction.id || transactionId}:${
+    providerTransaction.status || ""
+  }`;
+
+  const { duplicate, record } = await beginWebhookEvent({
+    provider: PROVIDER_WOMPI,
+    eventId,
+    event: "transaction.verify",
+    payload: {
+      origen: "verify",
+      orderId: order.id,
+      transactionId: providerTransaction.id || transactionId,
+      reference: providerTransaction.reference,
+      status: providerTransaction.status || null,
+    },
+  });
+
+  if (duplicate) {
+    logWebhook("ignorado", {
+      origen: "verify",
+      motivo: "ya_procesado",
+      orderId: order.id,
+      transactionId: providerTransaction.id || transactionId,
+    });
+    return {
+      applied: false,
+      reason: "ya_procesado",
+      status: payment.status,
+      order: await getOrderForUser({
+        orderId: order.id,
+        userId,
+        admin: false,
+      }),
+    };
+  }
+
+  let result;
+  try {
+    result = await applyProviderTransaction({ providerTransaction });
+  } catch (error) {
+    await finishWebhookEvent(record, { ok: false, error: error.message });
+    throw error;
+  }
+
+  await finishWebhookEvent(record, { ok: true });
+
+  logWebhook(result.applied ? "aplicado" : "ignorado", {
+    origen: "verify",
+    orderId: order.id,
+    transactionId: providerTransaction.id || transactionId,
+    status: result.status || payment.status,
+    ...(result.applied ? {} : { motivo: result.reason }),
+  });
 
   return {
     applied: result.applied,

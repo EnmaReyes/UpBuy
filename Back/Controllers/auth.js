@@ -158,7 +158,7 @@ const register = async (req, res) => {
     });
     return res.status(200).json("Usuario creado con éxito");
   } catch (error) {
-    console.error("Error en el registro:", error.message);
+    log.error("Error en el registro", { error: error.message });
     return res.status(500).json("Error en el servidor");
   }
 };
@@ -324,7 +324,7 @@ const login = async (req, res) => {
 
     return issueSession(res, existingUser, req);
   } catch (error) {
-    console.error("Error en el login:", error.message);
+    log.error("Error en el login", { error: error.message });
     res.status(500).json("Error interno del servidor");
   }
 };
@@ -381,7 +381,7 @@ const verifyAdminMfa = async (req, res) => {
 
     return issueSession(res, result.user, req, { mfaAt: new Date() });
   } catch (error) {
-    console.error("Error en la verificación MFA:", error.message);
+    log.error("Error en la verificación MFA", { error: error.message });
     return res.status(500).json("Error interno del servidor");
   }
 };
@@ -507,7 +507,7 @@ const stepUpAdmin = async (req, res) => {
       sessionExpiresAt: rotated.expiresAt,
     });
   } catch (error) {
-    console.error("Error en el step-up administrativo:", error.message);
+    log.error("Error en el step-up administrativo", { error: error.message });
     return res.status(500).json("Error interno del servidor");
   }
 };
@@ -559,7 +559,7 @@ const setupAdminMfa = async (req, res) => {
       account: enrollment.account,
     });
   } catch (error) {
-    console.error("Error al configurar MFA:", error.message);
+    log.error("Error al configurar MFA", { error: error.message });
     return res.status(500).json("Error interno del servidor");
   }
 };
@@ -647,7 +647,7 @@ const enrollAdminMfa = async (req, res) => {
 
     return issueSession(res, result.user, req, { mfaAt: new Date() });
   } catch (error) {
-    console.error("Error al activar MFA:", error.message);
+    log.error("Error al activar MFA", { error: error.message });
     return res.status(500).json("Error interno del servidor");
   }
 };

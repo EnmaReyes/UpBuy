@@ -1,4 +1,7 @@
 const HttpError = require("./HttpError.js");
+const { createLogger } = require("./logger.js");
+
+const log = createLogger("http");
 
 // Traduce un error a una respuesta segura. Devuelve null cuando es un error
 // inesperado: esos nunca exponen mensaje, stack ni detalles de Sequelize.
@@ -38,7 +41,11 @@ const sendError = (res, error, fallback = "Error interno del servidor") => {
     return res.status(known.status).json(known.body);
   }
 
-  console.error(error);
+  log.error("Error no controlado", {
+    name: error?.name,
+    error: error?.message,
+    stack: error?.stack,
+  });
   return res.status(500).json(fallback);
 };
 

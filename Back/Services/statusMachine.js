@@ -400,7 +400,7 @@ const userFacingMessage = (order) => {
   }
 
   if (f === FULFILLMENT_STATUS.DELIVERED) {
-    return cod ? "Entregado ✓" : "Entregado ✓";
+    return cod ? "Entregado — pagado al recibir" : "Entregado ✓";
   }
 
   if (f === FULFILLMENT_STATUS.SHIPPED) {

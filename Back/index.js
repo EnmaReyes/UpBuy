@@ -53,6 +53,9 @@ const {
 } = require("./Middlewares/requireTrustedOrigin.js");
 const { requireAdminIp } = require("./Middlewares/requireAdminIp.js");
 const { notFound, errorHandler } = require("./Middlewares/errors.js");
+const { createLogger } = require("./Utils/logger.js");
+
+const log = createLogger("server");
 
 const port = process.env.PORT || 3001;
 const isProduction = process.env.NODE_ENV === "production";
@@ -82,9 +85,12 @@ const connectWithRetry = async () => {
       return;
     } catch (error) {
       lastError = error;
-      console.error(
-        `⚠️ Conexión a la base falló (intento ${attempt}/${CONNECT_ATTEMPTS}): ${error.name}: ${error.message}`,
-      );
+      log.error("Conexión a la base falló", {
+        intento: attempt,
+        total: CONNECT_ATTEMPTS,
+        name: error.name,
+        error: error.message,
+      });
 
       if (attempt < CONNECT_ATTEMPTS) {
         await sleep(RETRY_BASE_MS * attempt);
@@ -101,7 +107,7 @@ const connectWithRetry = async () => {
 // ya esta todo al dia.
 const initializeDatabase = async () => {
   await connectWithRetry();
-  console.log(`✅ Conexión a la base establecida (${databaseHost})`);
+  log.info("Conexión a la base establecida", { databaseHost });
 
   if (!isProduction) {
     await sequelize.sync();
@@ -131,7 +137,7 @@ const initializeDatabase = async () => {
   // Indices del panel (ADM-10): idempotentes, no hacen nada cuando ya estan.
   await ensurePanelIndexes();
 
-  console.log("✅ Base de datos inicializada");
+  log.info("Base de datos inicializada");
 };
 
 // Estado de inicializacion de ESTA instancia.
@@ -270,7 +276,7 @@ app.use(async (req, res, next) => {
     await getDbReady();
     next();
   } catch (error) {
-    console.error("❌ Base de datos no disponible:", error.message);
+    log.error("Base de datos no disponible", { error: error.message });
     res.status(503).json({
       message: "Base de datos temporalmente no disponible",
     });
@@ -320,24 +326,24 @@ if (!isProduction) {
   getDbReady()
     .then(() => {
       server = app.listen(port, () => {
-        console.log(`🚀 Servidor corriendo en http://localhost:${port}`);
+        log.info("Servidor corriendo", { url: `http://localhost:${port}` });
       });
     })
     .catch((error) => {
-      console.error("❌ No se pudo iniciar el servidor:", error.message);
+      log.error("No se pudo iniciar el servidor", { error: error.message });
       process.exit(1);
     });
 }
 
 // Cierre ordenado: libera conexiones y el servidor HTTP.
 const gracefulShutdown = async (signal) => {
-  console.log(`${signal} recibido, cerrando ordenadamente...`);
+  log.info("Cierre ordenado solicitado", { signal });
   try {
     if (server) server.close();
     await sequelize.close();
-    console.log("✅ Conexiones cerradas");
+    log.info("Conexiones cerradas");
   } catch (error) {
-    console.error("❌ Error al cerrar:", error.message);
+    log.error("Error al cerrar", { error: error.message });
   } finally {
     process.exit(0);
   }

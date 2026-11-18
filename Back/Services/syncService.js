@@ -14,6 +14,7 @@
 
 const { Op } = require("sequelize");
 const {
+  sequelize,
   Order,
   OrderItem,
   SyncLog,
@@ -73,6 +74,12 @@ const notifyStatusChange = async (order, to) => {
 };
 
 // Lee el estado del proveedor y lo aplica respetando la maquina de estados.
+//
+// Las mutaciones corren dentro de una transaccion y con el pedido bloqueado
+// (SELECT ... FOR UPDATE): entre la consulta al proveedor y el guardado el
+// administrador pudo tocar el pedido a mano. Se relee dentro del lock para no
+// pisar ese cambio ni dejar el pedido a medio actualizar (por ejemplo, pago
+// aplicado y cumplimiento no).
 const syncOrder = async (order) => {
   if (!order.provider || !order.providerOrderId) {
     return { orderId: order.id, skipped: "sin_proveedor" };
@@ -104,46 +111,101 @@ const syncOrder = async (order) => {
 
   const providerStatus = result.providerStatus;
   const canonical = result.canonical || {};
-
   const changes = [];
 
-  // El estado crudo se guarda siempre, para diagnostico.
-  if (providerStatus !== null && providerStatus !== order.providerStatus) {
-    order.providerStatus = providerStatus;
-    await order.save();
+  let skipped = null;
+  let syncedOrder = null;
+  let notifyTo = null;
+
+  try {
+    await sequelize.transaction(async (transaction) => {
+      syncedOrder = await Order.findByPk(order.id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (!syncedOrder) {
+        skipped = "pedido_eliminado";
+        return;
+      }
+
+      // La decision humana manda: si el admin marco el pedido mientras se
+      // consultaba al proveedor, no se aplica nada.
+      if (syncedOrder.manualOverride) {
+        skipped = "manual_override";
+        return;
+      }
+
+      // El estado crudo se guarda siempre, para diagnostico.
+      if (
+        providerStatus !== null &&
+        providerStatus !== syncedOrder.providerStatus
+      ) {
+        syncedOrder.providerStatus = providerStatus;
+        await syncedOrder.save({ transaction });
+      }
+
+      // Primero el pago (en COD, el cumplimiento puede depender de el).
+      if (
+        canonical.paymentState &&
+        canonical.paymentState !== syncedOrder.paymentState &&
+        canTransitionPayment(
+          syncedOrder.paymentState,
+          canonical.paymentState,
+        )
+      ) {
+        await transitionPaymentState({
+          order: syncedOrder,
+          to: canonical.paymentState,
+          transaction,
+          actorUserId: null,
+          source: STATUS_SOURCE.AUTO_SYNC,
+          note: `Estado del proveedor: ${providerStatus}`,
+          audit: true,
+        });
+        changes.push(`paymentState:${canonical.paymentState}`);
+      }
+
+      if (
+        canonical.fulfillmentStatus &&
+        canonical.fulfillmentStatus !== syncedOrder.fulfillmentStatus &&
+        canTransitionFulfillment(
+          syncedOrder.fulfillmentStatus,
+          canonical.fulfillmentStatus,
+        )
+      ) {
+        await transitionFulfillment({
+          order: syncedOrder,
+          to: canonical.fulfillmentStatus,
+          transaction,
+          actorUserId: null,
+          source: STATUS_SOURCE.AUTO_SYNC,
+          note: `Estado del proveedor: ${providerStatus}`,
+        });
+        changes.push(`fulfillmentStatus:${canonical.fulfillmentStatus}`);
+        notifyTo = canonical.fulfillmentStatus;
+      }
+
+      if (syncedOrder.providerOutOfSync) {
+        syncedOrder.providerOutOfSync = false;
+        await syncedOrder.save({ transaction });
+      }
+    });
+  } catch (error) {
+    await logSync({
+      orderId: order.id,
+      provider: order.provider,
+      direction: SYNC_DIRECTION.IN,
+      attempt: 1,
+      ok: false,
+      request: { providerOrderId: order.providerOrderId },
+      error: error.message,
+    });
+    throw error;
   }
 
-  // Primero el pago (en COD, el cumplimiento puede depender de el).
-  if (
-    canonical.paymentState &&
-    canonical.paymentState !== order.paymentState &&
-    canTransitionPayment(order.paymentState, canonical.paymentState)
-  ) {
-    await transitionPaymentState({
-      order,
-      to: canonical.paymentState,
-      actorUserId: null,
-      source: STATUS_SOURCE.AUTO_SYNC,
-      note: `Estado del proveedor: ${providerStatus}`,
-      audit: true,
-    });
-    changes.push(`paymentState:${canonical.paymentState}`);
-  }
-
-  if (
-    canonical.fulfillmentStatus &&
-    canonical.fulfillmentStatus !== order.fulfillmentStatus &&
-    canTransitionFulfillment(order.fulfillmentStatus, canonical.fulfillmentStatus)
-  ) {
-    await transitionFulfillment({
-      order,
-      to: canonical.fulfillmentStatus,
-      actorUserId: null,
-      source: STATUS_SOURCE.AUTO_SYNC,
-      note: `Estado del proveedor: ${providerStatus}`,
-    });
-    changes.push(`fulfillmentStatus:${canonical.fulfillmentStatus}`);
-    await notifyStatusChange(order, canonical.fulfillmentStatus);
+  if (skipped) {
+    return { orderId: order.id, skipped };
   }
 
   await logSync({
@@ -160,9 +222,10 @@ const syncOrder = async (order) => {
     },
   });
 
-  if (order.providerOutOfSync) {
-    order.providerOutOfSync = false;
-    await order.save();
+  // El aviso va despues del commit: si la transaccion se revierte no se
+  // notifica al cliente un cambio que no ocurrio.
+  if (notifyTo) {
+    await notifyStatusChange(syncedOrder, notifyTo);
   }
 
   return {

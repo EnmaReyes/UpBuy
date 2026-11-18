@@ -101,7 +101,7 @@ Quién produjo el último cambio. Es lo que permite que el auto-sync (cron)
 |---|---|---|---|---|
 | COD recién creado | `pending_payment` | `unpaid` | "Pedido confirmado, pagas al recibir" | Por despachar |
 | COD en camino | `shipped` | `pending_collection` | "En camino — pagas al recibir" | Por cobrar |
-| COD entregado y cobrado | `delivered` | `collected` | "Entregado ✓" | Por liquidar con proveedor |
+| COD entregado y cobrado | `delivered` | `collected` | "Entregado — pagado al recibir" | Por liquidar con proveedor |
 | COD rechazado / devolución | `cancelled` | `unpaid` | "Devolución" | Pérdida (flete) |
 | Wompi/Vendelo online pagado | `paid` | `settled` | "Pagado ✓" | Listo para packing |
 

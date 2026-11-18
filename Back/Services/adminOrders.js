@@ -35,8 +35,11 @@ const {
 } = require("./statusMachine.js");
 const { pushCurrentStatus } = require("./syncService.js");
 const HttpError = require("../Utils/HttpError.js");
+const { createLogger } = require("../Utils/logger.js");
 const { assertUuid } = require("../Utils/ids.js");
 const { parseBogotaDay: parseDay, startOfTodayBogota } = require("../Utils/dates.js");
+
+const log = createLogger("admin.orders");
 
 const STATUS_LABELS = FULFILLMENT_LABELS;
 
@@ -492,7 +495,10 @@ const changeOrderStatus = async ({
       clave: `pedido:${order.id}:${status}`,
     });
   } catch (error) {
-    console.error("No se pudo crear la notificación:", error.message);
+    log.error("No se pudo crear la notificación", {
+      orderId: order.id,
+      error: error.message,
+    });
   }
 
   // Empujar el cambio al proveedor es OPCIONAL y nunca revierte lo local:

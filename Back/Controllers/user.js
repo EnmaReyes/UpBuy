@@ -1,5 +1,8 @@
 const { Usuarios } = require("../DataBase/models/Usuarios.js");
 const { updateProfile } = require("../Services/profile.js");
+const { createLogger } = require("../Utils/logger.js");
+
+const log = createLogger("user");
 
 // Rutas protegidas por requireAuth: req.user = { id, admin }.
 // El perfil solo expone y permite editar datos no sensibles:
@@ -20,7 +23,10 @@ const userById = async (req, res) => {
     }
     return res.status(200).json(user);
   } catch (error) {
-    console.error("Error al cargar el usuario:", error.message);
+    log.error("Error al cargar el usuario", {
+      userId: req.user?.id,
+      error: error.message,
+    });
     return res.status(500).json("Error interno del servidor");
   }
 };
@@ -40,7 +46,10 @@ const updateUser = async (req, res) => {
         to: "/dashboard/perfil",
       });
     } catch (error) {
-      console.error("No se pudo crear la notificación:", error.message);
+      log.error("No se pudo crear la notificación", {
+        userId: req.user?.id,
+        error: error.message,
+      });
     }
 
     return res.status(200).json(user);
@@ -48,7 +57,10 @@ const updateUser = async (req, res) => {
     if (error.status) {
       return res.status(error.status).json(error.message);
     }
-    console.error("Error al actualizar el usuario:", error.message);
+    log.error("Error al actualizar el usuario", {
+      userId: req.user?.id,
+      error: error.message,
+    });
     return res.status(500).json("Error al actualizar el usuario");
   }
 };
