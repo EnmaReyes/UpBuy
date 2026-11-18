@@ -211,28 +211,9 @@ const requirePermission = (...permissions) => (req, res, next) => {
 // usando `requireAdmin`, que ahora equivale a la sesion revocable.
 const requireAdmin = requireAdminSession;
 
-// No bloquea: solo adjunta req.user si hay cookie valida.
-const optionalAuth = (req, res, next) => {
-  const token = getToken(req);
-  if (!token) return next();
-
-  try {
-    const payload = jwt.verify(token, JWT_SECRET, verifyOptions);
-    req.user = { id: payload.id };
-    if (payload.sid) req.user.sessionId = payload.sid;
-    if (payload.ver !== undefined) {
-      req.user.tokenVersion = Number(payload.ver) || 0;
-    }
-  } catch {
-    // token invalido en ruta publica: se ignora
-  }
-  return next();
-};
-
 module.exports = {
   requireAuth,
   requireAdmin,
   requireAdminSession,
   requirePermission,
-  optionalAuth,
 };

@@ -12,10 +12,7 @@ const { Product } = require("../DataBase/models/index.js");
 const HttpError = require("../Utils/HttpError.js");
 
 const PRODUCT_TYPES = ["product"];
-const ARTICLE_TIPOS = ["basico"];
 const COMBO_TIPO = "unico";
-
-const toPlain = (row) => (row?.toJSON ? row.toJSON() : row);
 
 // Precio sugerido a partir del costo del proveedor y el markup del producto.
 const suggestedPrice = (cost, markup) => {
@@ -105,44 +102,12 @@ const buildPriceSnapshot = (price, productType, tipo, kind) => ({
   capturedAt: new Date().toISOString(),
 });
 
-// Agrega el precio resuelto (con descuento) a un producto, para las vistas de
-// admin/catalogo. No se usa en el checkout (alli buildOrderLines arma la linea).
-const decorateProduct = async (product, transaction) => {
-  const plain = toPlain(product);
-  const tipo = product.combo ? COMBO_TIPO : "basico";
-  const price = await resolvePrice({
-    productId: product.id,
-    tipo,
-    transaction,
-  });
-
-  const descuentoPorcentaje = normalizarDescuentoPorcentaje(
-    plain.descuentoPorcentaje,
-  );
-  const resultado = aplicarDescuento(price.precio, descuentoPorcentaje);
-
-  return {
-    ...plain,
-    precio: resultado.precioFinal,
-    precioAnterior:
-      resultado.descuentoPorcentaje > 0 ? resultado.precioOriginal : null,
-    precioOriginal: resultado.precioOriginal || null,
-    descuentoPorcentaje: resultado.descuentoPorcentaje,
-    descuentoUnitario: resultado.descuentoUnitario,
-    price,
-  };
-};
-
 module.exports = {
   PRODUCT_TYPES,
-  ARTICLE_TIPOS,
   COMBO_TIPO,
   suggestedPrice,
   resolvePrice,
   normalizarDescuentoPorcentaje,
   aplicarDescuento,
-  decorateProduct,
-  // Alias historico.
-  decorateArticle: decorateProduct,
   buildPriceSnapshot,
 };
