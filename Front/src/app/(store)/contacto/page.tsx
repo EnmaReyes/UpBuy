@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
-import { Clock, Mail, MessageCircle } from "lucide-react";
+import { Clock, Mail } from "lucide-react";
 import { ContactForm } from "@/components/shared/ContactForm";
 import { Reveal } from "@/components/shared/Reveal";
 import { DotFieldBackground } from "@/components/shared/DotFieldBackground";
+import { WhatsAppIcon } from "@/components/icons/BrandIcons";
+import {
+  UPBUY_WHATSAPP_DISPLAY,
+  UPBUY_WHATSAPP_URL,
+} from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Contacto — UPBUY",
@@ -68,8 +73,7 @@ export default function ContactoPage() {
                 Canales de atención
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Los canales oficiales se confirmarán con el lanzamiento. Estos son los
-                puntos de contacto previstos:
+                Escríbenos por el canal que te quede más cómodo:
               </p>
 
               <div className="mt-7 flex flex-col gap-3">
@@ -80,10 +84,12 @@ export default function ContactoPage() {
                   detail="Respuesta en 1–2 días hábiles"
                 />
                 <ContactCard
-                  icon={MessageCircle}
+                  icon={WhatsAppIcon}
                   label="WhatsApp"
-                  value="Por confirmar"
+                  value={UPBUY_WHATSAPP_DISPLAY}
                   detail="Atención de lunes a viernes"
+                  href={UPBUY_WHATSAPP_URL}
+                  external
                 />
                 <ContactCard
                   icon={Clock}
@@ -93,9 +99,19 @@ export default function ContactoPage() {
                 />
               </div>
 
+              <a
+                href={UPBUY_WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-carbon px-5 text-sm font-semibold text-cream transition-colors hover:bg-terracotta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
+              >
+                <WhatsAppIcon className="h-4 w-4" aria-hidden="true" />
+                Escríbenos por WhatsApp
+              </a>
+
               <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground">
-                El correo y el número mostrados son de referencia y se verificarán antes de
-                publicar la tienda.
+                Al abrir el chat se te redirige a WhatsApp con nuestro número
+                oficial; no necesitas guardar el contacto antes de escribir.
               </p>
             </Reveal>
 
@@ -156,14 +172,18 @@ function ContactCard({
   label,
   value,
   detail,
+  href,
+  external = false,
 }: {
-  icon: typeof Mail;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   detail: string;
+  href?: string;
+  external?: boolean;
 }) {
-  return (
-    <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-4">
+  const content = (
+    <>
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-carbon text-cream">
         <Icon className="h-5 w-5" aria-hidden="true" />
       </span>
@@ -174,6 +194,26 @@ function ContactCard({
         <p className="mt-0.5 text-sm font-semibold text-carbon">{value}</p>
         <p className="text-xs text-muted-foreground">{detail}</p>
       </div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        {...(external
+          ? { target: "_blank", rel: "noopener noreferrer" }
+          : undefined)}
+        className="flex items-start gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-terracotta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-4">
+      {content}
     </div>
   );
 }

@@ -95,26 +95,45 @@ export default async function HomePage() {
   );
 }
 
+// La portada muestra siempre las mismas cuatro categorías, en este orden, sin
+// importar cuántas categorías nuevas se agreguen al catálogo. Son los slugs
+// sembrados por el backend (SHOWCASE_CATEGORY_SEEDS en ensureCatalogSchema).
+const HOME_CATEGORY_SLUGS = [
+  "femenino",
+  "masculino",
+  "calzado",
+  "accesorios",
+] as const;
+
 // Las categorías de la portada vienen de `/api/home`; si esa llamada falla se
 // usa `/api/categories` como respaldo, que también es catálogo real. Nunca se
-// inventan categorías.
+// inventan categorías: solo se muestran las cuatro de HOME_CATEGORY_SLUGS.
 function resolveHomeCategories(
   fromHome: HomeCategory[],
   fromCatalog: Awaited<ReturnType<typeof listCategories>>,
 ): HomeCategory[] {
-  if (fromHome.length > 0) return fromHome.slice(0, 4);
+  const source =
+    fromHome.length > 0
+      ? fromHome.map((category) => ({
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+          description: category.description,
+        }))
+      : fromCatalog
+          .filter((category) => category.isActive)
+          .map((category) => ({
+            id: category.id,
+            name: category.name,
+            slug: category.slug,
+            description: category.description,
+          }));
 
-  return fromCatalog
-    .filter(
-      (category) => category.isActive && category.slug !== "sin-clasificar",
-    )
-    .slice(0, 4)
-    .map((category) => ({
-      id: category.id,
-      name: category.name,
-      slug: category.slug,
-      description: category.description,
-    }));
+  // Se ordenan según HOME_CATEGORY_SLUGS y se descarta cualquier otra
+  // categoría que exista en el catálogo.
+  return HOME_CATEGORY_SLUGS.flatMap((slug) =>
+    source.filter((category) => category.slug === slug),
+  );
 }
 
 function HomeCatalogState({ unavailable }: { unavailable: boolean }) {
