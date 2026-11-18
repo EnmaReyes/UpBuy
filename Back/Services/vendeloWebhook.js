@@ -117,7 +117,14 @@ const safeEqual = (a, b) => {
 // El proveedor puede firmar el cuerpo con HMAC-SHA256 en el header
 // `x-vendelo-signature` (hex) o `x-signature`. Si no hay header, se rechaza:
 // un webhook de dinero sin firma no se procesa.
-const verifySignature = ({ body, headers = {} }) => {
+//
+// La firma se calcula SIEMPRE sobre los bytes exactos recibidos (`rawBody`):
+// un JSON.parse + JSON.stringify puede cambiar espacios y orden, y entonces un
+// evento legitimo fallaria o (peor) se aceptaria algo que no se envio.
+//
+// No se acepta el secreto en claro como firma: eso convertiria el HMAC en un
+// token estatico rejugable si la cabecera se filtra.
+const verifySignature = ({ body, rawBody, headers = {} }) => {
   if (!isConfigured()) return false;
 
   const received =
@@ -126,21 +133,26 @@ const verifySignature = ({ body, headers = {} }) => {
     headers["x-webhook-secret"];
   if (!received) return false;
 
-  const raw = typeof body === "string" ? body : JSON.stringify(body || {});
+  const raw =
+    typeof rawBody === "string"
+      ? rawBody
+      : typeof body === "string"
+        ? body
+        : JSON.stringify(body || {});
   const expected = crypto
     .createHmac("sha256", VENDELO_WEBHOOK_SECRET)
     .update(raw)
     .digest("hex");
 
-  return safeEqual(received, expected) || safeEqual(received, VENDELO_WEBHOOK_SECRET);
+  return safeEqual(received, expected);
 };
 
-const handleVendeloWebhook = async ({ body, headers } = {}) => {
+const handleVendeloWebhook = async ({ body, rawBody, headers } = {}) => {
   if (!isConfigured()) {
     throw new HttpError(503, "El webhook de Vendelo no está configurado");
   }
 
-  if (!verifySignature({ body, headers })) {
+  if (!verifySignature({ body, rawBody, headers })) {
     log.warn("Firma del webhook inválida");
     throw new HttpError(401, "Firma del evento inválida");
   }

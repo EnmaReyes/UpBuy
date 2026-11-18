@@ -10,9 +10,10 @@
 // registra el evento y se deja preparado el enganche con la base de Upbuy.
 //
 // Reglas:
-//   - Si VENNDELO_WEBHOOK_SECRET esta configurado, se exige una firma HMAC
-//     SHA-256 valida. Si no, el evento se acepta y se deja un aviso en el log
-//     (nunca se rompe la integracion por una variable faltante).
+//   - Si VENNDELO_WEBHOOK_SECRET no esta configurado, el endpoint responde
+//     503 (fail-closed): un webhook publico sin firma permitiria inyectar
+//     eventos falsos en webhook_events.
+//   - Con secreto configurado, se exige una firma HMAC SHA-256 valida.
 //   - Idempotencia via WebhookEvent(provider = "venndelo", eventId).
 //   - Siempre se responde 200 a un evento autentico: el proveedor reintenta
 //     durante horas y un fallo nuestro no debe convertirse en una tormenta.
@@ -115,22 +116,22 @@ const verifySignature = ({ body, rawBody, headers = {} }) => {
 
   return (
     safeEqual(received, digest.toString("hex")) ||
-    safeEqual(received, digest.toString("base64")) ||
-    safeEqual(received, VENNDELO_WEBHOOK_SECRET)
+    safeEqual(received, digest.toString("base64"))
   );
 };
 
 // POST /api/webhooks/venndelo
 const handleVenndeloWebhook = async ({ body, rawBody, headers } = {}) => {
+  if (!isConfigured()) {
+    // Fail-closed: sin secreto no hay forma de autenticar el evento y el
+    // endpoint es publico. Mejor rechazar que aceptar cualquier payload.
+    throw new HttpError(503, "El webhook de Venndelo no está configurado");
+  }
+
   const signature = verifySignature({ body, rawBody, headers });
-  if (signature === false) {
+  if (signature !== true) {
     log.warn("Firma del webhook de Venndelo inválida");
     throw new HttpError(401, "Firma del evento inválida");
-  }
-  if (signature === null) {
-    log.warn(
-      "VENNDELO_WEBHOOK_SECRET no configurado: el evento se acepta sin verificar firma",
-    );
   }
 
   const event = extractEvent(body);

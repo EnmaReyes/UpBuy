@@ -39,9 +39,22 @@ const {
 } = require("../Services/sessionCookie.js");
 const { isRequestIpAllowed } = require("../Middlewares/requireAdminIp.js");
 const { notifyFailedAttempts } = require("../Services/securityAlerts.js");
+const { createLogger } = require("../Utils/logger.js");
+
+const log = createLogger("auth");
 
 const TOKEN_EXPIRATION = "12h";
 const COOKIE_MAX_AGE = 12 * 60 * 60 * 1000; // 12 horas
+
+// Mensaje unico para cualquier fallo de credenciales. Si el usuario no existe
+// o la cuenta es social, la respuesta es la misma que para una contrasena
+// errada: revelar cual fue el caso permite enumerar cuentas.
+const CREDENTIALS_ERROR = "Usuario o contraseña incorrectos";
+
+// Hash de relleno para igualar el tiempo de respuesta cuando el usuario no
+// existe (bcrypt tarda lo mismo con un hash real que con este).
+const DUMMY_PASSWORD_HASH =
+  "$2a$10$ScN4hh.0kIRpu5r/Hg/IEe2bKa2XrbUdRM4FEwmhGlMh02NhbCrFW";
 
 const verifyOptions = {
   algorithms: [JWT_ALGORITHM],
@@ -236,6 +249,9 @@ const login = async (req, res) => {
     });
 
     if (!existingUser) {
+      // Comparacion contra un hash de relleno: sin esto la respuesta llega
+      // mucho antes y la latencia delata que el usuario no existe.
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
       await recordAuthEvent({
         event: "login",
         result: "failure",
@@ -243,9 +259,41 @@ const login = async (req, res) => {
         metadata: { reason: "unknown_user" },
       });
       await notifyFailedAttempts({ ip: meta.ip, event: "login" });
-      return res.status(404).json("Usuario no existente");
+      return res.status(401).json(CREDENTIALS_ERROR);
     }
 
+    // Una cuenta social no tiene contrasena: se compara igual contra el hash
+    // de relleno para no cambiar el tiempo ni revelar el tipo de cuenta.
+    let isPasswordCorrect = false;
+    if (existingUser.password) {
+      isPasswordCorrect = await bcrypt.compare(
+        password,
+        existingUser.password,
+      );
+    } else {
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+    }
+
+    if (!isPasswordCorrect) {
+      await recordAuthEvent({
+        userId: existingUser.id,
+        event: "login",
+        result: "failure",
+        req,
+        metadata: {
+          reason: existingUser.password ? "invalid_password" : "social_account",
+        },
+      });
+      await notifyFailedAttempts({
+        userId: existingUser.id,
+        ip: meta.ip,
+        event: "login",
+      });
+      return res.status(401).json(CREDENTIALS_ERROR);
+    }
+
+    // La cuenta desactivada solo se anuncia a quien ya demostro conocer la
+    // contrasena: comprobarlo antes permitia enumerar cuentas desactivadas.
     if (existingUser.disabled) {
       await recordAuthEvent({
         userId: existingUser.id,
@@ -255,33 +303,6 @@ const login = async (req, res) => {
         metadata: { reason: "account_disabled" },
       });
       return res.status(403).json("Esta cuenta está desactivada");
-    }
-
-    if (!existingUser.password) {
-      return res
-        .status(400)
-        .json("Esta cuenta usa inicio de sesión social (Google/Facebook)");
-    }
-
-    const isPasswordCorrect = await bcrypt.compare(
-      password,
-      existingUser.password
-    );
-
-    if (!isPasswordCorrect) {
-      await recordAuthEvent({
-        userId: existingUser.id,
-        event: "login",
-        result: "failure",
-        req,
-        metadata: { reason: "invalid_password" },
-      });
-      await notifyFailedAttempts({
-        userId: existingUser.id,
-        ip: meta.ip,
-        event: "login",
-      });
-      return res.status(400).json("Contraseña Errada");
     }
 
     // Un administrador con MFA configurado recibe un reto; sin MFA configurado

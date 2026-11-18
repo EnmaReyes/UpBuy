@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const {
   Payment,
   Order,
+  sequelize,
 } = require("../DataBase/models/index.js");
 const {
   PAYMENT_STATUS,
@@ -421,25 +422,45 @@ const createCheckoutForOrder = async ({ orderId, userId }) => {
 
   // Reutiliza el intento pendiente si existe: recargar la pagina no debe
   // llenar la tabla de pagos ni cambiar la referencia que ya se mostro.
-  let payment = await Payment.findOne({
-    where: {
-      orderId: order.id,
-      provider: PROVIDER_WOMPI,
-      status: PAYMENT_STATUS.PENDIENTE,
-    },
-    order: [["createdAt", "DESC"]],
-  });
+  //
+  // Todo va dentro de una transaccion con el pedido bloqueado (FOR UPDATE):
+  // dos clicks simultaneos se serializan y solo uno crea el intento. Sin el
+  // lock, ambos no encuentran pago pendiente y crean dos con referencias
+  // distintas (la idempotencia por `reference` no aplica a referencias nuevas).
+  const payment = await sequelize.transaction(async (tx) => {
+    const lockedOrder = await Order.findOne({
+      where: { id: order.id },
+      transaction: tx,
+      lock: tx.LOCK.UPDATE,
+    });
+    if (!lockedOrder) {
+      throw new HttpError(404, "Pedido no encontrado");
+    }
+    if (lockedOrder.fulfillmentStatus !== FULFILLMENT_STATUS.PENDING_PAYMENT) {
+      throw new HttpError(409, "El pedido ya no está pendiente de pago");
+    }
 
-  if (!payment) {
+    const existing = await Payment.findOne({
+      where: {
+        orderId: lockedOrder.id,
+        provider: PROVIDER_WOMPI,
+        status: PAYMENT_STATUS.PENDIENTE,
+      },
+      order: [["createdAt", "DESC"]],
+      transaction: tx,
+    });
+    if (existing) return existing;
+
     const created = await registerPayment({
-      orderId: order.id,
+      orderId: lockedOrder.id,
       provider: PROVIDER_WOMPI,
-      reference: newReference(order),
+      reference: newReference(lockedOrder),
       status: PAYMENT_STATUS.PENDIENTE,
       note: "Intento de pago en línea iniciado",
+      transaction: tx,
     });
-    payment = created.payment;
-  }
+    return created.payment;
+  });
 
   const amountInCents = Number(payment.amountInCents);
 

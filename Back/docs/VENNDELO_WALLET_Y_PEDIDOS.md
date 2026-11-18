@@ -77,9 +77,10 @@ Idempotencia: se manda el header `Idempotency-Key`; si no viene, se usa
 `ORDER_PREPARED`, `READY_FOR_PICKUP`, `ORDER_SHIPPED`, `ORDER_DELIVERED`,
 `SHIPMENT_EXCEPTION_CREATED`, `SHIPMENT_STATUS_UPDATED`.
 
-- Verifica firma HMAC-SHA256 si `VENNDELO_WEBHOOK_SECRET` está configurado
-  (header `x-venndelo-signature` o `x-signature`). Sin secreto, acepta y avisa
-  en el log.
+- Verifica firma HMAC-SHA256 sobre el **cuerpo crudo** (`rawBody`) con
+  `VENNDELO_WEBHOOK_SECRET` (header `x-venndelo-signature` o `x-signature`).
+  Sin secreto configurado el endpoint responde **503** (fail-closed): es
+  público, así que no se acepta ningún evento sin autenticar.
 - Deduplica por `WebhookEvent(provider = "venndelo", eventId)`.
 - Responde `200` a eventos auténticos.
 - Hoy **solo registra** el evento. `// TODO:` mapear a estados canónicos de

@@ -1,4 +1,5 @@
 const { Usuarios } = require("../DataBase/models/Usuarios.js");
+const { UniqueConstraintError } = require("sequelize");
 const { OAuth2Client } = require("google-auth-library");
 const { issueSession, beginAdminLogin } = require("./auth.js");
 const {
@@ -6,6 +7,24 @@ const {
   FACEBOOK_APP_ID,
   FACEBOOK_APP_SECRET,
 } = require("../config.js");
+const { createLogger } = require("../Utils/logger.js");
+
+const log = createLogger("auth.social");
+
+// Dos logins simultaneos del mismo usuario pueden intentar crear la cuenta a la
+// vez: el segundo choca contra un indice unico. En vez de responder 500 se
+// relee la cuenta que gano la carrera.
+const findAfterUniqueRace = async ({ googleId, facebookId, email }) => {
+  if (googleId) {
+    const byGoogle = await Usuarios.findOne({ where: { googleId } });
+    if (byGoogle) return byGoogle;
+  }
+  if (facebookId) {
+    const byFacebook = await Usuarios.findOne({ where: { facebookId } });
+    if (byFacebook) return byFacebook;
+  }
+  return email ? Usuarios.findOne({ where: { email } }) : null;
+};
 
 //? Login con Google (Google Identity Services)
 // El frontend envia el "credential" (ID token JWT firmado por Google).
@@ -53,21 +72,55 @@ const googleLogin = async (req, res) => {
       //    Google verifica el email -> se permite auto-vincular)
       const byEmail = await Usuarios.findOne({ where: { email } });
       if (byEmail) {
-        byEmail.googleId = payload.sub;
-        if (!byEmail.image && payload.picture) byEmail.image = payload.picture;
-        await byEmail.save();
+        // Nunca se pisa un vinculo de Google ya existente: si el correo esta
+        // atado a otra identidad de Google, ese login no es el dueno.
+        if (byEmail.googleId && byEmail.googleId !== payload.sub) {
+          return res
+            .status(409)
+            .json(
+              "Este correo ya está vinculado a otra cuenta de Google. Inicia sesión con tu método original.",
+            );
+        }
+        if (!byEmail.googleId) {
+          byEmail.googleId = payload.sub;
+          if (!byEmail.image && payload.picture) byEmail.image = payload.picture;
+          await byEmail.save();
+        }
         user = byEmail;
       } else {
         // 3) Usuario totalmente nuevo
-        user = await Usuarios.create({
-          email,
-          googleId: payload.sub,
-          username: null,
-          password: null,
-          name: payload.given_name || null,
-          lastName: payload.family_name || null,
-          image: payload.picture || null,
-        });
+        try {
+          user = await Usuarios.create({
+            email,
+            googleId: payload.sub,
+            username: null,
+            password: null,
+            name: payload.given_name || null,
+            lastName: payload.family_name || null,
+            image: payload.picture || null,
+          });
+        } catch (error) {
+          if (!(error instanceof UniqueConstraintError)) throw error;
+          user = await findAfterUniqueRace({
+            googleId: payload.sub,
+            email,
+          });
+          if (!user) throw error;
+          if (user.googleId && user.googleId !== payload.sub) {
+            return res
+              .status(409)
+              .json(
+                "Este correo ya está vinculado a otra cuenta de Google. Inicia sesión con tu método original.",
+              );
+          }
+          // Gano la carrera una cuenta local con el mismo correo: se vincula
+          // igual que en el camino sin carrera.
+          if (!user.googleId) {
+            user.googleId = payload.sub;
+            if (!user.image && payload.picture) user.image = payload.picture;
+            await user.save();
+          }
+        }
       }
     }
 
@@ -158,15 +211,33 @@ const facebookLogin = async (req, res) => {
             "Este correo ya tiene una cuenta. Inicia sesión con tu método original."
           );
       }
-      user = await Usuarios.create({
-        email: profile.email.toLowerCase(),
-        facebookId,
-        username: null,
-        password: null,
-        name: profile.first_name || null,
-        lastName: profile.last_name || null,
-        image: profile.picture?.data?.url || null,
-      });
+      try {
+        user = await Usuarios.create({
+          email: profile.email.toLowerCase(),
+          facebookId,
+          username: null,
+          password: null,
+          name: profile.first_name || null,
+          lastName: profile.last_name || null,
+          image: profile.picture?.data?.url || null,
+        });
+      } catch (error) {
+        if (!(error instanceof UniqueConstraintError)) throw error;
+        // Carrera entre dos logins simultaneos: se usa la cuenta que gano.
+        const raced = await findAfterUniqueRace({
+          facebookId,
+          email: profile.email.toLowerCase(),
+        });
+        if (!raced) throw error;
+        if (raced.facebookId && raced.facebookId !== facebookId) {
+          return res
+            .status(409)
+            .json(
+              "Este correo ya tiene una cuenta. Inicia sesión con tu método original."
+            );
+        }
+        user = raced;
+      }
     }
 
     // Los administradores pasan por el mismo segundo factor que el login local.

@@ -21,7 +21,7 @@
 
 const { sequelize } = require("./db.js");
 
-const SCHEMA_LOCK_KEY = 2147483003;
+const SCHEMA_LOCK_KEY = 2147483004;
 
 const ROLES = ["customer", "support", "admin", "superadmin"];
 
