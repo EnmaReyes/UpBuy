@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Imagen con respaldo.
 //
@@ -21,6 +21,12 @@ export function SafeImage({
   eager?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
+
+  // Si el mismo componente se reutiliza con otro `src`, el fallo anterior no
+  // debe arrastrarse: cada direccion se intenta por separado.
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
 
   if (!src || failed) return <>{fallback}</>;
 

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { User } from "lucide-react";
-import { getSessionClient } from "@/services/auth";
 import { getDashboardRoute } from "@/lib/dashboard-route";
+import { useSessionProbe } from "@/hooks/use-session-probe";
 import type { AuthUser } from "@/types/auth";
 
 // Acceso a la cuenta en el navbar.
@@ -13,19 +12,7 @@ import type { AuthUser } from "@/types/auth";
 // catálogo) sigan siendo estáticas. Mientras no se sabe, se muestra el estado
 // "sin sesión": el único cambio es el texto, nunca el tamaño ni el layout.
 export function AccountButton({ className }: { className?: string }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    getSessionClient().then((session) => {
-      if (active) setUser(session);
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { user } = useSessionProbe();
 
   const label = user ? firstName(user) : "Ingresar";
   // Única fuente de verdad del destino: admin -> /admin, comprador ->

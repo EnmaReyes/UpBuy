@@ -575,7 +575,7 @@ export default function FileUpload({
           message:
             reason instanceof Error && reason.message
               ? reason.message
-              : "Upload failed",
+              : "No se pudo subir el archivo",
           code: "UPLOAD_FAILED",
         };
         updateItem(item.id, { status: "error", error });

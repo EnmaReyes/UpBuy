@@ -16,6 +16,7 @@ export function OrderCancel({ orderId }: { orderId: string }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
+  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const onCancel = async () => {
@@ -23,9 +24,12 @@ export function OrderCancel({ orderId }: { orderId: string }) {
     setError(null);
     try {
       await cancelOrder(orderId);
+      // Se marca como hecho antes de refrescar: si el refresh tarda o falla,
+      // el boton no queda atascado en "Cancelando…". El Server Component
+      // reemplaza este bloque cuando llega el estado real (cancelado).
+      setDone(true);
+      setPending(false);
       setConfirming(false);
-      // La ficha es un Server Component: refrescar trae el estado real
-      // (cancelado) y oculta el botón.
       router.refresh();
     } catch (caught) {
       setError(
@@ -36,6 +40,17 @@ export function OrderCancel({ orderId }: { orderId: string }) {
       setPending(false);
     }
   };
+
+  if (done) {
+    return (
+      <p
+        role="status"
+        className="rounded-lg border border-border bg-muted/40 p-3 text-center text-sm font-semibold text-carbon"
+      >
+        Pedido cancelado. Actualizando…
+      </p>
+    );
+  }
 
   if (!confirming) {
     return (

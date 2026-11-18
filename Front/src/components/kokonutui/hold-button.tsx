@@ -99,19 +99,31 @@ const VARIANT_DEFAULTS: Record<
   Variant,
   { icon: LucideIcon; label: string; completeLabel: string }
 > = {
-  red: { icon: Trash2Icon, label: "Hold to delete", completeLabel: "Deleted" },
+  red: {
+    icon: Trash2Icon,
+    label: "Mantén para eliminar",
+    completeLabel: "Eliminado",
+  },
   green: {
     icon: ArchiveIcon,
-    label: "Hold to archive",
-    completeLabel: "Archived",
+    label: "Mantén para archivar",
+    completeLabel: "Archivado",
   },
-  blue: { icon: SendIcon, label: "Hold to send", completeLabel: "Sent" },
+  blue: {
+    icon: SendIcon,
+    label: "Mantén para enviar",
+    completeLabel: "Enviado",
+  },
   orange: {
     icon: LogOutIcon,
-    label: "Hold to sign out",
-    completeLabel: "Signed out",
+    label: "Mantén para salir",
+    completeLabel: "Sesión cerrada",
   },
-  grey: { icon: BanIcon, label: "Hold to block", completeLabel: "Blocked" },
+  grey: {
+    icon: BanIcon,
+    label: "Mantén para bloquear",
+    completeLabel: "Bloqueado",
+  },
 };
 
 interface HoldButtonProps
@@ -165,7 +177,7 @@ export default function HoldButton({
   className,
   variant = "red",
   holdDuration = 1200,
-  holdingLabel = "Keep holding",
+  holdingLabel = "Sigue presionando",
   completeLabel,
   resetAfter = 1800,
   onHoldComplete,

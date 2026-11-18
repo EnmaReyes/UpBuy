@@ -196,23 +196,13 @@ export default function SpendingRing({
     },
   });
 
-  const money = useMemo(
-    () =>
-      new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency,
-        maximumFractionDigits: 2,
-        minimumFractionDigits: 2,
-      }),
-    [currency]
-  );
   // Formato del valor principal y de la leyenda; la leyenda redondea a
   // unidades cuando no hay formato externo.
   const fmt = useCallback(
     (value: number) =>
       formatValue
         ? formatValue(value)
-        : new Intl.NumberFormat("en-US", {
+        : new Intl.NumberFormat("es-CO", {
             style: "currency",
             currency,
             maximumFractionDigits: 0,

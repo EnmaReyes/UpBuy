@@ -150,7 +150,13 @@ export function ImportCsv({ canWrite }: { canWrite: boolean }) {
             maxFiles={1}
             maxFileSize={MAX_BYTES}
             acceptedFileTypes={[".csv", "text/csv"]}
-            onUploadSuccess={(file) => void readFile(file)}
+            onUploadSuccess={(file) => {
+              // `file.text()` puede rechazar; sin catch quedaria una promesa
+              // sin manejar y el usuario veria el selector colgado.
+              void readFile(file).catch(() =>
+                setError("No se pudo leer el archivo. Inténtalo de nuevo."),
+              );
+            }}
             onUploadError={(uploadError) => setError(uploadError.message)}
             validateFile={(file) => {
               if (!/\.csv$/i.test(file.name)) {

@@ -95,8 +95,8 @@ const RINGS: { id: string; style: CSSProperties }[] = [
 ];
 
 export default function Loader({
-  title = "Configuring your account...",
-  subtitle = "Please wait while we prepare everything for you",
+  title = "Cargando…",
+  subtitle = "Un momento, por favor",
   size = "md",
   className,
   ...props

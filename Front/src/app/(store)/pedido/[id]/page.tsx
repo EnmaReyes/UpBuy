@@ -40,6 +40,11 @@ export default async function OrderPage({ params }: OrderPageProps) {
     order = await getOrder(id);
   } catch (error) {
     if (error instanceof ApiError && error.isNotFound) notFound();
+    // Sesion caducada entre la sonda y la peticion: al login, no a la
+    // pantalla de error cruda de Next (que ademas esta en ingles).
+    if (error instanceof ApiError && error.isUnauthorized) {
+      redirect(`/login?next=/pedido/${id}`);
+    }
     throw error;
   }
 
