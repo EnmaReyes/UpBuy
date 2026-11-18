@@ -1,96 +1,140 @@
-# Análisis del backend (Node.js + PostgreSQL + Sequelize)
+# Análisis del backend (estado actual)
 
 ## 1. Resumen ejecutivo
 
-El backend está bien organizado en capas (Rutas → Controladores → Servicios → DataBase/Models), usa Sequelize con asociaciones centralizadas, transacciones para operaciones críticas y un manejo de errores que oculta detalles internos. Las pruebas existentes (`npm test`) pasan (17/17).
+El backend es **Node 22 + Express 4 + Sequelize 6 + PostgreSQL** (CommonJS),
+organizado en capas `Rutas → Controllers → Services → DataBase/models`. Las
+reglas de negocio viven en `Services/`; los controladores solo traducen HTTP y
+las rutas validan y delegan.
 
-Principales fortalezas: separación de estados (fulfillment vs. payment), snapshots de pedido, idempotencia de webhooks, rate limiting, helmet, health check con reintentos para Neon.
+La suite `npm test` cubre **241 casos** (`node --test --test-concurrency=1`) y
+pasa completa. Cubre transiciones de estado, efectos COD, gating de perfil,
+`netProfit`, idempotencia y firmas de webhooks, catálogo (Venndelo y
+MasterShop), MFA admin, campañas, WhatsApp y panel administrativo.
 
-Principales riesgos a vigilar: secreto JWT con valor por defecto débil, ausencia de graceful shutdown, validación manual dispersa, posibles N+1 en bucles, y dependencia de scripts idempotentes en lugar de migraciones formales.
+Documentación relacionada:
+
+- [`ESTADOS.md`](ESTADOS.md) — los dos ciclos de estado y sus transiciones.
+- [`PROVEEDORES.md`](PROVEEDORES.md) — catálogo Venndelo/MasterShop y pedidos.
+- [`SEGURIDAD_ADMIN.md`](SEGURIDAD_ADMIN.md) — MFA, step-up, IP allowlist.
+- [`VENNDELO_WALLET_Y_PEDIDOS.md`](VENNDELO_WALLET_Y_PEDIDOS.md) — wallet y
+  sincronización de pedidos.
 
 ## 2. Estructura
 
 ```
 Back/
-├─ index.js                 # bootstrap Express, DB init con reintentos, middlewares
-├─ config.js                # env, dialecto, Wompi, cron, etc.
+├─ index.js                  # bootstrap, middlewares, rutas, cierre ordenado
+├─ config.js                 # env validado (falla rápido en producción)
 ├─ DataBase/
-│  ├─ db.js                 # Sequelize instance, pool, SSL
-│  ├─ models/               # modelos + index.js + associations.js
-│  ├─ ensurePricing.js      # schema idempotente
-│  └─ ensureDropshippingSchema.js
-├─ Rutas/, Controllers/, Services/, Middlewares/, Utils/
-├─ test/                    # rules.test.js, db.test.js
-└─ scripts/                 # migraciones/verificación
+│  ├─ db.js                  # instancia, pool y SSL para Neon
+│  ├─ models/                # modelos, asociaciones y enums
+│  ├─ ensureBaseSchema.js    # esquema base (idempotente)
+│  ├─ ensureAdminSecuritySchema.js
+│  ├─ ensureCampaignSchema.js
+│  ├─ ensureCatalogSchema.js
+│  ├─ ensureDropshippingSchema.js
+│  └─ ensurePanelIndexes.js
+├─ Middleware/               # guards de sesión: requireAuth, requireAdminSession, requirePermission
+├─ Middlewares/              # errors, rateLimits, requireAdminIp, requireCompleteProfile,
+│                            # requireStepUp, requireTrustedOrigin
+├─ Rutas/, Controllers/, Services/, Utils/
+├─ integrations/suppliers/   # venndelo, mastershop, ...
+├─ docs/                     # ESTADOS, PROVEEDORES, SEGURIDAD_ADMIN, este archivo
+├─ scripts/                  # bootstrap, verificación y utilidades manuales
+└─ test/                     # node:test (241 casos)
 ```
 
-## 3. Fortalezas (mejores prácticas ya aplicadas)
+## 3. Fortalezas (ya aplicadas)
 
-- Pool pequeño y timeouts cortos para serverless (Vercel/Neon) en `DataBase/db.js`.
-- `sequelize.sync()` solo en desarrollo; producción usa esquemas idempotentes.
-- Transacciones con `rollback` en `createOrderCore`, `cancelOrder`.
-- Control de sobreventa con `UPDATE ... WHERE stock = true` y `affected === 0`.
-- Validación de transiciones de estado (422) y efectos COD en `statusMachine.js`.
-- Índices declarados en modelos (`orders_*_idx`, etc.).
-- Rate limiting por IP/usuario, helmet, CORS con origen explícito.
-- Errores internos no se filtran al cliente (`Middlewares/errors.js` + `describeError`).
-- Webhooks idempotentes (`beginWebhookEvent`/`finishWebhookEvent`).
-- Raw SQL con `replacements` (parametrizado) en `accounting.js`.
+- **Arranque seguro:** `config.js` falla en producción si falta `JWT_SECRET`
+  (mínimo 32 caracteres), `FRONTEND_URLS` o el secreto de MFA cuando aplica. En
+  desarrollo sin secreto genera uno efímero y avisa.
+- **Operación:** `helmet`, `compression`, CORS con origen explícito,
+  `trust proxy` según `TRUST_PROXY`, rate limiting por IP/usuario y cierre
+  ordenado con `SIGTERM`/`SIGINT` (`server.close()` + `sequelize.close()`).
+- **Webhooks:** firma calculada sobre el **cuerpo crudo** (`req.rawBody`), sin
+  fallback de secreto; idempotencia por `(provider, eventId)`; el webhook de
+  Venndelo responde **503** si falta `VENNDELO_WEBHOOK_SECRET` (fail-closed).
+- **Pedidos:** transacciones con bloqueo (`FOR UPDATE`) en creación, pago,
+  cancelación y sincronización; la máquina de estados valida cada transición
+  (422) y deja historial + auditoría.
+- **Inventario:** el stock son **unidades reales**; reserva y descuento usan
+  `UPDATE ... WHERE stock >= cantidad` para evitar sobreventa.
+- **Fuente de verdad:** los estados crudos del proveedor se mapean a los
+  canónicos; `manualOverride` nunca se pisa por auto-sync.
+- **Observabilidad:** `Utils/logger.js` centraliza los logs con scope, nivel
+  (`LOG_LEVEL`) y redacción de secretos. No hay `console.*` en código de
+  producción fuera de `config.js`, el propio logger y los scripts/ensure*.
+- **Esquema:** `sequelize.sync()` solo fuera de producción. En producción cada
+  `ensure*Schema` es idempotente y usa su propia llave `pg_advisory_lock`.
+- **Catálogo:** adaptadores por proveedor en `integrations/suppliers/<slug>/`;
+  los servicios de catálogo no cambian al agregar uno nuevo.
+- **Errores:** `Utils/HttpError.js` + `Middlewares/errors.js` + `Utils/respond.js`
+  no filtran stack, SQL ni nombres de tablas al cliente.
 
-## 4. Riesgos y posibles bugs
+## 4. Riesgos y backlog
 
 ### Alta prioridad
 
-1. **JWT_SECRET con default débil en desarrollo.** `config.js` usa `process.env.JWT_SECRET || "jwtkey"`. Aunque en producción (Vercel) la variable está configurada, si falta en un entorno nuevo el sistema arranca silenciosamente con un secreto trivial.  
-   → Recomendado: fallar el arranque en producción si falta la variable (`if (isProduction && !process.env.JWT_SECRET) throw`), manteniendo el default solo para desarrollo local.
-
-2. **Sin graceful shutdown.** No se cierra `sequelize` ni el servidor ante SIGTERM/SIGINT. En Vercel las funciones son efímeras, pero en local/desarrollo y en cualquier host con contenedor deja conexiones colgadas.  
-   → Añadir handlers que llamen `sequelize.close()` y `server.close()`.
-
-3. **SSL hacia Neon con `rejectUnauthorized: false`** (`db.js`). Neon exige SSL y el flag actual desactiva la verificación del certificado (mitiga MITM pero no lo elimina).  
-   → Opcional: descargar el CA de Neon y configurar `ssl: { ca: fs.readFileSync(...) }` con `rejectUnauthorized: true`. Si se mantiene `false`, documentar el motivo (compatibilidad con el pooler).
-
-4. **Validación dispersa y manual.** No hay Zod/Joi; cada controlador valida a mano. Riesgo de inconsistencias y bypass.  
-   → Centralizar con un middleware de validación (Zod) por ruta.
-
-5. **N+1 en bucles.** `detectStockConflicts` consulta producto por ítem; `releaseOrderStock`/`restoreOrderStock` actualizan uno por uno. Aceptable para pedidos pequeños, pero escala mal.  
-   → Usar `Model.update({..}, { where: { id: { [Op.in]: ids } } })` o bulk.":
+1. **Validación de entrada dispersa.** No hay Zod/Joi: cada controlador valida a
+   mano. Riesgo de inconsistencias entre rutas.
+   → Centralizar con un esquema por ruta (empezar por auth, orders y admin).
+2. **N+1 en inventario.** `detectStockConflicts` consulta producto por ítem y
+   `reserveOrderStock`/`restoreOrderStock`/`releaseOrderStock` actualizan uno por
+   uno. Aceptable para pedidos pequeños, pero escala mal.
+   → Operaciones bulk con `Op.in` o `UPDATE ... FROM order_items`.
+3. **Esquema sin migraciones versionadas.** `ensure*` es idempotente pero no
+   tiene historial ni rollback. Un cambio destructivo exige script manual.
+   → Mantener `ensure*` para bootstrap y evaluar migraciones para cambios
+   futuros.
+4. **SSL con `rejectUnauthorized: false`** (`DataBase/db.js`). Es lo habitual
+   con el pooler de Neon, pero desactiva la verificación del certificado.
+   → Documentar el motivo o fijar el CA de Neon con `rejectUnauthorized: true`.
+5. **Cobertura de rutas.** La suite cubre mucha lógica y varios servicios, pero
+   no todas las rutas HTTP de punta a punta.
+   → Añadir integración con `supertest` en auth, checkout y admin.
 
 ### Media prioridad
 
-6. **Sin compresión HTTP.** Respuestas JSON grandes (listados) sin gzip.  
-   → `app.use(compression())`.
-
-7. **Sin request id / logging estructurado de correlación.** Dificulta depurar en producción.  
-   → Middleware que genere `X-Request-Id` y lo incluya en logs.
-
-8. **Esquema gestionado por scripts, no migraciones versionadas.** `ensure*` es idempotente pero no hay rollback ni historial.  
-   → Introducir `sequelize-cli` migrations para cambios futuros; mantener ensure* solo para bootstrap.
-
-9. **`express.json()` sin límite explícito.** Default 100kb; verificar que cubra payloads legítimos (imágenes en base64, etc.).  
-   → Definir `limit` explícito según necesidad.
-
-10. **Tests solo cubren lógica pura + 3 casos con DB.** Sin cobertura de controladores/rutas.  
-    → Añadir tests de integración (supertest) para rutas críticas.
+6. **Sin request id de correlación.** En Vercel los logs son líneas sueltas; un
+   `X-Request-Id` facilitaría seguir una petición entre capas.
+   → Middleware que genere/propague el id y lo incluya en el logger.
+7. **Crons dependen de `CRON_SECRET`.** Correcto (sin secreto → 401), pero un
+   despliegue nuevo sin la variable falla silenciosamente para el operador.
+   → Añadir una comprobación de arranque o un aviso en `/health`.
+8. **`sequelize.sync()` en desarrollo** puede ocultar diferencias con el esquema
+   que aplican los `ensure*` en producción.
+   → Probar periódicamente `npm run db:check` contra una base limpia.
 
 ### Baja prioridad
 
-11. **Sin TypeScript.** El skill recomienda TS para prevenir errores en runtime. Migración gradual con JSDoc + `// @ts-check` es viable.
-12. **`optionalAuth` ignora tokens inválidos silenciosamente.** Correcto para rutas públicas, pero puede ocultar problemas. Documentar.
+9. **Sin TypeScript.** Migración gradual con JSDoc + `// @ts-check` es viable,
+   pero no es prioritaria frente a la cobertura de rutas.
+10. **Formato de logs.** El logger ya es estructurado; falta unificar la
+    retención/consulta en el proveedor de hosting.
 
-## 5. Checklist de hardening recomendado
+## 5. Checklist de hardening
 
-- [ ] Validar `JWT_SECRET` no vacío en producción al arrancar.
-- [ ] Añadir graceful shutdown (SIGTERM/SIGINT).
-- [ ] Añadir `compression`.
-- [ ] Centralizar validación de entrada con Zod (empezar por auth y orders).
-- [ ] Reemplazar bucles N+1 por operaciones bulk.
-- [ ] Definir límite explícito de `express.json()`.
-- [ ] Añadir request id en logs.
-- [ ] Crear migraciones versionadas para cambios de esquema.
-- [ ] Ampliar cobertura de tests (rutas críticas con supertest).
-- [ ] Revisar `rejectUnauthorized` de SSL y documentar.
+- [x] Validar `JWT_SECRET` en producción al arrancar.
+- [x] Cierre ordenado (`SIGTERM`/`SIGINT`).
+- [x] `compression` y cabeceras con `helmet`.
+- [x] `trust proxy` configurable para rate limit detrás de Vercel.
+- [x] Firma de webhooks sobre el cuerpo crudo y fail-closed sin secreto.
+- [x] Transacciones con bloqueo en pedidos, pagos y sincronización.
+- [x] Inventario por unidades con control de sobreventa.
+- [x] Logs estructurados con redacción de secretos.
+- [ ] Validación centralizada de entrada (Zod u equivalente).
+- [ ] Operaciones bulk en inventario.
+- [ ] Migraciones versionadas para cambios de esquema.
+- [ ] Revisar `rejectUnauthorized` de SSL y documentarlo.
+- [ ] Ampliar cobertura de rutas con `supertest`.
+- [ ] Request id en logs.
 
 ## 6. Conclusión
 
-La base es sólida y sigue la mayoría de las mejores prácticas, con producción desplegada en Vercel + Neon. Los cambios sugeridos son incrementales y no requieren reescritura. Priorizar fail-fast del JWT secret y graceful shutdown antes de optimizaciones de rendimiento.
+La base es sólida y los riesgos críticos de seguridad y consistencia ya están
+cubiertos: arranque fail-fast, webhooks verificados e idempotentes, pedidos
+transaccionales y estados canónicos. Lo pendiente es incremental: validación
+centralizada, eficiencia del inventario y cobertura de rutas. No requiere
+reescritura.

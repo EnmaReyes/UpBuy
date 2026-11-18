@@ -856,8 +856,10 @@ npm test
 
 Cubre las reglas críticas:
 
-1. Transiciones válidas/inválidas (422).
+1. Transiciones válidas/inválidas (422) y mensajes al comprador.
 2. Efectos COD (`shipped`/`delivered`).
-3. Gating de perfil.
-4. Cálculo de `netProfit`.
-5. Idempotencia de webhooks (requiere base local; se salta si no hay).
+3. Gating de perfil y cálculo de `netProfit`.
+4. Idempotencia y firma de webhooks (Wompi y Venndelo).
+5. Catálogo: normalización de Venndelo y MasterShop, curaduría del home.
+6. Autenticación: MFA admin, step-up y sesiones revocables.
+7. Campañas, WhatsApp y panel administrativo (pedidos, clientes, proveedores).

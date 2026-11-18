@@ -48,8 +48,8 @@ Cada uno se despliega como **su propio proyecto de Vercel**. Corre los comandos
 UpBuy/
   AGENTS.md            # este archivo (guía raíz del monorepo)
   DEPLOY.md            # guía de despliegue en Vercel
-  Back/                # API REST + catálogo + dropshipping
-  Front/               # e-commerce (Next.js 16)
+  Back/                # API REST + catálogo + dropshipping + panel admin
+  Front/               # e-commerce (Next.js 16) + panel /admin
   design-system/       # referencias de diseño de UpBuy
   .agents/skills/      # skills instaladas (nodejs-backend-patterns)
 ```
@@ -76,7 +76,10 @@ npm run typecheck      # tsc --noEmit
 
 Scripts de base de datos (desde `Back/`): `db:create`, `db:bootstrap`,
 `db:check`, `db:migrate`, `db:verify-migration`, `db:migrate:catalog`,
-`db:verify-catalog`, `venndelo:check`.
+`db:verify-catalog`, `db:verify-home`, `db:migrate:admin`,
+`db:migrate:campaigns`, `db:migrate:indexes`, `db:seed-home`,
+`db:grant-admin`, `security:prune` y `venndelo:check`. También hay
+`npm run tunnel` para exponer el backend local (webhooks).
 
 En `Front/` **no hay lint configurado**: usa `npm run typecheck` y `npm run build`
 como verificación.
@@ -119,7 +122,17 @@ Rutas/ -> Controllers/ -> Services/ -> DataBase/models/
   transición de estado es válida. Las transiciones reales + auditoría viven en
   `Services/orderService.js`.
 - `Back/Utils/HttpError.js` + `Middlewares/errors.js` son la forma oficial de
-  responder errores. `Middlewares/respond.js` tiene los helpers de respuesta.
+  responder errores. Los helpers de respuesta viven en `Utils/respond.js`.
+
+### Middleware (dos carpetas, así es hoy)
+
+| Carpeta          | Contenido                                                        |
+| ---------------- | ---------------------------------------------------------------- |
+| `Middleware/`    | guards de sesión: `requireAuth`, `requireAdminSession`, `requirePermission` |
+| `Middlewares/`   | `errors`, `rateLimits`, `requireAdminIp`, `requireCompleteProfile`, `requireStepUp`, `requireTrustedOrigin` |
+
+No es una duplicación funcional: la capa viva usa ambas. Si tocas una nueva
+pieza, colócala según su rol y no crees una tercera grafía.
 
 ### Dos ciclos de estado independientes
 
@@ -150,9 +163,11 @@ pedido sigue su curso y queda marcado `providerOutOfSync` para reintentar.
 ### Esquema
 
 - `sequelize.sync()` **solo corre fuera de producción**. En producción el
-  esquema lo aplican `ensureBaseSchema`, `ensureCatalogSchema` y
-  `ensureDropshippingSchema`: son **idempotentes** y no hacen nada cuando ya
-  está todo al día.
+  esquema lo aplican los `ensure*Schema` (`ensureBaseSchema`,
+  `ensureAdminSecuritySchema`, `ensureCampaignSchema`, `ensureCatalogSchema`,
+  `ensureDropshippingSchema` + `ensurePanelIndexes`): son **idempotentes** y no
+  hacen nada cuando ya está todo al día. Cada uno usa su propia llave
+  `pg_advisory_lock` (no reutilices una llave existente).
 - No hay runner de migraciones en producción: los scripts de `Back/scripts/`
   se corren a mano (o `npm run db:bootstrap` contra una base Neon nueva).
 - El número de pedido usa la secuencia de Postgres `order_number_seq`.
@@ -171,6 +186,10 @@ pedido sigue su curso y queda marcado `providerOutOfSync` para reintentar.
 - **Vendelo / Dropi** (pedidos): `VENDELO_*` (una N) es el adaptador de pedidos
   heredado; `VENNDELO_*` (doble N) es la API administrativa real. No los
   confundas. Sin credenciales el adaptador queda en modo manual (CSV/panel).
+- **MasterShop** (catálogo): autenticación por `MASTERSHOP_API_KEY` enviada en
+  el header `ms-api-key` (sin OAuth). Sin clave el proveedor queda «no
+  configurado» y sus rutas responden 503. Vive en
+  `integrations/suppliers/mastershop/` (auth/client/catalog/assets/normalize).
 - Agregar un proveedor nuevo: `integrations/suppliers/<slug>/` con `auth`,
   `client` y `catalog`; se registra en `integrations/suppliers/index.js`. Los
   servicios de `Services/catalog/` no cambian.
@@ -212,6 +231,17 @@ pedido sigue su curso y queda marcado `providerOutOfSync` para reintentar.
   Los tipos viven en `Front/src/types/`.
 - El carrito vive en `Front/src/context/cart-context.tsx` y persiste en
   `localStorage` bajo `upbuy.cart.v1`.
+
+### Panel de administración (`/admin`)
+
+- Vive en el mismo proyecto de `Front/` (`Front/src/app/admin/`): `perfil`,
+  `pedidos`, `catalogo`, `proveedores`, `usuarios`, `ventas`, `difusion`,
+  `notificaciones`. No es una app aparte: misma cookie `access_token`, mismo
+  design system.
+- El endurecimiento de la sesión admin (MFA, step-up, IP allowlist, auditoría)
+  está especificado en [`Back/docs/SEGURIDAD_ADMIN.md`](Back/docs/SEGURIDAD_ADMIN.md).
+  Patrón front: `useAdminAction` + `StepUpDialog`; patrón back:
+  `requireAdminSession` + `requireStepUp`. No lo dupliques ni lo saltes.
 - **Todos los textos de UI en español.** Sin copy comercial en inglés.
 - Accesibilidad es prioridad 1: contraste ≥ 4.5:1, alt en imágenes, navegación
   por teclado con focus visible, `aria-label` en botones de solo icono, touch
@@ -270,9 +300,10 @@ Ver [`DEPLOY.md`](DEPLOY.md) para el paso a paso completo.
 
 ## 9. Tests
 
-`cd Back && npm test` (`node --test`). Cubren lo crítico: transiciones de estado,
-efectos COD, gating de perfil, cálculo de `netProfit`, idempotencia de
-webhooks, normalización de catálogo y autenticación de Venndelo.
+`cd Back && npm test` (`node --test --test-concurrency=1`). Cubren lo crítico:
+transiciones de estado, efectos COD, gating de perfil, cálculo de `netProfit`,
+idempotencia de webhooks, normalización de catálogo (Venndelo y MasterShop),
+autenticación de Venndelo, MFA admin, campañas, WhatsApp y panel admin.
 
 Antes de dar por terminado un cambio en `Back/`:
 
