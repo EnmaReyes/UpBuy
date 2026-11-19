@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -11,6 +12,7 @@ import {
   PackageSearch,
   Pencil,
   RotateCcw,
+  SlidersHorizontal,
   Star,
   StarOff,
   X,
@@ -27,6 +29,10 @@ import {
   VisibilityBadge,
 } from "@/components/admin/catalog/CatalogBadges";
 import { ProductDrawer } from "@/components/admin/catalog/ProductDrawer";
+import {
+  BulkActionsDrawer,
+  type BulkActionGroup,
+} from "@/components/admin/catalog/BulkActionsDrawer";
 import { formatPrice } from "@/lib/format";
 import { buildCatalogHref } from "@/lib/catalog-links";
 import { ApiError } from "@/services/api/client";
@@ -111,7 +117,15 @@ export function CatalogPanel({
   const [markup, setMarkup] = useState("30");
   const [categoryId, setCategoryId] = useState("");
   const [categoryMode, setCategoryMode] = useState<"replace" | "add">("replace");
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  // La barra movil se monta en el body: el panel deslizante del que cuelga
+  // tiene transform y overflow-hidden, y ahi `position: fixed` no funciona.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const items = useMemo(
     () => products.map((product) => overrides[product.id] ?? product),
@@ -234,6 +248,115 @@ export function CatalogPanel({
       categoryMode === "add" ? "Categoría añadida" : "Categoría asignada",
     );
   };
+
+  // Acciones de la hoja movil: se cierra antes de ejecutar para que el aviso o
+  // el step-up queden visibles.
+  const runFromSheet = (action: () => void) => {
+    setActionsOpen(false);
+    action();
+  };
+
+  const applyMarkupFromSheet = () => {
+    const percent = Number(markup);
+    if (!Number.isFinite(percent) || percent < 0) {
+      setError("El markup debe ser un porcentaje mayor o igual a cero.");
+      return;
+    }
+    runFromSheet(() =>
+      requestBulk("apply_markup", { percent }, "Markup aplicado"),
+    );
+  };
+
+  const applyCategoryFromSheet = () => {
+    if (!categoryId) {
+      setError("Elige una categoría para el lote.");
+      return;
+    }
+    runFromSheet(() =>
+      requestBulk(
+        "set_categories",
+        { categoryIds: [categoryId], mode: categoryMode },
+        categoryMode === "add" ? "Categoría añadida" : "Categoría asignada",
+      ),
+    );
+  };
+
+  const actionGroups: BulkActionGroup[] = [
+    {
+      title: "Visibilidad",
+      actions: [
+        {
+          id: "visible",
+          label: "Hacer visibles",
+          detail: "Aparecen en la tienda pública.",
+          icon: Eye,
+          onSelect: () =>
+            runFromSheet(() =>
+              requestBulk("make_visible", {}, "Productos visibles"),
+            ),
+        },
+        {
+          id: "hide",
+          label: "Ocultar",
+          detail: "Salen de la tienda sin borrarse.",
+          icon: EyeOff,
+          onSelect: () =>
+            runFromSheet(() => requestBulk("hide", {}, "Productos ocultos")),
+        },
+      ],
+    },
+    {
+      title: "Estado del catálogo",
+      actions: [
+        {
+          id: "archive",
+          label: "Archivar",
+          detail: "Dejan de estar activos; puedes restaurarlos.",
+          icon: Archive,
+          tone: "danger",
+          onSelect: () =>
+            runFromSheet(() =>
+              requestBulk("archive", {}, "Productos archivados"),
+            ),
+        },
+        {
+          id: "restore",
+          label: "Restaurar borrador",
+          detail: "Vuelven a borrador para revisarlos.",
+          icon: RotateCcw,
+          onSelect: () =>
+            runFromSheet(() =>
+              requestBulk("restore_draft", {}, "Productos en borrador"),
+            ),
+        },
+      ],
+    },
+    {
+      title: "Destacados",
+      actions: [
+        {
+          id: "feature",
+          label: "Destacar",
+          detail: "Se muestran como destacados en la tienda.",
+          icon: Star,
+          onSelect: () =>
+            runFromSheet(() =>
+              requestBulk("feature", { value: true }, "Destacados"),
+            ),
+        },
+        {
+          id: "unfeature",
+          label: "Quitar destaque",
+          detail: "Dejan de aparecer como destacados.",
+          icon: StarOff,
+          onSelect: () =>
+            runFromSheet(() =>
+              requestBulk("feature", { value: false }, "Destaque retirado"),
+            ),
+        },
+      ],
+    },
+  ];
 
   const onSaved = (updated: AdminProduct, message: string) => {
     setOverrides((current) => ({ ...current, [updated.id]: updated }));
@@ -558,90 +681,94 @@ export function CatalogPanel({
         {selected.size > 0 ? (
           <motion.div
             animate={{ opacity: 1, y: 0 }}
-            className="sticky bottom-3 z-20 mt-2 rounded-xl border border-carbon/10 bg-carbon p-3 text-cream shadow-xl"
+            className="sticky bottom-3 z-20 mt-2 hidden rounded-xl border border-carbon/10 bg-carbon p-3 text-cream shadow-xl md:block"
             exit={{ opacity: 0, y: 12 }}
             initial={{ opacity: 0, y: 12 }}
             transition={{ duration: 0.25, ease: EASE_OUT }}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold">
-                {selected.size} seleccionado(s)
+            {/* Escritorio: acciones completas en el sitio. */}
+            <div className="hidden md:block">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold">
+                  {selected.size} seleccionado(s)
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Set())}
+                  className="inline-flex h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-cream/80 hover:bg-cream/10 hover:text-cream focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
+                >
+                  <X aria-hidden="true" className="h-3.5 w-3.5" />
+                  Limpiar selección
+                </button>
+              </div>
+
+              <p className="mt-3 text-[10px] font-semibold tracking-[0.14em] text-cream/60 uppercase">
+                Visibilidad y estado
               </p>
-              <button
-                type="button"
-                onClick={() => setSelected(new Set())}
-                className="inline-flex h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-cream/80 hover:bg-cream/10 hover:text-cream focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
-              >
-                <X aria-hidden="true" className="h-3.5 w-3.5" />
-                Limpiar selección
-              </button>
-            </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={!canWrite || pending}
+                  onClick={() =>
+                    requestBulk("make_visible", {}, "Productos visibles")
+                  }
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-cream px-3 text-xs font-semibold text-carbon transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
+                >
+                  <Eye aria-hidden="true" className="h-3.5 w-3.5" />
+                  Hacer visibles
+                </button>
+                <button
+                  type="button"
+                  disabled={!canWrite || pending}
+                  onClick={() => requestBulk("hide", {}, "Productos ocultos")}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-cream/25 px-3 text-xs font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
+                >
+                  <EyeOff aria-hidden="true" className="h-3.5 w-3.5" />
+                  Ocultar
+                </button>
+                <button
+                  type="button"
+                  disabled={!canWrite || pending}
+                  onClick={() => requestBulk("archive", {}, "Productos archivados")}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-cream/25 px-3 text-xs font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
+                >
+                  <Archive aria-hidden="true" className="h-3.5 w-3.5" />
+                  Archivar
+                </button>
+                <button
+                  type="button"
+                  disabled={!canWrite || pending}
+                  onClick={() =>
+                    requestBulk("restore_draft", {}, "Productos en borrador")
+                  }
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-cream/25 px-3 text-xs font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
+                >
+                  <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
+                  Restaurar borrador
+                </button>
+                <button
+                  type="button"
+                  disabled={!canWrite || pending}
+                  onClick={() => requestBulk("feature", { value: true }, "Destacados")}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-cream/25 px-3 text-xs font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
+                >
+                  <Star aria-hidden="true" className="h-3.5 w-3.5" />
+                  Destacar
+                </button>
+                <button
+                  type="button"
+                  disabled={!canWrite || pending}
+                  onClick={() =>
+                    requestBulk("feature", { value: false }, "Destaque retirado")
+                  }
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-cream/25 px-3 text-xs font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
+                >
+                  <StarOff aria-hidden="true" className="h-3.5 w-3.5" />
+                  Quitar destaque
+                </button>
+              </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                disabled={!canWrite || pending}
-                onClick={() =>
-                  requestBulk("make_visible", {}, "Productos visibles")
-                }
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-cream px-3 text-xs font-semibold text-carbon transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
-              >
-                <Eye aria-hidden="true" className="h-3.5 w-3.5" />
-                Hacer visibles
-              </button>
-              <button
-                type="button"
-                disabled={!canWrite || pending}
-                onClick={() => requestBulk("hide", {}, "Productos ocultos")}
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-cream/25 px-3 text-xs font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
-              >
-                <EyeOff aria-hidden="true" className="h-3.5 w-3.5" />
-                Ocultar
-              </button>
-              <button
-                type="button"
-                disabled={!canWrite || pending}
-                onClick={() => requestBulk("archive", {}, "Productos archivados")}
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-cream/25 px-3 text-xs font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
-              >
-                <Archive aria-hidden="true" className="h-3.5 w-3.5" />
-                Archivar
-              </button>
-              <button
-                type="button"
-                disabled={!canWrite || pending}
-                onClick={() =>
-                  requestBulk("restore_draft", {}, "Productos en borrador")
-                }
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-cream/25 px-3 text-xs font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
-              >
-                <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
-                Restaurar borrador
-              </button>
-              <button
-                type="button"
-                disabled={!canWrite || pending}
-                onClick={() => requestBulk("feature", { value: true }, "Destacados")}
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-cream/25 px-3 text-xs font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
-              >
-                <Star aria-hidden="true" className="h-3.5 w-3.5" />
-                Destacar
-              </button>
-              <button
-                type="button"
-                disabled={!canWrite || pending}
-                onClick={() =>
-                  requestBulk("feature", { value: false }, "Destaque retirado")
-                }
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-cream/25 px-3 text-xs font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
-              >
-                <StarOff aria-hidden="true" className="h-3.5 w-3.5" />
-                Quitar destaque
-              </button>
-            </div>
-
-            <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-cream/15 pt-2">
-              <div className="flex items-end gap-1.5">
+              <div className="mt-3 grid gap-3 border-t border-cream/15 pt-3 sm:grid-cols-2">
                 <div>
                   <label
                     htmlFor="bulk-markup"
@@ -649,28 +776,28 @@ export function CatalogPanel({
                   >
                     Markup %
                   </label>
-                  <input
-                    id="bulk-markup"
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={markup}
-                    onChange={(event) => setMarkup(event.target.value)}
-                    disabled={!canWrite || pending}
-                    className="mt-1 h-10 w-24 rounded-lg border border-cream/25 bg-carbon px-2 text-sm text-cream tabular-nums focus-visible:border-terracotta focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
-                  />
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <input
+                      id="bulk-markup"
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={markup}
+                      onChange={(event) => setMarkup(event.target.value)}
+                      disabled={!canWrite || pending}
+                      className="h-10 w-full min-w-0 rounded-lg border border-cream/25 bg-carbon px-2 text-sm text-cream tabular-nums focus-visible:border-terracotta focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={!canWrite || pending}
+                      onClick={applyMarkup}
+                      className="inline-flex h-10 shrink-0 items-center rounded-lg bg-cream/15 px-3 text-xs font-semibold text-cream hover:bg-cream/25 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  disabled={!canWrite || pending}
-                  onClick={applyMarkup}
-                  className="inline-flex h-10 items-center rounded-lg bg-cream/15 px-3 text-xs font-semibold text-cream hover:bg-cream/25 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
-                >
-                  Aplicar
-                </button>
-              </div>
 
-              <div className="flex items-end gap-1.5">
                 <div>
                   <label
                     htmlFor="bulk-category"
@@ -678,45 +805,47 @@ export function CatalogPanel({
                   >
                     Categoría
                   </label>
-                  <select
-                    id="bulk-category"
-                    value={categoryId}
-                    onChange={(event) => setCategoryId(event.target.value)}
-                    disabled={!canWrite || pending}
-                    className="mt-1 h-10 max-w-[190px] rounded-lg border border-cream/25 bg-carbon px-2 text-sm text-cream focus-visible:border-terracotta focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
-                  >
-                    <option value="">Elegir…</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <select
+                      id="bulk-category"
+                      value={categoryId}
+                      onChange={(event) => setCategoryId(event.target.value)}
+                      disabled={!canWrite || pending}
+                      className="h-10 min-w-0 flex-1 rounded-lg border border-cream/25 bg-carbon px-2 text-sm text-cream focus-visible:border-terracotta focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
+                    >
+                      <option value="">Elegir…</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label="Modo de asignación de categorías"
+                      value={categoryMode}
+                      onChange={(event) =>
+                        setCategoryMode(event.target.value as "replace" | "add")
+                      }
+                      disabled={!canWrite || pending}
+                      className="h-10 shrink-0 rounded-lg border border-cream/25 bg-carbon px-2 text-sm text-cream focus-visible:border-terracotta focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
+                    >
+                      <option value="replace">Reemplazar</option>
+                      <option value="add">Añadir</option>
+                    </select>
+                    <button
+                      type="button"
+                      disabled={!canWrite || pending}
+                      onClick={applyCategory}
+                      className="inline-flex h-10 shrink-0 items-center rounded-lg bg-cream/15 px-3 text-xs font-semibold text-cream hover:bg-cream/25 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
+                    >
+                      Asignar
+                    </button>
+                  </div>
                 </div>
-                <select
-                  aria-label="Modo de asignación de categorías"
-                  value={categoryMode}
-                  onChange={(event) =>
-                    setCategoryMode(event.target.value as "replace" | "add")
-                  }
-                  disabled={!canWrite || pending}
-                  className="h-10 rounded-lg border border-cream/25 bg-carbon px-2 text-sm text-cream focus-visible:border-terracotta focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
-                >
-                  <option value="replace">Reemplazar</option>
-                  <option value="add">Añadir</option>
-                </select>
-                <button
-                  type="button"
-                  disabled={!canWrite || pending}
-                  onClick={applyCategory}
-                  className="inline-flex h-10 items-center rounded-lg bg-cream/15 px-3 text-xs font-semibold text-cream hover:bg-cream/25 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
-                >
-                  Asignar
-                </button>
               </div>
 
               {pending ? (
-                <span className="inline-flex items-center gap-1.5 text-xs text-cream/80">
+                <span className="mt-2 inline-flex items-center gap-1.5 text-xs text-cream/80">
                   <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
                   Aplicando…
                 </span>
@@ -725,6 +854,84 @@ export function CatalogPanel({
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      {/* Deja espacio para la barra fija movil al final de la lista. */}
+      {selected.size > 0 ? (
+        <div aria-hidden="true" className="h-32 md:hidden" />
+      ) : null}
+
+      {mounted
+        ? createPortal(
+            <AnimatePresence>
+              {selected.size > 0 ? (
+                <motion.div
+                  animate={{ opacity: 1, y: 0 }}
+                  className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 rounded-xl border border-carbon/10 bg-carbon p-3 text-cream shadow-2xl md:hidden"
+                  exit={{ opacity: 0, y: 16 }}
+                  initial={{ opacity: 0, y: 16 }}
+                  transition={{ duration: 0.25, ease: EASE_OUT }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">
+                        {selected.size} seleccionado(s)
+                      </p>
+                      <p className="text-[11px] leading-snug text-cream/70">
+                        {pending
+                          ? "Aplicando cambios…"
+                          : "Usa una acción rápida o abre Acciones para el resto."}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(new Set())}
+                      aria-label="Limpiar selección"
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-cream/80 transition-colors hover:bg-cream/10 hover:text-cream focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
+                    >
+                      <X aria-hidden="true" className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      disabled={!canWrite || pending}
+                      onClick={() =>
+                        requestBulk("make_visible", {}, "Productos visibles")
+                      }
+                      className="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-cream px-2 text-[11px] font-semibold text-carbon transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
+                    >
+                      <Eye aria-hidden="true" className="h-3.5 w-3.5" />
+                      Visibles
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!canWrite || pending}
+                      onClick={() => requestBulk("hide", {}, "Productos ocultos")}
+                      className="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg border border-cream/25 px-2 text-[11px] font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
+                    >
+                      <EyeOff aria-hidden="true" className="h-3.5 w-3.5" />
+                      Ocultar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!canWrite || pending}
+                      onClick={() => setActionsOpen(true)}
+                      className="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-terracotta px-2 text-[11px] font-semibold text-cream transition-colors hover:bg-terracotta-deep focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none disabled:opacity-50"
+                    >
+                      <SlidersHorizontal
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5"
+                      />
+                      Acciones
+                    </button>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>,
+            document.body,
+          )
+        : null}
 
       {!canWrite ? (
         <InlineAlert
@@ -744,6 +951,29 @@ export function CatalogPanel({
           onSaved={onSaved}
         />
       ) : null}
+
+      <BulkActionsDrawer
+        open={actionsOpen && selected.size > 0}
+        onOpenChange={setActionsOpen}
+        count={selected.size}
+        canWrite={canWrite}
+        pending={pending}
+        groups={actionGroups}
+        markup={markup}
+        onMarkupChange={setMarkup}
+        onApplyMarkup={applyMarkupFromSheet}
+        categories={categories}
+        categoryId={categoryId}
+        onCategoryChange={setCategoryId}
+        categoryMode={categoryMode}
+        onCategoryModeChange={setCategoryMode}
+        onApplyCategory={applyCategoryFromSheet}
+        onClear={() => {
+          setSelected(new Set());
+          setActionsOpen(false);
+        }}
+        error={error}
+      />
 
       <StepUpDialog
         open={stepUpOpen}

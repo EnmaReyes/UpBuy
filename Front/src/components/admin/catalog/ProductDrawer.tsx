@@ -330,11 +330,11 @@ export function ProductDrawer({
         }}
         swipeDirection="right"
       >
-        <DrawerContent className="[--drawer-content-width:100%] bg-card text-carbon sm:[--drawer-content-width:34rem]">
+        <DrawerContent className="bg-card text-carbon max-sm:h-dvh! max-sm:rounded-none! max-sm:border-l-0! data-[swipe-axis=x]:[--drawer-content-width:100%] data-[swipe-axis=x]:sm:[--drawer-content-width:34rem]">
           <div className="flex h-full min-h-0 flex-col">
-            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 py-4">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-4 py-3 sm:px-5 sm:py-4">
               <div className="min-w-0">
-                <DrawerTitle className="truncate font-heading text-lg font-semibold text-carbon">
+                <DrawerTitle className="truncate font-heading text-base font-semibold text-carbon sm:text-lg">
                   {product.name}
                 </DrawerTitle>
                 <DrawerDescription className="mt-0.5 truncate text-xs text-coffee-deep">
@@ -354,14 +354,14 @@ export function ProductDrawer({
 
             <motion.div
               animate={{ opacity: 1, y: 0 }}
-              className="min-h-0 flex-1 overflow-y-auto px-5 py-4"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5"
               initial={{ opacity: 0, y: 6 }}
               transition={{ duration: 0.25, ease: EASE_OUT }}
             >
               <form
                 id="product-edit-form"
                 onSubmit={save}
-                className="flex flex-col gap-5"
+                className="flex flex-col gap-4 sm:gap-5"
               >
                 <section className="flex flex-col gap-3" aria-labelledby="edit-basics">
                   <h3
@@ -604,7 +604,7 @@ export function ProductDrawer({
                           placeholder="Ej. Deportivo"
                           maxLength={120}
                           disabled={saving || creatingCategory}
-                          className={fieldClass}
+                          className={`${fieldClass} min-w-0`}
                         />
                         <button
                           type="button"
@@ -680,28 +680,30 @@ export function ProductDrawer({
                       {images.map((url, index) => (
                         <li
                           key={`${url}-${index}`}
-                          className="flex items-center gap-2 rounded-lg border border-border bg-background p-2"
+                          className="flex flex-col gap-1 rounded-lg border border-border bg-background p-2 sm:flex-row sm:items-center sm:gap-2"
                         >
-                          <SafeImage
-                            src={url}
-                            alt={`Imagen ${index + 1} de ${product.name}`}
-                            className="h-12 w-12 shrink-0 rounded-md object-cover"
-                            fallback={
-                              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted text-coffee-deep">
-                                <ImageOff aria-hidden="true" className="h-4 w-4" />
-                              </span>
-                            }
-                          />
-                          <span className="min-w-0 flex-1 truncate text-xs text-coffee-deep">
-                            {url}
-                          </span>
-                          <div className="flex shrink-0 items-center">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <SafeImage
+                              src={url}
+                              alt={`Imagen ${index + 1} de ${product.name}`}
+                              className="h-12 w-12 shrink-0 rounded-md object-cover"
+                              fallback={
+                                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted text-coffee-deep">
+                                  <ImageOff aria-hidden="true" className="h-4 w-4" />
+                                </span>
+                              }
+                            />
+                            <span className="min-w-0 flex-1 truncate text-xs text-coffee-deep">
+                              {url}
+                            </span>
+                          </div>
+                          <div className="flex shrink-0 items-center justify-end sm:justify-start">
                             <button
                               type="button"
                               onClick={() => moveImage(index, -1)}
                               disabled={!canWrite || saving || index === 0}
                               aria-label={`Subir imagen ${index + 1}`}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-coffee-deep hover:bg-muted disabled:opacity-30"
+                              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-coffee-deep hover:bg-muted disabled:opacity-30 sm:h-9 sm:w-9"
                             >
                               <ArrowUp aria-hidden="true" className="h-4 w-4" />
                             </button>
@@ -712,7 +714,7 @@ export function ProductDrawer({
                                 !canWrite || saving || index === images.length - 1
                               }
                               aria-label={`Bajar imagen ${index + 1}`}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-coffee-deep hover:bg-muted disabled:opacity-30"
+                              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-coffee-deep hover:bg-muted disabled:opacity-30 sm:h-9 sm:w-9"
                             >
                               <ArrowDown aria-hidden="true" className="h-4 w-4" />
                             </button>
@@ -725,7 +727,7 @@ export function ProductDrawer({
                               }
                               disabled={!canWrite || saving}
                               aria-label={`Quitar imagen ${index + 1}`}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-terracotta-deep hover:bg-terracotta/10 disabled:opacity-30"
+                              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-terracotta-deep hover:bg-terracotta/10 disabled:opacity-30 sm:h-9 sm:w-9"
                             >
                               <Trash2 aria-hidden="true" className="h-4 w-4" />
                             </button>
@@ -752,7 +754,7 @@ export function ProductDrawer({
                       placeholder="https://…"
                       inputMode="url"
                       disabled={!canWrite || saving || images.length >= 8}
-                      className={fieldClass}
+                      className={`${fieldClass} min-w-0`}
                     />
                     <button
                       type="button"
@@ -839,12 +841,12 @@ export function ProductDrawer({
               </form>
             </motion.div>
 
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-card px-5 py-3">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-card px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5 sm:py-3">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={saving}
-                className="inline-flex h-11 items-center rounded-lg border border-border bg-background px-4 text-sm font-semibold text-carbon transition-colors hover:border-carbon focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+                className="inline-flex h-11 flex-1 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-semibold text-carbon transition-colors hover:border-carbon focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:flex-none"
               >
                 Cancelar
               </button>
@@ -852,7 +854,7 @@ export function ProductDrawer({
                 type="submit"
                 form="product-edit-form"
                 disabled={!canWrite || saving}
-                className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-carbon px-4 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-carbon px-4 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
               >
                 {saving ? (
                   <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />

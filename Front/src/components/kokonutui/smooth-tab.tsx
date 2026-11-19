@@ -286,6 +286,7 @@ export default function SmoothTab({
 
   const baseId = useId();
   const tablistRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -416,6 +417,37 @@ export default function SmoothTab({
     }
   }, [selected, settle]);
 
+  // En pantallas angostas la tira de pestanas puede ser mas ancha que el
+  // contenedor. Se desplaza en horizontal y la pestana activa se mantiene a la
+  // vista sin mover la pagina.
+  const revealSelected = useCallback(() => {
+    const scroller = scrollerRef.current;
+    const tab = tabRefs.current[latest.current.selected];
+    if (!scroller || !tab) {
+      return;
+    }
+    const box = scroller.getBoundingClientRect();
+    const rect = tab.getBoundingClientRect();
+    const margin = 8;
+    const behavior = reducedMotion.current ? "auto" : "smooth";
+    if (rect.left < box.left + margin) {
+      scroller.scrollTo({
+        left: scroller.scrollLeft - (box.left + margin - rect.left),
+        behavior,
+      });
+    } else if (rect.right > box.right - margin) {
+      scroller.scrollTo({
+        left: scroller.scrollLeft + (rect.right - box.right) + margin,
+        behavior,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    revealSelected();
+    document.fonts?.ready.then(revealSelected).catch(() => undefined);
+  }, [selected, revealSelected]);
+
   const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
     const keys: Record<string, number> = {
       ArrowRight: (i + 1) % count,
@@ -525,69 +557,76 @@ export default function SmoothTab({
   const panelId = (i: number) => `${baseId}-panel-${i}`;
 
   return (
-    <div className={cn("flex w-full flex-col gap-3", className)}>
-      <div className="flex justify-center">
+    <div className={cn("flex w-full min-w-0 flex-col gap-3", className)}>
+      <div className="flex min-w-0 justify-center">
+        {/* Sin esto, una tira de pestanas mas ancha que la pantalla empuja el
+            ancho de la pagina y deja un hueco a la derecha. */}
         <div
-          aria-label={label}
-          className="relative inline-flex max-w-full rounded-full border border-coffee/15 bg-cream/70 p-1"
-          ref={tablistRef}
-          role="tablist"
+          className="min-w-0 max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          ref={scrollerRef}
         >
-          {items.map((item, i) => {
-            const Icon = item.icon;
-            const isSelected = i === selected;
-            return (
-              <button
-                aria-controls={panelId(i)}
-                aria-selected={isSelected}
-                className={cn(
-                  "relative flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 font-medium text-sm",
-                  "text-coffee-deep transition-colors duration-150 ease-out hover:text-carbon",
-                  "outline-none focus-visible:outline-2 focus-visible:outline-terracotta focus-visible:outline-offset-2"
-                )}
-                id={tabId(i)}
-                key={item.id}
-                onClick={() => select(i)}
-                onKeyDown={(e) => handleKeyDown(e, i)}
-                ref={(el) => {
-                  tabRefs.current[i] = el;
-                }}
-                role="tab"
-                tabIndex={isSelected ? 0 : -1}
-                type="button"
-              >
-                {Icon && <Icon aria-hidden="true" className="size-4" />}
-                <span className="whitespace-nowrap">{item.title}</span>
-              </button>
-            );
-          })}
-          {/* The same labels in the active color, clipped to the indicator,
-              so each label is exactly right at every point of the slide with
-              no color tween. */}
           <div
-            aria-hidden="true"
-            className={cn(
-              "pointer-events-none absolute inset-0 flex p-1",
-              activeColor
-            )}
-            ref={overlayRef}
-            style={{ clipPath: "inset(0 100% 0 0)" }}
+            aria-label={label}
+            className="relative inline-flex rounded-full border border-coffee/15 bg-cream/70 p-1"
+            ref={tablistRef}
+            role="tablist"
           >
-            {items.map((item) => {
+            {items.map((item, i) => {
               const Icon = item.icon;
+              const isSelected = i === selected;
               return (
-                <span
+                <button
+                  aria-controls={panelId(i)}
+                  aria-selected={isSelected}
                   className={cn(
-                    "flex shrink-0 items-center gap-1.5 px-3.5 py-1.5 font-medium text-sm",
-                    activeTextColor
+                    "relative flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 font-medium text-sm sm:px-3.5",
+                    "text-coffee-deep transition-colors duration-150 ease-out hover:text-carbon",
+                    "outline-none focus-visible:outline-2 focus-visible:outline-terracotta focus-visible:outline-offset-2"
                   )}
+                  id={tabId(i)}
                   key={item.id}
+                  onClick={() => select(i)}
+                  onKeyDown={(e) => handleKeyDown(e, i)}
+                  ref={(el) => {
+                    tabRefs.current[i] = el;
+                  }}
+                  role="tab"
+                  tabIndex={isSelected ? 0 : -1}
+                  type="button"
                 >
-                  {Icon && <Icon className="size-4" />}
+                  {Icon && <Icon aria-hidden="true" className="size-4" />}
                   <span className="whitespace-nowrap">{item.title}</span>
-                </span>
+                </button>
               );
             })}
+            {/* The same labels in the active color, clipped to the indicator,
+                so each label is exactly right at every point of the slide with
+                no color tween. */}
+            <div
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute inset-0 flex p-1",
+                activeColor
+              )}
+              ref={overlayRef}
+              style={{ clipPath: "inset(0 100% 0 0)" }}
+            >
+              {items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <span
+                    className={cn(
+                      "flex shrink-0 items-center gap-1.5 px-3 py-1.5 font-medium text-sm sm:px-3.5",
+                      activeTextColor
+                    )}
+                    key={item.id}
+                  >
+                    {Icon && <Icon className="size-4" />}
+                    <span className="whitespace-nowrap">{item.title}</span>
+                  </span>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
