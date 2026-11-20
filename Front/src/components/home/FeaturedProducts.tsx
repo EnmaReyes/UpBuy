@@ -1,5 +1,5 @@
 import { Reveal } from "@/components/shared/Reveal";
-import { ProductCard } from "@/components/products/ProductCard";
+import { ProductCollection } from "@/components/products/ProductCollection";
 import type { ProductCardData } from "@/types/catalog";
 
 type FeaturedProductsProps = {
@@ -27,13 +27,7 @@ export function FeaturedProducts({ products }: FeaturedProductsProps) {
           </p>
         </Reveal>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((product, index) => (
-            <Reveal key={product.id ?? product.slug ?? index} delay={index * 0.06}>
-              <ProductCard product={product} />
-            </Reveal>
-          ))}
-        </div>
+        <ProductCollection label="Productos destacados" products={products} />
       </div>
     </section>
   );

@@ -89,16 +89,16 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
   return (
     <article
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl bg-card text-card-foreground",
+        "group relative flex h-full flex-col overflow-hidden rounded-xl bg-card text-card-foreground transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:translate-y-0",
         className,
       )}
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+      <div className="relative aspect-[5/6] overflow-hidden bg-muted">
         <SafeImage
           src={product.image}
           alt={product.name}
           eager={priority}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           fallback={<ProductImagePlaceholder />}
         />
 
@@ -139,14 +139,12 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        {product.categoryLabel ? (
-          <span className="text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-            {product.categoryLabel}
-          </span>
-        ) : null}
+      <div className="flex flex-1 flex-col gap-2 p-4 sm:p-5">
+        <span className="min-h-[1em] text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+          {product.categoryLabel ?? "\u00A0"}
+        </span>
 
-        <h3 className="font-heading text-base leading-snug font-semibold text-carbon sm:text-lg">
+        <h3 className="line-clamp-2 min-h-[2.75rem] font-heading text-base leading-snug font-semibold text-carbon sm:min-h-[3.125rem] sm:text-lg">
           <Link
             href={href}
             className="hover:text-terracotta-deep focus-visible:underline focus-visible:outline-none"
@@ -155,7 +153,7 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
           </Link>
         </h3>
 
-        <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+        <div className="mt-auto flex min-h-14 items-end justify-between gap-3 pt-3">
           <div className="flex flex-col">
             <span className="text-base font-semibold text-carbon [font-variant-numeric:tabular-nums]">
               {formatPrice(product.price)}
@@ -176,11 +174,11 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
           ) : null}
         </div>
 
-        {canBuy ? (
-          <div
-            className="mt-3 flex justify-end"
-            onClick={(event) => event.stopPropagation()}
-          >
+        <div
+          className="mt-3 flex min-h-9 justify-end"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {canBuy ? (
             <AddToCartButton
               label="Añadir"
               max={max}
@@ -188,8 +186,8 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
               onQuantityChange={onQuantityChange}
               quantity={quantityInCart}
             />
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </article>
   );

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/shared/Reveal";
-import { ProductCard } from "@/components/products/ProductCard";
+import { ProductCollection } from "@/components/products/ProductCollection";
 import type { ProductCardData } from "@/types/catalog";
 
 type FavoritesProps = {
@@ -41,13 +41,7 @@ export function Favorites({ products }: FavoritesProps) {
           </Reveal>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((product, index) => (
-            <Reveal key={product.id ?? product.slug ?? index} delay={index * 0.06}>
-              <ProductCard product={product} />
-            </Reveal>
-          ))}
-        </div>
+        <ProductCollection label="Los favoritos de la comunidad" products={products} />
       </div>
     </section>
   );
