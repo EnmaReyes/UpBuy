@@ -31,6 +31,8 @@ const catalogQuery = require("../catalog/catalogQuery.service.js");
 const credentials = require("../../integrations/suppliers/credentials.js");
 const HttpError = require("../../Utils/HttpError.js");
 
+const MAX_BULK_PUBLISH = 50;
+
 const createCatalogSupplierService = ({
   slug,
   providerName,
@@ -334,6 +336,13 @@ const createCatalogSupplierService = ({
         ? [...new Set(productIds.map((id) => String(id || "").trim()).filter(Boolean))]
         : null;
 
+    if (requestedIds && requestedIds.length > MAX_BULK_PUBLISH) {
+      throw new HttpError(
+        400,
+        `No se pueden publicar mas de ${MAX_BULK_PUBLISH} articulos a la vez`,
+      );
+    }
+
     if (requestedIds) {
       where.id = { [Op.in]: requestedIds };
     } else {
@@ -368,6 +377,7 @@ const createCatalogSupplierService = ({
     const rows = await SupplierProduct.findAll({
       where,
       order: [["updatedAt", "DESC"]],
+      limit: MAX_BULK_PUBLISH,
     });
 
     const foundIds = new Set(rows.map((row) => row.id));

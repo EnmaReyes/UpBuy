@@ -1067,7 +1067,7 @@ export type AdminProduct = {
   stock: number;
   /** Costo del proveedor (solo lectura). */
   cost: number | null;
-  /** Multiplicador aplicado al costo. */
+  /** Porcentaje aplicado sobre el costo para sugerir el precio de venta. */
   markup: number | null;
   currency: string;
   status: AdminProductStatus | string;
@@ -1084,6 +1084,40 @@ export type AdminProduct = {
   manualOverrides: Record<string, boolean> | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type AdminCatalogSupplierOption = {
+  id: string;
+  slug: string;
+  name: string;
+};
+
+export type AdminCatalogSupplierList = {
+  suppliers: AdminCatalogSupplierOption[];
+};
+
+export type AdminProductCreatePayload = {
+  sku: string;
+  name: string;
+  description?: string | null;
+  slug?: string | null;
+  price: number;
+  cost?: number;
+  compareAtPrice?: number | null;
+  currency?: string;
+  stock?: number;
+  active?: boolean;
+  status?: "draft" | "active" | "archived";
+  provider?: string;
+  providerSku?: string | null;
+  sizes?: string[];
+  destacadas?: boolean;
+  combo?: boolean;
+  descuentoPorcentaje?: number | null;
+  images?: string[];
+  categoryIds?: string[];
+  supplierId?: string | null;
+  manualOverrides?: Record<string, boolean>;
 };
 
 export type AdminProductListResult = {

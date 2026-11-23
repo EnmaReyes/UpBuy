@@ -4,6 +4,7 @@
 // este servicio es para LEER el catalogo y para que el admin lo edite.
 const { Op, literal } = require("sequelize");
 const {
+  sequelize,
   Product,
   Category,
   ProductImage,
@@ -19,6 +20,7 @@ const { aplicarDescuento } = require("../prices.js");
 const { isVisible } = require("./visibility.service.js");
 const { unitsSoldOrderExpression } = require("./bestSellers.service.js");
 const HttpError = require("../../Utils/HttpError.js");
+const { normalizeProductSlug } = require("./productIdentity.service.js");
 
 const NEW_ARRIVAL_WINDOW_DAYS = 30;
 
@@ -344,6 +346,7 @@ const getAdmin = async (id) => {
 // Campos que el admin puede personalizar. Al cambiarlos se marcan en
 // manualOverrides para que la sincronizacion NO los pise.
 const EDITABLE = {
+  cost: (value) => Math.max(0, Math.round(Number(value) || 0)),
   price: (value) => Math.max(0, Math.round(Number(value) || 0)),
   compareAtPrice: (value) =>
     value === null || value === "" ? null : Math.max(0, Math.round(Number(value) || 0)),
@@ -359,6 +362,8 @@ const EDITABLE = {
   },
   destacadas: (value) => Boolean(value),
   stock: (value) => Math.max(0, Math.trunc(Number(value) || 0)),
+  sizes: (value) => (Array.isArray(value) ? value.map((s) => String(s).trim()).filter(Boolean) : []),
+  providerSku: (value) => (value ? String(value).trim().slice(0, 100) : null),
   descuentoPorcentaje: (value) => {
     if (value === null || value === "") return null;
     const parsed = Math.trunc(Number(value));
@@ -369,17 +374,8 @@ const EDITABLE = {
   },
 };
 
-// Slug publico: minusculas, numeros y guiones. No se acepta vacio.
-const normalizeSlug = (value) => {
-  const slug = String(value || "").trim().toLowerCase();
-  if (!slug || slug.length > 180 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-    throw new HttpError(
-      400,
-      "El slug solo admite minúsculas, números y guiones (máx. 180)",
-    );
-  }
-  return slug;
-};
+// Slug publico: definicion unica compartida con el alta manual.
+const normalizeSlug = normalizeProductSlug;
 
 const updateProduct = async ({
   productId,
@@ -404,7 +400,11 @@ const updateProduct = async ({
   for (const [field, transform] of Object.entries(EDITABLE)) {
     if (patch[field] === undefined) continue;
     updates[field] = transform(patch[field]);
-    if (["price", "name", "description", "active", "stock", "destacadas"].includes(field)) {
+    if (
+      ["price", "cost", "name", "description", "active", "stock", "sizes", "providerSku", "destacadas"].includes(
+        field,
+      )
+    ) {
       overrides[field] = true;
     }
   }
@@ -434,21 +434,52 @@ const updateProduct = async ({
     if (!Array.isArray(patch.categoryIds)) {
       throw new HttpError(400, "categoryIds debe ser un arreglo");
     }
-    categories = patch.categoryIds;
+    const found = await Category.findAll({
+      where: { id: [...new Set(patch.categoryIds)] },
+      attributes: ["id"],
+    });
+    if (found.length !== new Set(patch.categoryIds).size) {
+      throw new HttpError(400, "Alguna de las categorias no existe");
+    }
+    categories = found.map((row) => row.id);
     overrides.category = true;
   }
 
-  await product.update({ ...updates, manualOverrides: overrides });
-
-  if (categories) {
-    const found = await Category.findAll({
-      where: { id: categories },
-      attributes: ["id"],
+  try {
+    await sequelize.transaction(async (transaction) => {
+      await product.update(
+        { ...updates, manualOverrides: overrides },
+        { transaction },
+      );
+      if (categories) {
+        await product.setCategories(categories, { transaction });
+      }
     });
-    await product.setCategories(found.map((row) => row.id));
+  } catch (error) {
+    if (error?.name === "SequelizeUniqueConstraintError") {
+      throw new HttpError(409, "Ya existe un producto con ese slug");
+    }
+    throw error;
   }
 
   return getAdmin(product.id);
+};
+
+// Proveedores de catalogo disponibles para asignar en el alta manual.
+// Solo se exponen los activos: el formulario no debe ofrecer proveedores
+// inactivos que luego no podran sincronizar.
+const listCatalogSuppliers = async () => {
+  const rows = await Supplier.findAll({
+    where: { isActive: true },
+    attributes: ["id", "slug", "name", "isActive"],
+    order: [["name", "ASC"]],
+    raw: true,
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+  }));
 };
 
 module.exports = {
@@ -460,4 +491,5 @@ module.exports = {
   listUnpublished,
   getAdmin,
   updateProduct,
+  listCatalogSuppliers,
 };

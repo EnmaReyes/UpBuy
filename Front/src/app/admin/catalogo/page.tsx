@@ -221,13 +221,23 @@ export default async function AdminCatalogPage({
               UPBUY decide el precio, la ficha y la visibilidad.
             </p>
           </div>
-          <Link
-            href="/productos"
-            className="inline-flex h-11 items-center gap-1.5 rounded-lg border border-cream/25 px-4 text-sm font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
-          >
-            Ver tienda
-            <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {canWrite ? (
+              <Link
+                href="/admin/articulos/nuevo"
+                className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-terracotta px-4 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
+              >
+                Crear artículo
+              </Link>
+            ) : null}
+            <Link
+              href="/productos"
+              className="inline-flex h-11 items-center gap-1.5 rounded-lg border border-cream/25 px-4 text-sm font-semibold text-cream transition-colors hover:bg-cream/10 focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
+            >
+              Ver tienda
+              <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </section>
 

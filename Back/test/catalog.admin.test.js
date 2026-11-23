@@ -321,3 +321,204 @@ test("la bandeja global muestra los no publicados de todos los proveedores", asy
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Alta manual de productos (POST /api/admin/products)
+// ---------------------------------------------------------------------------
+
+const uniqueSku = (prefix) =>
+  `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+
+const cleanupProduct = async (productId) => {
+  await ProductImage.destroy({ where: { productId } });
+  const product = await Product.findByPk(productId);
+  if (product) {
+    await product.setCategories([]).catch(() => {});
+    await product.destroy();
+  }
+};
+
+test("el alta manual crea un producto con proveedor manual por defecto", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  const sku = uniqueSku("alta");
+  const product = await catalogAdmin.createProduct({
+    patch: {
+      sku,
+      name: "Producto de alta manual",
+      price: 45000,
+      stock: 3,
+      images: ["https://cdn.upbuy.test/alta-1.jpg"],
+    },
+  });
+
+  try {
+    assert.equal(product.provider, "manual");
+    assert.equal(product.status, PRODUCT_STATUS.DRAFT);
+    assert.equal(product.price, 45000);
+    assert.equal(product.stock, 3);
+    assert.deepEqual(product.images, ["https://cdn.upbuy.test/alta-1.jpg"]);
+    assert.equal(product.gallery.length, 1);
+    assert.equal(product.gallery[0].isPrimary, true);
+  } finally {
+    await cleanupProduct(product.id);
+  }
+});
+
+test("el alta manual rechaza un SKU repetido", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  const sku = uniqueSku("duplicado");
+  const first = await catalogAdmin.createProduct({
+    patch: { sku, name: "Primero", price: 1000 },
+  });
+
+  try {
+    await assert.rejects(
+      () =>
+        catalogAdmin.createProduct({
+          patch: { sku, name: "Segundo", price: 2000 },
+        }),
+      (error) => error.status === 409,
+    );
+  } finally {
+    await cleanupProduct(first.id);
+  }
+});
+
+test("el alta manual valida el proveedor asignado", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  await assert.rejects(
+    () =>
+      catalogAdmin.createProduct({
+        patch: {
+          sku: uniqueSku("proveedor"),
+          name: "Con proveedor invalido",
+          price: 1000,
+          supplierId: "00000000-0000-0000-0000-000000000000",
+        },
+      }),
+    (error) => error.status === 400,
+  );
+});
+
+test("el alta manual normaliza moneda y tallas", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  const product = await catalogAdmin.createProduct({
+    patch: {
+      sku: uniqueSku("normaliza"),
+      name: "Producto con tallas",
+      price: 12000,
+      currency: "usd",
+      sizes: [" M ", "M", "", "L", null],
+    },
+  });
+
+  try {
+    assert.equal(product.currency, "USD");
+    assert.deepEqual(product.sizes, ["M", "L"]);
+  } finally {
+    await cleanupProduct(product.id);
+  }
+});
+
+test("el alta manual deriva el markup del costo y el precio", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  const product = await catalogAdmin.createProduct({
+    patch: {
+      sku: uniqueSku("markup"),
+      name: "Producto con markup derivado",
+      cost: 1000,
+      price: 1300,
+      markup: 999,
+    },
+  });
+
+  try {
+    assert.equal(product.cost, 1000);
+    assert.equal(product.markup, 30);
+  } finally {
+    await cleanupProduct(product.id);
+  }
+});
+
+test("restoreSync devuelve al proveedor los campos personalizados", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  const product = await catalogAdmin.createProduct({
+    patch: { sku: uniqueSku("restore"), name: "Producto a restaurar", price: 1000 },
+  });
+
+  try {
+    const edited = await catalogQuery.updateProduct({
+      productId: product.id,
+      patch: { cost: 700, name: "Nombre del admin" },
+    });
+    assert.equal(edited.manualOverrides.cost, true);
+    assert.equal(edited.manualOverrides.name, true);
+
+    const restored = await catalogAdmin.restoreSync({
+      productId: product.id,
+      fields: ["cost"],
+    });
+    assert.equal(restored.manualOverrides.cost, undefined);
+    assert.equal(restored.manualOverrides.name, true);
+
+    const all = await catalogAdmin.restoreSync({ productId: product.id });
+    assert.deepEqual(all.manualOverrides, {});
+  } finally {
+    await cleanupProduct(product.id);
+  }
+});
+
+test("el alta manual rechaza un SKU demasiado largo", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  await assert.rejects(
+    () =>
+      catalogAdmin.createProduct({
+        patch: {
+          sku: "x".repeat(101),
+          name: "SKU largo",
+          price: 1000,
+        },
+      }),
+    (error) => error.status === 400,
+  );
+});
+
+test("el alta manual asigna un proveedor existente y su slug", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  const supplier = await Supplier.create({
+    name: "Proveedor de alta",
+    slug: `alta-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    isActive: true,
+  });
+
+  let product = null;
+  try {
+    product = await catalogAdmin.createProduct({
+      patch: {
+        sku: uniqueSku("asignado"),
+        name: "Producto con proveedor asignado",
+        price: 30000,
+        provider: "mastershop",
+        supplierId: supplier.id,
+        status: "active",
+        active: true,
+      },
+    });
+
+    assert.equal(product.provider, "mastershop");
+    assert.equal(product.supplierId, supplier.id);
+    assert.equal(product.status, PRODUCT_STATUS.ACTIVE);
+    assert.ok(product.publishedAt);
+  } finally {
+    if (product) await cleanupProduct(product.id);
+    await supplier.destroy();
+  }
+});

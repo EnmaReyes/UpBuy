@@ -13,11 +13,14 @@ const {
   listAdmin,
   listUnpublished,
   detailAdmin,
+  create,
   update,
   visibility,
   bulk,
   setImages,
   restoreImages,
+  restoreSync,
+  listSuppliers,
 } = require("../Controllers/catalog.controller.js");
 const {
   homeSections,
@@ -30,10 +33,27 @@ router.use(requireAuth, requireAdminSession);
 
 router.get("/", listAdmin);
 
+// Alta manual: articulos creados desde el panel, con proveedor asignable.
+router.post("/", requirePermission("catalog.write"), create);
+
 // Las rutas fijas van antes de las que llevan parametro.
 router.get(
   "/unpublished",
   requirePermission("providers.manage"),
+  listUnpublished,
+);
+
+// Proveedores activos para el alta manual (catalog.write, no providers.manage).
+router.get(
+  "/suppliers",
+  requirePermission("catalog.write"),
+  listSuppliers,
+);
+
+// Buscador de articulos originales de los proveedores para el alta asistida.
+router.get(
+  "/supplier-products",
+  requirePermission("catalog.write"),
   listUnpublished,
 );
 
@@ -82,6 +102,12 @@ router.post(
     when: (req) => req.body?.visible === false,
   }),
   visibility,
+);
+
+router.post(
+  "/:id/restore-sync",
+  requirePermission("catalog.write"),
+  restoreSync,
 );
 
 router.put("/:id/images", requirePermission("catalog.write"), setImages);

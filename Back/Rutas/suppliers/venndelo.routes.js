@@ -17,6 +17,7 @@ const {
   updateSettings,
 } = require("../../Controllers/suppliers/venndelo.controller.js");
 const accountController = require("../../Controllers/suppliers/venndelo.account.controller.js");
+const { requireStepUp } = require("../../Middlewares/requireStepUp.js");
 
 const router = express.Router();
 
@@ -48,7 +49,11 @@ router.get("/products", listProducts);
 router.post("/products/publish-bulk", publishBulk);
 router.get("/products/:id", getProduct);
 router.post("/products/:id/publish", publish);
-router.post("/products/:id/unpublish", unpublish);
+router.post(
+  "/products/:id/unpublish",
+  requireStepUp("catalog.unpublish"),
+  unpublish,
+);
 
 router.patch("/settings", updateSettings);
 router.post("/sync", sync);

@@ -1,10 +1,12 @@
-import { apiSend } from "@/services/api/client";
+import { apiGet, apiSend } from "@/services/api/client";
 import type {
   AdminCategory,
   AdminHomeSectionKey,
   AdminProduct,
   AdminProductBulkAction,
   AdminProductBulkResult,
+  AdminProductCreatePayload,
+  AdminSupplierTrayResult,
   AdminSupplierTraySettings,
 } from "@/types/admin";
 
@@ -29,6 +31,31 @@ export async function updateAdminProduct(
   return apiSend<AdminProduct>(`/api/admin/products/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: payload,
+  });
+}
+
+export async function createAdminProduct(
+  payload: AdminProductCreatePayload,
+): Promise<AdminProduct> {
+  return apiSend<AdminProduct>("/api/admin/products", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+/** Busca articulos originales de los proveedores para el alta asistida. */
+export async function searchSupplierProducts(query: {
+  q?: string;
+  provider?: string;
+  page?: number;
+}): Promise<AdminSupplierTrayResult> {
+  return apiGet<AdminSupplierTrayResult>("/api/admin/products/supplier-products", {
+    query: {
+      q: query.q || undefined,
+      provider: query.provider || undefined,
+      page: query.page ?? 1,
+      limit: 12,
+    },
   });
 }
 

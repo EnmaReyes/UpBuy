@@ -15,30 +15,15 @@
 // IMPORTANTE: el esquema de `variation[]` NO esta documentado (los ejemplos
 // solo muestran []). Por eso NO se leen variaciones ni se derivan tallas: se
 // importa el producto a nivel de producto con `stockTotal` y `basePrice`.
-const toNumberOrNull = (value) => {
-  if (value === undefined || value === null || value === "") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
-const toInteger = (value, fallback = 0) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
-};
-
-const cleanText = (value, max) => {
-  if (value === undefined || value === null) return null;
-  const text = String(value).trim();
-  if (!text) return null;
-  return max ? text.slice(0, max) : text;
-};
-
-// Moneda: `baseCurrencyPrice` es la unica fuente documentada. Si no es un
-// codigo ISO de 3 letras se usa COP (moneda de la tienda).
-const normalizeCurrency = (value) => {
-  const text = String(value || "").trim().toUpperCase();
-  return /^[A-Z]{3}$/.test(text) ? text : "COP";
-};
+const {
+  toNumberOrNull,
+  toInteger,
+  cleanText,
+  normalizeCurrency,
+  buildProductSku,
+  buildProductSlug,
+  slugify,
+} = require("../../../Services/catalog/productIdentity.service.js");
 
 // MasterShop entrega una sola imagen por producto (`urlImageProduct`). Se
 // representa como un asset de posicion 1 con id sintetico y estable.
@@ -83,28 +68,9 @@ const normalizeProduct = (product) => {
 // desde este proveedor no declara tallas.
 const productSizes = () => [];
 
-// SKU canonico del producto publicado. MasterShop usa ids numericos, asi que
-// el resultado cabe de sobra en VARCHAR(100).
-const buildProductSku = (externalId, prefix = "MS") => {
-  const clean = String(externalId || "").replace(/\s+/g, "").slice(0, 80);
-  return `${prefix}-${clean}`;
-};
-
-const slugify = (value) =>
-  String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120);
-
-// Slug estable y unico: nombre + fragmento del id externo.
-const buildProductSlug = (name, externalId) => {
-  const base = slugify(name) || "producto";
-  const short = String(externalId || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8);
-  return short ? `${base}-${short}` : base;
-};
+// Prefijo propio de MasterShop; la construccion del SKU y del slug se comparte
+// con Venndelo y con el alta manual.
+const mastershopSku = (externalId) => buildProductSku(externalId, "MS");
 
 // Paginacion por indice de pagina (page >= 1). El total documentado vive en
 // `resultsCount.totalProducts`; si no viene, queda null.
@@ -123,7 +89,7 @@ module.exports = {
   normalizeAsset,
   normalizeCurrency,
   productSizes,
-  buildProductSku,
+  buildProductSku: mastershopSku,
   buildProductSlug,
   slugify,
 };

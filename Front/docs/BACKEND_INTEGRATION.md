@@ -179,6 +179,10 @@ Curaduría del catálogo publicado (`/admin/catalogo`), con permiso
 | Método | Ruta | Uso en el front |
 |---|---|---|
 | GET | `/admin/products` | Listado con `q`, `status`, `provider`, `visibility`, `hasCategory`, `published`, `stock` |
+| POST | `/admin/products` | Alta manual; `sku`, `name`, `price` obligatorios. `markup` lo calcula el backend desde `cost` y `price`. `supplierId` vincula la fila de `suppliers` para que sincronice. |
+| GET | `/admin/products/suppliers` | Proveedores activos `{ suppliers: [{ id, slug, name }] }` para el selector del alta |
+| GET | `/admin/products/supplier-products` | Buscador de artículos originales sin publicar (alta asistida) |
+| POST | `/admin/products/:id/restore-sync` | `{ fields?: string[] }`; quita overrides y devuelve campos al proveedor |
 | PATCH | `/admin/products/:id` | Edición de ficha (el stock de proveedor es solo lectura) |
 | POST | `/admin/products/:id/visibility` | Mostrar/ocultar; ocultar exige step-up `catalog.unpublish` |
 | POST | `/admin/products/bulk` | Acciones en lote: `make_visible`, `hide`, `archive`, `restore_draft`, `apply_markup`, `set_categories`, `feature` |

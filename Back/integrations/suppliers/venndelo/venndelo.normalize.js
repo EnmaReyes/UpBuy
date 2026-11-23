@@ -12,23 +12,15 @@
 //                    suggested_retail_price, supplier_price, sku, ... }],
 //     assets: [{ id, type:'IMAGE', position, url, file_name, content_type, size }]
 //   }
-const toNumberOrNull = (value) => {
-  if (value === undefined || value === null || value === "") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
-const toInteger = (value, fallback = 0) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
-};
-
-const cleanText = (value, max) => {
-  if (value === undefined || value === null) return null;
-  const text = String(value).trim();
-  if (!text) return null;
-  return max ? text.slice(0, max) : text;
-};
+const {
+  toNumberOrNull,
+  toInteger,
+  cleanText,
+  buildProductSku,
+  buildProductSlug,
+  slugify,
+  productSizes,
+} = require("../../../Services/catalog/productIdentity.service.js");
 
 // Convierte [{code,value}] en { size: "XL", color: "negro" }.
 const attributesFromOptions = (options) => {
@@ -111,39 +103,10 @@ const normalizeProduct = (product) => {
   };
 };
 
-// Tallas disponibles (valores del atributo `size`, o del primer atributo).
-const productSizes = (variations) => {
-  const sizes = new Set();
-  for (const variation of variations || []) {
-    const attrs = variation?.attributes || {};
-    const value = attrs.size ?? attrs.talla ?? Object.values(attrs)[0];
-    if (value) sizes.add(String(value));
-  }
-  return [...sizes];
-};
-
-// SKU canonico del producto publicado. Venndelo usa UUID (36 chars), asi que
-// el resultado cabe de sobra en VARCHAR(100).
-const buildProductSku = (externalId, prefix = "VEN") => {
-  const clean = String(externalId || "").replace(/\s+/g, "").slice(0, 80);
-  return `${prefix}-${clean}`;
-};
-
-const slugify = (value) =>
-  String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120);
-
-// Slug estable y unico: nombre + fragmento del id externo.
-const buildProductSlug = (name, externalId) => {
-  const base = slugify(name) || "producto";
-  const short = String(externalId || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8);
-  return short ? `${base}-${short}` : base;
-};
+// Prefijos propios del proveedor; la construccion del SKU y del slug es
+// compartida con MasterShop y con el alta manual.
+const venndeloSku = (externalId) => buildProductSku(externalId, "VEN");
+const venndeloSlug = (name, externalId) => buildProductSlug(name, externalId);
 
 const normalizePage = (data) => {
   const items = Array.isArray(data?.items) ? data.items : [];
@@ -163,7 +126,7 @@ module.exports = {
   attributesFromOptions,
   representativePrice,
   productSizes,
-  buildProductSku,
-  buildProductSlug,
+  buildProductSku: venndeloSku,
+  buildProductSlug: venndeloSlug,
   slugify,
 };

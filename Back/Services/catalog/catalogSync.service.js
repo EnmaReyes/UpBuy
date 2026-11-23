@@ -53,6 +53,9 @@ const {
 
 const log = createLogger("catalog.sync");
 
+const isUniqueError = (error) =>
+  error?.name === "SequelizeUniqueConstraintError";
+
 // Helpers de nombres (SKU/slug/tallas) con respaldo en Venndelo. Cada
 // adaptador puede exponer los suyos en `catalog`; si no, se usa el
 // comportamiento historico para no cambiar los SKU ya publicados.
@@ -123,11 +126,11 @@ const applyToPublished = async (
     }
   };
 
-  // Costo (dato interno) siempre refleja al proveedor.
+  // Costo: refleja al proveedor salvo que el admin haya fijado un override.
   const cost = supplierProduct.originalPrice === null
     ? null
     : Math.round(Number(supplierProduct.originalPrice));
-  if (cost !== null) setIf("cost", cost);
+  if (cost !== null && !overrides.cost) setIf("cost", cost);
 
   // Stock: unidades reales del proveedor.
   if (!overrides.stock) {
@@ -144,13 +147,15 @@ const applyToPublished = async (
   });
   const sizes = helpers.productSizes(variations);
   const jsonSizes = JSON.stringify(product.sizes || []);
-  if (jsonSizes !== JSON.stringify(sizes)) {
+  if (!overrides.sizes && jsonSizes !== JSON.stringify(sizes)) {
     updates.sizes = sizes;
     changed = true;
   }
 
   const firstSku = variations.find((v) => v.sku)?.sku || null;
-  if (firstSku && !overrides.name) setIf("providerSku", firstSku);
+  if (firstSku && !overrides.providerSku) {
+    setIf("providerSku", String(firstSku).slice(0, 100));
+  }
 
   // Imagenes: solo si el admin no las personalizo. Se reescriben unicamente
   // cuando cambian: si no, la corrida contaria como "actualizado" infinidad de
@@ -211,7 +216,7 @@ const applyToPublished = async (
 // Sincroniza todos los productos publicados de un proveedor.
 const syncPublishedProducts = async ({
   supplierId,
-  transaction,
+  transaction = null,
   helpers = FALLBACK_HELPERS,
 }) => {
   const products = await Product.findAll({
@@ -223,21 +228,35 @@ const syncPublishedProducts = async ({
   let unchanged = 0;
   let hidden = 0;
 
+  // Si el llamador no impone una transaccion (corrida normal), cada producto
+  // se aplica en la suya: una fila conflictiva no bloquea todo el proveedor
+  // ni mantiene abierta una transaccion con cientos de consultas.
   for (const product of products) {
     if (!product.supplierProductId) continue;
 
-    const supplierProduct = await SupplierProduct.findByPk(
-      product.supplierProductId,
-      { transaction },
-    );
-    if (!supplierProduct) continue;
+    const applyOne = async (tx) => {
+      const fresh = (await Product.findByPk(product.id, { transaction: tx })) || product;
+      const supplierProduct = await SupplierProduct.findByPk(
+        fresh.supplierProductId,
+        { transaction: tx },
+      );
+      if (!supplierProduct) return null;
+      return applyToPublished(fresh, supplierProduct, tx, helpers);
+    };
 
-    const outcome = await applyToPublished(
-      product,
-      supplierProduct,
-      transaction,
-      helpers,
-    );
+    let outcome;
+    try {
+      outcome = transaction
+        ? await applyOne(transaction)
+        : await sequelize.transaction(applyOne);
+    } catch (error) {
+      log.error("No se pudo sincronizar un producto publicado", {
+        productId: product.id,
+        error: error.message,
+      });
+      continue;
+    }
+    if (!outcome) continue;
     if (outcome.changed) updated += 1;
     else unchanged += 1;
     if (outcome.hidden) hidden += 1;
@@ -301,7 +320,9 @@ const publishSupplierProduct = async ({
   visibility,
   actorUserId = null,
 } = {}) => {
-  const result = await sequelize.transaction(async (transaction) => {
+  let result;
+  try {
+    result = await sequelize.transaction(async (transaction) => {
     const supplierProduct = await SupplierProduct.findByPk(supplierProductId, {
       transaction,
       lock: transaction.LOCK.UPDATE,
@@ -369,7 +390,7 @@ const publishSupplierProduct = async ({
       stock: Number(supplierProduct.totalQuantity) || 0,
       status: wantVisible ? PRODUCT_STATUS.ACTIVE : PRODUCT_STATUS.DRAFT,
       active: wantVisible ? Boolean(supplierProduct.availability) : false,
-      providerSku: variations.find((v) => v.sku)?.sku || null,
+      providerSku: String(variations.find((v) => v.sku)?.sku || "").slice(0, 100) || null,
       sizes: helpers.productSizes(variations),
     };
     if (!product) {
@@ -383,6 +404,16 @@ const publishSupplierProduct = async ({
         throw new HttpError(
           409,
           `Ya existe un producto con el SKU ${sku}. Revisa el catálogo.`,
+        );
+      }
+      const slugOccupied = await Product.findOne({
+        where: { slug },
+        transaction,
+      });
+      if (slugOccupied) {
+        throw new HttpError(
+          409,
+          `Ya existe un producto con el slug ${slug}. Revisa el catálogo.`,
         );
       }
 
@@ -488,7 +519,16 @@ const publishSupplierProduct = async ({
     }
 
     return product;
-  });
+    });
+  } catch (error) {
+    if (isUniqueError(error)) {
+      throw new HttpError(
+        409,
+        "Ya existe un producto con ese SKU o slug. Revisa el catálogo.",
+      );
+    }
+    throw error;
+  }
 
   return result.toJSON();
 };
@@ -636,9 +676,10 @@ const runCatalogSync = async ({
       // 2. Aplicar a los productos ya publicados (stock, costo, precio de
       //    sugerencia y visibilidad si el proveedor dejo de ofrecerlo).
       const helpers = helpersForSlug(supplierSlug);
-      const published = await sequelize.transaction((transaction) =>
-        syncPublishedProducts({ supplierId: supplier.id, transaction, helpers }),
-      );
+      const published = await syncPublishedProducts({
+        supplierId: supplier.id,
+        helpers,
+      });
 
       // 3. Publicar automaticamente los productos nuevos segun la politica del
       //    proveedor. `manual` no hace nada: la bandeja decide.

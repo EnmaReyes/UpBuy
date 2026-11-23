@@ -1,6 +1,7 @@
 import { serverFetch } from "@/services/api/server";
 import type {
   AdminCatalogFilters,
+  AdminCatalogSupplierList,
   AdminCatalogSupplierStatus,
   AdminCategoryList,
   AdminHomeSections,
@@ -41,6 +42,10 @@ export async function getAdminProduct(id: string): Promise<AdminProduct> {
 
 export async function listAdminCategories(): Promise<AdminCategoryList> {
   return serverFetch<AdminCategoryList>("/api/admin/categories");
+}
+
+export async function listAdminSuppliers(): Promise<AdminCatalogSupplierList> {
+  return serverFetch<AdminCatalogSupplierList>("/api/admin/products/suppliers");
 }
 
 /** Curaduria de las tres secciones de la portada y el ranking de ventas. */

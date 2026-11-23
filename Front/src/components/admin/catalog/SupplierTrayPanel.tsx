@@ -106,13 +106,21 @@ export function SupplierTrayPanel({
       let updated = 0;
       const skipped: { motivo: string }[] = [];
 
+      const groupErrors: string[] = [];
       for (const [slug, ids] of groups) {
-        const result = await publishSupplierTrayProducts(slug, ids, {
-          visibility: "draft",
-        });
-        requested += result.requested;
-        updated += result.updated;
-        skipped.push(...result.skipped);
+        try {
+          const result = await publishSupplierTrayProducts(slug, ids, {
+            visibility: "draft",
+          });
+          requested += result.requested;
+          updated += result.updated;
+          skipped.push(...result.skipped);
+        } catch (caught) {
+          groupErrors.push(`${slug}: ${errorMessage(caught, "falló la publicación")}`);
+        }
+      }
+      if (groupErrors.length > 0) {
+        setError(groupErrors.join(" · "));
       }
 
       const omitted = Math.max(requested - updated, 0);
@@ -159,7 +167,7 @@ export function SupplierTrayPanel({
 
       <InlineAlert
         title="Publicación en borrador"
-        message="Publicar aquí crea el producto en borrador (según la política de cada proveedor). No aparece en la tienda hasta que lo hagas visible en Catálogo UPBUY."
+        message="Publicar aquí crea el producto en borrador. No aparece en la tienda hasta que lo hagas visible en Catálogo UPBUY."
         tone="info"
       />
 

@@ -189,7 +189,7 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 | POST | `/api/admin/orders/:id/push` |
 | GET/POST | `/api/admin/orders/:id/payments` |
 | PATCH | `/api/admin/orders/:id/payments/:paymentId` |
-| GET/PATCH | `/api/admin/products` · `/api/admin/products/:id` |
+| GET/POST/PATCH | `/api/admin/products` · `/api/admin/products/:id` |
 | POST | `/api/admin/products/:id/visibility` |
 | POST | `/api/admin/products/bulk` |
 | PUT | `/api/admin/products/:id/images` |
@@ -449,6 +449,10 @@ cambia.
 
 | Método | Ruta | Descripción |
 | --- | --- | --- |
+| POST | `/api/admin/products` | Alta manual de un producto (`catalog.write`). Acepta `sku`, `name`, `price` (obligatorios), más `slug`, `description`, `cost`, `compareAtPrice`, `currency`, `stock`, `active`, `status`, `provider`, `providerSku`, `sizes`, `destacadas`, `combo`, `descuentoPorcentaje`, `images`, `categoryIds`, `supplierId`. El `markup` se deriva de `cost` y `price`. Responde 201 con la ficha admin. |
+| GET | `/api/admin/products/suppliers` | Proveedores de catálogo activos (`catalog.write`) para el selector del alta manual. Responde `{ suppliers: [{ id, slug, name }] }`. |
+| GET | `/api/admin/products/supplier-products` | Buscador de artículos originales sin publicar (`catalog.write`); misma forma que la bandeja global, con `q`, `provider`, `page`, `limit`. |
+| POST | `/api/admin/products/:id/restore-sync` | `{ fields?: string[] }`. Quita overrides y devuelve esos campos al control del proveedor. Sin `fields`, restaura todos. |
 | POST | `/api/admin/products/:id/visibility` | `{ visible: boolean }`. Ocultar exige step-up `catalog.unpublish` |
 | POST | `/api/admin/products/bulk` | `{ ids, action, payload }`; acciones `make_visible`, `hide`, `archive`, `restore_draft`, `apply_markup`, `set_categories`, `feature` |
 | GET | `/api/admin/products/unpublished` | Bandeja global: importados de **todos** los proveedores sin fila en `products`; filtros `q`, `availability`, `provider` (slug) |
@@ -458,6 +462,22 @@ cambia.
 | PUT | `/api/admin/products/home-sections/:section` | `{ productIds }`; reemplaza la sección (`seleccion`, `novedades`, `favoritos`) |
 | POST | `/api/admin/suppliers/:slug/products/publish-bulk` | `{ productIds?, filters?, markup?, visibility? }`; idempotente, devuelve `{ requested, updated, skipped }` |
 | PATCH | `/api/admin/suppliers/:slug/settings` | `{ publishPolicy?, defaultCategoryId? }` |
+
+El alta manual (`POST /api/admin/products`) nace con `provider="manual"` salvo
+que se envíe otro slug: se aceptan los conocidos (`venndelo`, `mastershop`,
+`dropi`, ...) y también slugs nuevos simples (`a-z0-9`, `-`, `_`). El campo
+`supplierId` asigna además el proveedor concreto de la tabla `suppliers` (se
+valida que exista y esté activo); es opcional, pero sin él el producto no
+sincroniza con ese proveedor. El `markup` se calcula siempre en el backend como
+`round((price - cost) / cost * 100)` (0 si no hay costo) y cualquier valor
+enviado se ignora. El `sku` y el `slug` deben ser únicos (409 si ya existen).
+
+La propiedad de cada campo está documentada en
+`Services/catalog/productOwnership.service.js`: en un producto de proveedor,
+nombre, costo, stock, tallas, imágenes y visibilidad son del proveedor salvo
+override del admin; precio, estado editorial y categorías son decisión UPBUY.
+`POST /api/admin/products/:id/restore-sync` permite devolver al proveedor los
+campos personalizados.
 
 `PATCH /api/admin/products/:id` ya no acepta `stock` cuando el producto viene de
 un proveedor (422): solo la sincronización mueve el stock. El `slug` solo se

@@ -510,7 +510,9 @@ export function ProductDrawer({
                         Markup
                       </dt>
                       <dd className="font-semibold text-carbon tabular-nums">
-                        {product.markup === null ? "—" : `${product.markup}×`}
+                        {product.markup === null
+                          ? "—"
+                          : `${product.markup}%`}
                       </dd>
                     </div>
                     <div>

@@ -84,6 +84,22 @@ const detailAdmin = async (req, res) => {
   }
 };
 
+// POST /api/admin/products  (alta manual desde el panel)
+const create = async (req, res) => {
+  try {
+    const body = req.body || {};
+    return res.status(201).json(
+      await catalogAdmin.createProduct({
+        patch: body,
+        uid: req.user?.id || null,
+        ip: req.ip || null,
+      }),
+    );
+  } catch (error) {
+    return sendError(res, error, "No se pudo crear el producto");
+  }
+};
+
 // PATCH /api/admin/products/:id
 const update = async (req, res) => {
   try {
@@ -148,15 +164,42 @@ const restoreImages = async (req, res) => {
   }
 };
 
+// POST /api/admin/products/:id/restore-sync  (devolver campos al proveedor)
+const restoreSync = async (req, res) => {
+  try {
+    return res.json(
+      await catalogAdmin.restoreSync({
+        productId: req.params.id,
+        fields: req.body?.fields,
+        uid: req.user?.id,
+      }),
+    );
+  } catch (error) {
+    return sendError(res, error, "No se pudo restaurar la sincronización");
+  }
+};
+
+// GET /api/admin/products/suppliers  (proveedores activos para el alta manual)
+const listSuppliers = async (req, res) => {
+  try {
+    return res.json({ suppliers: await catalog.listCatalogSuppliers() });
+  } catch (error) {
+    return sendError(res, error, "No se pudieron listar los proveedores");
+  }
+};
+
 module.exports = {
   list,
   detail,
   listAdmin,
   listUnpublished,
   detailAdmin,
+  create,
   update,
   visibility,
   bulk,
   setImages,
   restoreImages,
+  restoreSync,
+  listSuppliers,
 };
