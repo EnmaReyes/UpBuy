@@ -80,6 +80,20 @@ function initialize(sdk: FacebookSdk, appId: string): void {
   initialized = true;
 }
 
+/** Verifica que la página se esté sirviendo por HTTPS. Facebook requiere HTTPS
+  * para el método FB.login (ver https://developers.facebook.com/blog/post/2018/06/08/enforce-https-facebook-login/).
+  */
+function verificarHttps(): void {
+  if (typeof window === "undefined") return;
+  if (window.location.protocol !== "https:") {
+    console.warn(
+      "El login de Facebook requiere HTTPS. Ejecuta el servidor con: next dev --https",
+    );
+    // No lanzamos error aquí para no romper el flujo, pero el login
+    // fallará naturalmente al intentar conectarse por HTTP.
+  }
+}
+
 /** Carga el SDK una sola vez y lo inicializa con la app pública. */
 export function loadFacebookSdk(appId: string): Promise<FacebookSdk> {
   if (typeof window === "undefined") {
@@ -87,6 +101,8 @@ export function loadFacebookSdk(appId: string): Promise<FacebookSdk> {
       new FacebookSdkError("load", "El SDK de Facebook solo funciona en el navegador"),
     );
   }
+
+  verificarHttps();
 
   if (window.FB) {
     initialize(window.FB, appId);
@@ -182,16 +198,33 @@ export async function loginWithFacebookSdk(
         },
         { scope: "email,public_profile" },
       );
-    } catch {
+    } catch (error) {
       if (settled) return;
       settled = true;
       window.clearTimeout(timeout);
-      reject(
-        new FacebookSdkError(
-          "blocked",
-          "El navegador bloqueó la ventana de Facebook",
-        ),
-      );
+      // El error de Facebook sobre HTTP ("can no longer be called from http pages")
+      // se traduce en un mensaje más claro para el usuario.
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
+      if (
+        errorMessage.includes("can no longer be called from http pages") ||
+        errorMessage.includes("HTTP")
+      ) {
+        reject(
+          new FacebookSdkError(
+            "blocked",
+            "El login de Facebook requiere HTTPS. Ejecuta el servidor con: next dev --https",
+          ),
+        );
+      } else {
+        reject(
+          new FacebookSdkError(
+            "blocked",
+            "El navegador bloqueó o no abrió la ventana de Facebook",
+          ),
+        );
+      }
     }
   });
 }

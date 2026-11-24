@@ -53,6 +53,17 @@ function describeError(provider: Provider, caught: unknown): SocialError & {
   disableProvider?: boolean;
 } {
   if (caught instanceof FacebookSdkError) {
+    // Mensaje personalizado para el error de requerimiento de HTTPS de Facebook
+    if (
+      caught.message.includes("requiere HTTPS") ||
+      caught.message.includes("next dev --https")
+    ) {
+      return {
+        text:
+          "El acceso con Facebook requiere HTTPS. Ejecuta el servidor de desarrollo con: next dev --https",
+        disableProvider: true,
+      };
+    }
     return caught.reason === "blocked"
       ? {
           text: "Tu navegador bloqueó la ventana de Facebook. Permite ventanas emergentes e inténtalo de nuevo.",

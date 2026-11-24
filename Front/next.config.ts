@@ -11,12 +11,22 @@ import type { NextConfig } from "next";
 // variable no existe, no se define el rewrite y queda el comportamiento previo.
 const BACKEND_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
 
-const nextConfig: NextConfig = BACKEND_URL
-  ? {
-      async rewrites() {
-        return [{ source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` }];
-      },
-    }
-  : {};
+// Next 16 bloquea en dev cualquier hostname distinto a localhost. Los túneles
+// de Cloudflare (típicos para probar Wompi en local) necesitan declararse aquí.
+// Solo se aplica a `next dev`; el build de producción lo ignora.
+const DEV_TUNNEL_ORIGINS = ["*.trycloudflare.com"];
+
+const nextConfig: NextConfig = {
+  allowedDevOrigins: DEV_TUNNEL_ORIGINS,
+  ...(BACKEND_URL
+    ? {
+        async rewrites() {
+          return [
+            { source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` },
+          ];
+        },
+      }
+    : {}),
+};
 
 export default nextConfig;

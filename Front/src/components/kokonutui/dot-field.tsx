@@ -30,19 +30,20 @@ export interface DotFieldProps {
   opacity?: number;
 }
 
-// UPBUY: the field is decorative, so smaller screens get fewer dots, a
-// lighter tone and a slightly lower pixel ratio to keep the animation cheap.
+// UPBUY: the field is decorative, so smaller screens get fewer dots and a
+// slightly lower pixel ratio to keep the animation cheap. The tone is NOT
+// dimmed on small screens: the dots were imperceptible on mobile.
 const MOBILE_MAX = 640;
 const TABLET_MAX = 1024;
 
 function qualityFor(width: number) {
   if (width < MOBILE_MAX) {
-    return { spacingScale: 1.6, dprCap: 1.5, opacityScale: 0.65 };
+    return { spacingScale: 1.45, dprCap: 1.5 };
   }
   if (width < TABLET_MAX) {
-    return { spacingScale: 1.25, dprCap: 1.75, opacityScale: 0.85 };
+    return { spacingScale: 1.2, dprCap: 1.75 };
   }
-  return { spacingScale: 1, dprCap: 2, opacityScale: 1 };
+  return { spacingScale: 1, dprCap: 2 };
 }
 
 // Width of a light or dark patch in the idle halftone, in px.
@@ -467,8 +468,9 @@ function draw(
   ctx.fillStyle = size.color;
   for (let b = 1; b < BUCKETS; b++) {
     if (filled[b]) {
-      // Larger dots are a touch more opaque, which deepens the tone range.
-      ctx.globalAlpha = 0.2 + (0.32 * b) / (BUCKETS - 1);
+      // UPBUY: stronger alpha so the field reads as terracotta over carbon
+      // instead of a near-black brown. Bigger dots get closer to the token.
+      ctx.globalAlpha = 0.44 + (0.5 * b) / (BUCKETS - 1);
       ctx.fill(paths[b]);
     }
   }
@@ -525,9 +527,9 @@ export default function DotField({
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      const { spacingScale, dprCap, opacityScale } = qualityFor(rect.width);
+      const { spacingScale, dprCap } = qualityFor(rect.width);
       const gap = Math.max(6, baseGap * spacingScale);
-      alpha = Math.min(1, Math.max(0, opacity * opacityScale));
+      alpha = Math.min(1, Math.max(0, opacity));
       const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
       size.width = rect.width;
       size.height = rect.height;
@@ -748,7 +750,7 @@ export default function DotField({
             // Fade at the edges, and quieter in the middle where the
             // content usually sits so text stays easy to read.
             maskImage:
-              "radial-gradient(ellipse 75% 70% at 50% 50%, #000 40%, transparent 100%), radial-gradient(ellipse 34% 22% at 50% 50%, rgb(0 0 0 / 0.35), #000 100%)",
+              "radial-gradient(ellipse 75% 70% at 50% 50%, #000 40%, transparent 100%), radial-gradient(ellipse 40% 26% at 26% 52%, rgb(0 0 0 / 0.5), #000 100%)",
             maskComposite: "intersect",
           }}
         />
