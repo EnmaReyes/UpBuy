@@ -330,6 +330,45 @@ const Order = sequelize.define(
       defaultValue: false,
     },
 
+    // ---------------------------------------------------------------------
+    // MasterShop (integracion de pedidos, Fase 1).
+    //
+    // El vínculo con MasterShop NO usa `provider`: esa columna tiene un CHECK
+    // con los proveedores de pedidos historicos (vendelo/dropi). Estas
+    // columnas son exclusivas de la integracion de creacion de pedidos y
+    // quedan NULL hasta que el pedido se envia.
+    // ---------------------------------------------------------------------
+    // idOrder que devolvio MasterShop. Unico cuando no es null (indice
+    // parcial creado por ensureMastershopSchema).
+    msIdOrder: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+    },
+    // `externalOrderId` que se manda a MasterShop (referencia del pago).
+    msExternalOrderId: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+    },
+    msSyncedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    // Estado crudo que reporta MasterShop ("Por Confirmar", ...). No se
+    // expone al comprador: la fuente de verdad sigue siendo UpBuy.
+    msStatus: {
+      type: DataTypes.STRING(80),
+      allowNull: true,
+    },
+    // pending | synced | needs_review | failed | disabled
+    msSyncState: {
+      type: DataTypes.STRING(30),
+      allowNull: true,
+    },
+    msSyncError: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
     // Direccion congelada al momento de la compra. Es la que ve el courier:
     // si el usuario cambia su direccion despues, el pedido no se mueve.
     addressSnapshot: {

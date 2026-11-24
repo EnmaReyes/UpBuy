@@ -129,6 +129,7 @@ const requestJson = async (
     );
     // Metadatos utiles para diagnostico. Nunca incluyen la llave.
     error.upstreamStatus = response.status;
+    error.upstreamBody = response.data;
     error.rateLimit = lastRateLimit;
     if (response.status === 429 && lastRateLimit?.resetSeconds !== null) {
       error.retryAfterSeconds = lastRateLimit.resetSeconds;

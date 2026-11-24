@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 
 const {
   normalizeProduct,
+  normalizeVariation,
   normalizePage,
   normalizeAsset,
   normalizeCurrency,
@@ -116,8 +117,118 @@ test("normaliza la paginacion por indice de pagina", () => {
   assert.equal(negative.total, 0);
 });
 
-test("tallas: MasterShop no documenta variaciones", () => {
-  assert.deepEqual(productSizes([{ attributes: { size: "M" } }]), []);
+// Variacion real de la API (verificada el 2026-11-24, producto 269130).
+const RAW_VARIATION = {
+  sku: "M101",
+  name: "BRONCE/37",
+  price: 65000,
+  stock: 20,
+  weight: 0.5,
+  options: [
+    { nameValue: "BRONCE", propertyName: "COLOR" },
+    { nameValue: "37", propertyName: "TALLAS" },
+  ],
+  package: { width: null, height: null, length: null, weight: 0.5 },
+  isEnable: 1,
+  idProduct: 269130,
+  idVariant: 753806,
+  weightUnit: "kg",
+};
+
+// La "Default Variant" que MasterShop agrega siempre: no es vendible.
+const RAW_DEFAULT_VARIATION = {
+  sku: null,
+  name: "Default Variant",
+  price: 65000,
+  stock: 0,
+  weight: 0,
+  options: null,
+  package: { width: null, height: null, length: null, weight: 0 },
+  isEnable: 1,
+  idProduct: 269130,
+  idVariant: 753796,
+  weightUnit: "kg",
+};
+
+test("normaliza las variaciones reales y descarta la Default Variant", () => {
+  const product = normalizeProduct({
+    ...RAW,
+    variation: [RAW_DEFAULT_VARIATION, RAW_VARIATION],
+  });
+
+  assert.equal(product.variations.length, 1);
+  const [variation] = product.variations;
+  assert.equal(variation.externalId, "753806");
+  assert.equal(variation.sku, "M101");
+  assert.deepEqual(variation.attributes, { color: "BRONCE", size: "37" });
+  assert.equal(variation.originalPrice, 65000);
+  assert.equal(variation.supplierPrice, 65000);
+  assert.equal(variation.quantity, 20);
+  assert.equal(variation.available, true);
+  assert.equal(variation.isDefault, false);
+  assert.deepEqual(variation.rawData, RAW_VARIATION);
+});
+
+test("una variacion deshabilitada (isEnable 0) no queda disponible", () => {
+  const variation = normalizeVariation({
+    ...RAW_VARIATION,
+    isEnable: 0,
+  });
+
+  assert.equal(variation.available, false);
+  assert.equal(variation.isEnabled, false);
+  assert.equal(variation.quantity, 20);
+});
+
+test("sin stock la variacion no queda disponible", () => {
+  const variation = normalizeVariation({ ...RAW_VARIATION, stock: 0 });
+  assert.equal(variation.quantity, 0);
+  assert.equal(variation.available, false);
+});
+
+test("un producto que solo trae la Default Variant queda sin variaciones", () => {
+  const product = normalizeProduct({ ...RAW, variation: [RAW_DEFAULT_VARIATION] });
+  assert.deepEqual(product.variations, []);
+});
+
+test("un sku nulo no impide normalizar la variante", () => {
+  const variation = normalizeVariation({ ...RAW_VARIATION, sku: null });
+  assert.equal(variation.sku, null);
+  assert.equal(variation.externalId, "753806");
+});
+
+test("el stock del producto cae a la suma de variaciones si no viene stockTotal", () => {
+  const product = normalizeProduct({
+    ...RAW,
+    stockTotal: undefined,
+    variation: [RAW_VARIATION, { ...RAW_VARIATION, idVariant: 2, stock: 5 }],
+  });
+  assert.equal(product.totalQuantity, 25);
+});
+
+test("tallas: solo las variaciones habilitadas con atributo size", () => {
+  const variations = [
+    normalizeVariation({ ...RAW_VARIATION, idVariant: 1 }),
+    normalizeVariation({
+      ...RAW_VARIATION,
+      idVariant: 2,
+      options: [{ nameValue: "38", propertyName: "TALLA" }],
+    }),
+    normalizeVariation({
+      ...RAW_VARIATION,
+      idVariant: 3,
+      isEnable: 0,
+      options: [{ nameValue: "39", propertyName: "Tallas" }],
+    }),
+    // Solo color: no aporta talla (antes se publicaba "AZUL" como talla).
+    normalizeVariation({
+      ...RAW_VARIATION,
+      idVariant: 4,
+      options: [{ nameValue: "AZUL", propertyName: "Color" }],
+    }),
+  ];
+
+  assert.deepEqual(productSizes(variations), ["37", "38"]);
   assert.deepEqual(productSizes(), []);
 });
 

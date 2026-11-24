@@ -35,6 +35,9 @@ const { ensureCatalogSchema } = require("../DataBase/ensureCatalogSchema.js");
 const {
   ensureDropshippingSchema,
 } = require("../DataBase/ensureDropshippingSchema.js");
+const {
+  ensureMastershopSchema,
+} = require("../DataBase/ensureMastershopSchema.js");
 
 const run = async () => {
   await sequelize.authenticate();
@@ -43,12 +46,14 @@ const run = async () => {
   const admin = await ensureAdminSecuritySchema();
   const catalog = await ensureCatalogSchema();
   const dropshipping = await ensureDropshippingSchema();
+  const mastershop = await ensureMastershopSchema();
 
   const aplicado =
     base.migrated ||
     admin.migrated ||
     catalog.migrated ||
-    dropshipping.migrated;
+    dropshipping.migrated ||
+    mastershop.migrated;
 
   console.log(
     aplicado

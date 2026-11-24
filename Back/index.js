@@ -38,6 +38,9 @@ const {
 const {
   ensureDropshippingSchema,
 } = require("./DataBase/ensureDropshippingSchema.js");
+const {
+  ensureMastershopSchema,
+} = require("./DataBase/ensureMastershopSchema.js");
 
 // Carga todos los modelos y asociaciones antes de cualquier consulta.
 require("./DataBase/models/index.js");
@@ -136,6 +139,9 @@ const initializeDatabase = async () => {
 
   // Indices del panel (ADM-10): idempotentes, no hacen nada cuando ya estan.
   await ensurePanelIndexes();
+
+  // MasterShop: columnas ms_* del pedido, cola outbox y bitacora de intentos.
+  await ensureMastershopSchema();
 
   log.info("Base de datos inicializada");
 };

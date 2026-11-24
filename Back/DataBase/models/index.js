@@ -35,6 +35,13 @@ const { AdminMfaChallenge } = require("./AdminMfaChallenge.js");
 const { AdminBackupCode } = require("./AdminBackupCode.js");
 const { Campaign } = require("./Campaign.js");
 const { CampaignRecipient } = require("./CampaignRecipient.js");
+const { MastershopAttrAlias } = require("./MastershopAttrAlias.js");
+const {
+  MastershopOrderOutbox,
+} = require("./MastershopOrderOutbox.js");
+const {
+  MastershopOrderAttempt,
+} = require("./MastershopOrderAttempt.js");
 const enums = require("./enums.js");
 
 // Define las asociaciones (requiere los modelos de arriba ya definidos).
@@ -70,5 +77,9 @@ module.exports = {
   AdminBackupCode,
   Campaign,
   CampaignRecipient,
+  // Integracion MasterShop (pago aprobado -> pedido)
+  MastershopAttrAlias,
+  MastershopOrderOutbox,
+  MastershopOrderAttempt,
   ...enums,
 };

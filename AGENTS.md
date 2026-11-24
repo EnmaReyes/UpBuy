@@ -78,7 +78,8 @@ Scripts de base de datos (desde `Back/`): `db:create`, `db:bootstrap`,
 `db:check`, `db:migrate`, `db:verify-migration`, `db:migrate:catalog`,
 `db:verify-catalog`, `db:verify-home`, `db:migrate:admin`,
 `db:migrate:campaigns`, `db:migrate:indexes`, `db:seed-home`,
-`db:grant-admin`, `security:prune` y `venndelo:check`. También hay
+`db:grant-admin`, `security:prune`, `venndelo:check`, `mastershop:sync`,
+`mastershop:report` y `reconcile:mastershop`. También hay
 `npm run tunnel` para exponer el backend local (webhooks).
 
 En `Front/` **no hay lint configurado**: usa `npm run typecheck` y `npm run build`
@@ -165,9 +166,9 @@ pedido sigue su curso y queda marcado `providerOutOfSync` para reintentar.
 - `sequelize.sync()` **solo corre fuera de producción**. En producción el
   esquema lo aplican los `ensure*Schema` (`ensureBaseSchema`,
   `ensureAdminSecuritySchema`, `ensureCampaignSchema`, `ensureCatalogSchema`,
-  `ensureDropshippingSchema` + `ensurePanelIndexes`): son **idempotentes** y no
-  hacen nada cuando ya está todo al día. Cada uno usa su propia llave
-  `pg_advisory_lock` (no reutilices una llave existente).
+  `ensureDropshippingSchema`, `ensureMastershopSchema` + `ensurePanelIndexes`):
+  son **idempotentes** y no hacen nada cuando ya está todo al día. Cada uno usa
+  su propia llave `pg_advisory_lock` (no reutilices una llave existente).
 - No hay runner de migraciones en producción: los scripts de `Back/scripts/`
   se corren a mano (o `npm run db:bootstrap` contra una base Neon nueva).
 - El número de pedido usa la secuencia de Postgres `order_number_seq`.
@@ -186,10 +187,12 @@ pedido sigue su curso y queda marcado `providerOutOfSync` para reintentar.
 - **Vendelo / Dropi** (pedidos): `VENDELO_*` (una N) es el adaptador de pedidos
   heredado; `VENNDELO_*` (doble N) es la API administrativa real. No los
   confundas. Sin credenciales el adaptador queda en modo manual (CSV/panel).
-- **MasterShop** (catálogo): autenticación por `MASTERSHOP_API_KEY` enviada en
-  el header `ms-api-key` (sin OAuth). Sin clave el proveedor queda «no
-  configurado» y sus rutas responden 503. Vive en
-  `integrations/suppliers/mastershop/` (auth/client/catalog/assets/normalize).
+- **MasterShop** (catálogo **y pedidos**): autenticación por `MASTERSHOP_API_KEY`
+  enviada en el header `ms-api-key` (sin OAuth). Sin clave el proveedor queda
+  «no configurado» y sus rutas responden 503. Vive en
+  `integrations/suppliers/mastershop/` (auth/client/catalog/assets/normalize/orders).
+  El flujo «pago Wompi aprobado → pedido en MasterShop» se documenta en
+  [`Back/docs/integracion-mastershop-wompi.md`](Back/docs/integracion-mastershop-wompi.md).
 - Agregar un proveedor nuevo: `integrations/suppliers/<slug>/` con `auth`,
   `client` y `catalog`; se registra en `integrations/suppliers/index.js`. Los
   servicios de `Services/catalog/` no cambian.
@@ -200,6 +203,12 @@ pedido sigue su curso y queda marcado `providerOutOfSync` para reintentar.
 - La firma del webhook se calcula sobre el **cuerpo crudo** (`req.rawBody`),
   no sobre un `JSON.parse` re-serializado.
 - Webhooks idempotentes por `(provider, eventId)`.
+- El webhook **reconsulta** la transacción en Wompi (`GET /v1/transactions/{id}`)
+  y usa ese resultado como fuente de verdad, no el payload.
+- Si el pago queda aprobado, el webhook **no** crea el pedido en MasterShop:
+  encola en `mastershop_order_outbox` y responde 200. El cron
+  `processMastershopOutbox` lo procesa (detalle en
+  [`Back/docs/integracion-mastershop-wompi.md`](Back/docs/integracion-mastershop-wompi.md)).
 - Sin credenciales de Wompi los endpoints de pago responden 503 y el checkout
   sigue funcionando con el flujo manual (transferencia/Nequi por WhatsApp).
 

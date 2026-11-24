@@ -27,7 +27,19 @@ const log = createLogger("catalog.import");
 
 const num = (value) => (value === null || value === undefined ? null : Number(value));
 
-const jsonEqual = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+const jsonEqual = (a, b) => {
+  const normalize = (value) => {
+    if (value === null || value === undefined) return null;
+    if (typeof value !== "object") return value;
+    if (Array.isArray(value)) return value.map(normalize);
+    const sorted = {};
+    for (const key of Object.keys(value).sort()) {
+      sorted[key] = normalize(value[key]);
+    }
+    return sorted;
+  };
+  return JSON.stringify(normalize(a ?? null)) === JSON.stringify(normalize(b ?? null));
+};
 
 // ---------------------------------------------------------------------------
 // Variaciones

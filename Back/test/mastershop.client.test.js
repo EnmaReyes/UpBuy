@@ -285,7 +285,19 @@ test("getProduct devuelve el producto normalizado", async () => {
   assert.equal(product.name, "Lampara");
   assert.equal(product.totalQuantity, 3);
   assert.equal(product.assets[0].externalAssetId, "img-1");
-  assert.match(calls[0].url, /\/api\/products\/55$/);
+  // El detalle SIEMPRE pide las variaciones completas (antes se omitia el
+  // parametro y MasterShop podia recortarlas).
+  assert.match(calls[0].url, /\/api\/products\/55\?includeAllVariations=true$/);
+});
+
+test("getProduct puede pedir el detalle sin variaciones", async () => {
+  const calls = captureFetch(() => jsonResponse(200, { results: [] }));
+
+  await catalog
+    .getProduct(null, "55", { includeAllVariations: false })
+    .catch(() => null);
+
+  assert.match(calls[0].url, /includeAllVariations=false$/);
 });
 
 test("getProduct sin resultado responde 404", async () => {

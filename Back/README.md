@@ -43,6 +43,9 @@ contener secretos**.
 | `npm run db:verify-home` | Verifica la curaduría de la portada (idempotente) |
 | `npm run db:seed-home` | Siembra los favoritos de la portada (`--dry-run`, `--section`, `--limit`) |
 | `npm run venndelo:check` | Prueba la conexión real con Venndelo |
+| `npm run mastershop:sync` | Importa el catálogo de MasterShop (productos + variantes) |
+| `npm run mastershop:report` | Reporta huecos de mapeo de variantes (solo lectura) |
+| `npm run reconcile:mastershop` | Concilia pagos Wompi vs pedidos en MasterShop (`--remote`, `--json`) |
 | `npm run db:create` | Crea la base local |
 | `npm run db:migrate:indexes` | Aplica los índices del panel (ADM-10); idempotente |
 
@@ -788,6 +791,34 @@ module.exports = createCatalogSupplierController({ service, providerName });
 Los servicios de `Services/catalog/` no cambian: si el proveedor necesita
 SKU/slug/tallas propios, expone los hooks `normalizeProduct`, `productSizes`,
 `buildProductSku` y `buildProductSlug` dentro de `catalog`.
+
+---
+
+## 6.c Creación de pedidos en MasterShop (pago Wompi aprobado)
+
+Flujo automático: cuando un pago de Wompi queda **APPROVED**, se crea el pedido
+en MasterShop sin intervención manual. Diseño completo, runbook de incidentes y
+smoke test en
+[`docs/integracion-mastershop-wompi.md`](docs/integracion-mastershop-wompi.md).
+
+Resumen:
+
+- El webhook `POST /api/webhooks/wompi` valida firma y ambiente, **reconsulta**
+  la transacción con la llave privada (fuente de verdad) y, si el pago queda
+  aprobado, deja una fila en `mastershop_order_outbox`. **No** crea el pedido en
+  la petición (responde 200 rápido).
+- El cron `/api/cron/sync-providers` (etapa `processMastershopOutbox`) toma las
+  filas `pending`, resuelve `order_items → id_product/id_variant`, arma el
+  payload con decimal exacto y llama `POST /api/orders`.
+- Resultado en el pedido: `msIdOrder`, `msExternalOrderId`, `msSyncedAt`,
+  `msStatus`, `msSyncState`. Cada llamada queda en `mastershop_order_attempts`
+  (request/response redactados).
+- Idempotencia: `webhook_events(provider,eventId)`,
+  `mastershop_order_outbox.orderId` único y `orders.msIdOrder` único parcial. El
+  500 «Código 409 - La orden ya existe» se trata como éxito y se recupera el
+  `idOrder` real vía `externalOrderId`.
+- Un fallo de mapeo de variante **no** crea pedidos a medias: el pedido queda en
+  `needs_review` con motivo accionable.
 
 ---
 

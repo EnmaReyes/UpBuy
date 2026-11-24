@@ -73,7 +73,16 @@ const listPage = async (supplier, { page = 1, pageSize, filters } = {}) => {
 
 // Producto individual (normalizado). La documentacion responde 404 cuando el
 // id no pertenece al negocio; se valida tambien la lista vacia.
-const getProduct = async (supplier, externalId) => {
+//
+// `includeAllVariations` se manda siempre explicito (por defecto true): el
+// listado ya trae `variation[]` completo, pero el detalle con `false` recorta
+// las variaciones de los productos de variante unica. Antes de crear pedidos
+// se necesita el catalogo COMPLETO de variantes.
+const getProduct = async (
+  supplier,
+  externalId,
+  { includeAllVariations = true } = {},
+) => {
   const id = String(externalId ?? "").trim();
   if (!/^\d+$/.test(id) || Number(id) <= 0) {
     throw new HttpError(400, "El id del producto de MasterShop no es válido");
@@ -82,6 +91,7 @@ const getProduct = async (supplier, externalId) => {
   const data = await requestJson(
     "GET",
     `/api/products/${encodeURIComponent(id)}`,
+    { params: { includeAllVariations: includeAllVariations ? "true" : "false" } },
   );
   const { items } = normalizePage(data);
 

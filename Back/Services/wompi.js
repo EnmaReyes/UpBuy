@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const {
   Payment,
   Order,
+  MastershopOrderOutbox,
   sequelize,
 } = require("../DataBase/models/index.js");
 const {
@@ -554,6 +555,15 @@ const handleWebhook = async (event, headerChecksum) => {
     throw new HttpError(400, "Evento sin transacción");
   }
 
+  // Fuente de verdad: reconsultar la transaccion en Wompi con la llave
+  // privada. No se confia en el estado que trae el payload (puede estar
+  // desactualizado o ser un evento reenviado). Si la reconsulta falla, no se
+  // aplica nada y Wompi reintentara (el webhook no responde 200).
+  const sourceTransaction = await fetchTransaction(providerTransaction.id);
+  if (!sourceTransaction) {
+    throw new HttpError(404, "Transaccion no encontrada en Wompi");
+  }
+
   // Idempotencia: un evento ya procesado se responde 200 sin volver a
   // aplicarlo. La clave incluye el estado porque la misma transaccion puede
   // pasar por APPROVED y luego VOIDED (reembolso): son eventos distintos.
@@ -576,7 +586,7 @@ const handleWebhook = async (event, headerChecksum) => {
   let result;
   try {
     result = await applyProviderTransaction({
-      providerTransaction,
+      providerTransaction: sourceTransaction,
       event,
     });
   } catch (error) {
@@ -585,6 +595,34 @@ const handleWebhook = async (event, headerChecksum) => {
   }
 
   await finishWebhookEvent(record, { ok: true });
+
+  // Si el pago se aprobo y se aplico, encolar la creacion del pedido en
+  // MasterShop para procesarla en segundo plano (patron outbox). El webhook
+  // no crea el pedido de forma sincrona: responde 200 y deja la fila para
+  // que el cron (Fase 4/5) llame a createOrder.
+  if (
+    result.applied &&
+    result.status === PAYMENT_STATUS.APROBADO &&
+    result.order
+  ) {
+    const [outbox, created] = await MastershopOrderOutbox.findOrCreate({
+      where: { orderId: result.order.id },
+      defaults: { status: "pending", attempts: 0, nextAttemptAt: new Date() },
+    });
+    if (!created && outbox.status !== "done") {
+      await outbox.update({
+        status: "pending",
+        attempts: 0,
+        nextAttemptAt: new Date(),
+        lastError: null,
+      });
+    }
+    logWebhook("encolado_outbox", {
+      ...resumen,
+      orderId: result.order.id,
+      outbox: created ? "nueva" : "reactivada",
+    });
+  }
 
   if (result.applied) {
     logWebhook("aplicado", {
