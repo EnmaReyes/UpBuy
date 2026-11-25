@@ -141,10 +141,10 @@ const CURRENCY = "COP";
 // el pedido (orders.estimatedDeliveryDays) al crearlo, para que un cambio de
 // reglas no altere pedidos ya hechos.
 //   - Medellin y el resto de Antioquia: 3 dias habiles
-//   - Cualquier otro departamento: 10 dias habiles
+//   - Cualquier otro departamento: 5 dias habiles
 const DELIVERY_DAYS = {
   ANTIOQUIA: 3,
-  NACIONAL: 10,
+  NACIONAL: 5,
 };
 
 // Minutos que se reserva el stock de un pedido sin pagar.

@@ -517,7 +517,7 @@ Reglas del backend:
 - `shipping` es opcional: si falta, se completa con el perfil y la dirección
   principal. El pedido congela `addressSnapshot`.
 - `shippingCost` es 0 y `shippingZone` "nacional" (tarifa fija pendiente).
-- `estimatedDeliveryDays` = 10 hábiles (nacional).
+- `estimatedDeliveryDays` = 5 hábiles (nacional).
 - Errores: 403 `{ code: "PROFILE_INCOMPLETE", missing[] }`, 400 (talla o
   cantidad), 409 (producto agotado) y el resto como texto.
 
