@@ -41,6 +41,9 @@ const {
 const {
   ensureMastershopSchema,
 } = require("./DataBase/ensureMastershopSchema.js");
+const {
+  ensureVenndeloOrderSchema,
+} = require("./DataBase/ensureVenndeloOrderSchema.js");
 
 // Carga todos los modelos y asociaciones antes de cualquier consulta.
 require("./DataBase/models/index.js");
@@ -142,6 +145,9 @@ const initializeDatabase = async () => {
 
   // MasterShop: columnas ms_* del pedido, cola outbox y bitacora de intentos.
   await ensureMastershopSchema();
+
+  // Venndelo: columnas vd_* del pedido, cola outbox y bitacora de intentos.
+  await ensureVenndeloOrderSchema();
 
   log.info("Base de datos inicializada");
 };
@@ -315,7 +321,7 @@ app.use("/api/admin/products", adminProductsRoutes);
 app.use("/api/admin/categories", adminCategoriesRoutes);
 app.use("/api/admin/suppliers", suppliersRoutes);
 app.use("/api/payments", paymentsRoutes);
-// Webhooks canonicos: /api/webhooks/wompi y /api/webhooks/vendelo.
+// Webhooks canonicos: /api/webhooks/wompi y /api/webhooks/venndelo.
 app.use("/api/webhooks", webhooksRoutes);
 // Tareas periodicas: /api/cron/sync-providers (Bearer CRON_SECRET).
 app.use("/api/cron", cronRoutes);

@@ -1,7 +1,7 @@
 # Modelo de estados y contratos — Upbuy (dropshipping)
 
 Upbuy es la **fuente de verdad**. Ni el usuario ni el administrador ven los
-estados crudos de Dropi o Vendelo: esos se mapean a los estados canónicos de
+estados crudos de los proveedores: esos se mapean a los estados canónicos de
 este documento.
 
 ---
@@ -70,7 +70,6 @@ unpaid → pending_collection → collected → settled
 | Valor | Significado |
 |---|---|
 | `wompi` | Pago online con Wompi |
-| `vendelo` | Pago online con Vendelo |
 | `cod_dropi` | Pago contra entrega, courier Dropi |
 | `cod_vendelo` | Pago contra entrega, courier Vendelo |
 
@@ -78,7 +77,7 @@ Los dos últimos son **COD**: el dinero entra *después* de la entrega.
 
 ### `provider`
 
-`vendelo` | `dropi` — de qué proveedor logístico sale el pedido.
+`dropi` — de qué proveedor logístico sale el pedido.
 
 ### `statusSource`
 
@@ -103,7 +102,7 @@ Quién produjo el último cambio. Es lo que permite que el auto-sync (cron)
 | COD en camino | `shipped` | `pending_collection` | "En camino — pagas al recibir" | Por cobrar |
 | COD entregado y cobrado | `delivered` | `collected` | "Entregado — pagado al recibir" | Por liquidar con proveedor |
 | COD rechazado / devolución | `cancelled` | `unpaid` | "Devolución" | Pérdida (flete) |
-| Wompi/Vendelo online pagado | `paid` | `settled` | "Pagado ✓" | Listo para packing |
+| Wompi online pagado | `paid` | `settled` | "Pagado ✓" | Listo para packing |
 
 ---
 
@@ -163,12 +162,6 @@ peso en caja: la diferencia es la que se está financiendo con el flete.
   async updateOrderStatus(id, status) {},   // push del cambio manual
 }
 ```
-
-### Vendelo
-
-Tiene API. Las rutas reales van en constantes en `vendelo.client.js`: no se
-inventan. Sin `VENDELO_API_URL` / `VENDELO_TOKEN` el proveedor no está
-conectado y sus rutas responden `503`.
 
 ### Dropi
 

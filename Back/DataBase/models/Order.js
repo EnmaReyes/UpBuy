@@ -109,8 +109,8 @@ const Order = sequelize.define(
       validate: { isIn: [PAYMENT_STATE_VALUES] },
     },
 
-    // Que pasarela mueve el dinero: wompi | vendelo | cod_dropi |
-    // cod_vendelo. Los dos ultimos son pago contra entrega (COD).
+    // Que pasarela mueve el dinero: wompi | cod_dropi | cod_vendelo.
+    // Los dos ultimos son pago contra entrega (COD).
     paymentMethodCode: {
       type: DataTypes.STRING(30),
       allowNull: true,
@@ -334,7 +334,7 @@ const Order = sequelize.define(
     // MasterShop (integracion de pedidos, Fase 1).
     //
     // El vínculo con MasterShop NO usa `provider`: esa columna tiene un CHECK
-    // con los proveedores de pedidos historicos (vendelo/dropi). Estas
+    // con el proveedor de pedidos historico (dropi). Estas
     // columnas son exclusivas de la integracion de creacion de pedidos y
     // quedan NULL hasta que el pedido se envia.
     // ---------------------------------------------------------------------
@@ -365,6 +365,39 @@ const Order = sequelize.define(
       allowNull: true,
     },
     msSyncError: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    // ---------------------------------------------------------------------
+    // Venndelo (integracion de pedidos, Fase 6).
+    //
+    // Columnas propias, igual que MasterShop: `orders.provider` tiene un CHECK
+    // historico (dropi) y no debe reutilizarse.
+    // ---------------------------------------------------------------------
+    vdIdOrder: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+    },
+    vdExternalOrderId: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+    },
+    vdSyncedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    // Estado crudo que reporta Venndelo. No se expone al comprador.
+    vdStatus: {
+      type: DataTypes.STRING(80),
+      allowNull: true,
+    },
+    // pending | synced | needs_review | failed
+    vdSyncState: {
+      type: DataTypes.STRING(30),
+      allowNull: true,
+    },
+    vdSyncError: {
       type: DataTypes.TEXT,
       allowNull: true,
     },

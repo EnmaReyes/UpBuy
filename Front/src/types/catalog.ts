@@ -17,6 +17,16 @@ export type CategoryRef = {
   slug: string;
 };
 
+/** Variante vendible de un producto (solo se expone en el detalle). */
+export type PublicVariant = {
+  id: string;
+  size: string | null;
+  color: string | null;
+  stock: number;
+  available: boolean;
+  sku: string | null;
+};
+
 export type PublicProduct = {
   id: string;
   sku: string;
@@ -36,6 +46,9 @@ export type PublicProduct = {
   stock: number;
   available: boolean;
   sizes: string[];
+  colors?: string[];
+  /** Solo en el detalle: combinaciones reales con su stock y SKU. */
+  variants?: PublicVariant[];
   combo: boolean;
   featured: boolean;
   categories: CategoryRef[];
@@ -111,6 +124,8 @@ export type ProductCardData = {
   compareAtPrice: number | null;
   discountPercent: number;
   sizes: string[];
+  /** Colores disponibles (lista; el detalle trae además `variants`). */
+  colors?: string[];
   /** Unidades disponibles. `undefined` deja el boton fuera de la tarjeta. */
   stock?: number;
   combo?: boolean;

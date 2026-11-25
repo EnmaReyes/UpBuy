@@ -71,6 +71,7 @@ export function CheckoutClient({
           productId: item.productId,
           quantity: item.quantity,
           size: item.size,
+          color: item.color,
         })),
         shipping: {
           recipientName:
@@ -325,7 +326,7 @@ export function CheckoutClient({
           <ul className="mt-4 grid gap-3">
             {items.map((item) => (
               <li
-                key={`${item.productId}-${item.size ?? ""}`}
+                key={`${item.productId}-${item.size ?? ""}-${item.color ?? ""}`}
                 className="flex min-w-0 items-start justify-between gap-3 text-sm"
               >
                 <span className="min-w-0">
@@ -333,7 +334,10 @@ export function CheckoutClient({
                     {item.name}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {item.size ? `Talla ${item.size} · ` : ""}
+                    {[item.size ? `Talla ${item.size}` : null, item.color ? `Color ${item.color}` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    {item.size || item.color ? " · " : ""}
                     {item.quantity} × {formatPrice(item.price)}
                   </span>
                 </span>

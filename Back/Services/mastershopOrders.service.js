@@ -164,10 +164,15 @@ const resolveOrderItems = async (orderItems) => {
       continue;
     }
 
+    const hasVariant =
+      resolution.idVariant !== null && resolution.idVariant !== undefined;
+
     items.push({
       id_product: resolution.idProduct,
-      id_variant: resolution.idVariant,
-      hasVariants: true,
+      // Sin variaciones vendibles se omite `id_variant` y `hasVariants` es
+      // false; MasterShop acepta el pedido solo con `id_product`.
+      ...(hasVariant ? { id_variant: resolution.idVariant } : {}),
+      hasVariants: hasVariant,
       quantity: Number(item.quantity) || 1,
       sku: resolution.sku || item.providerSku || null,
       name: item.nameSnapshot || item.title || null,

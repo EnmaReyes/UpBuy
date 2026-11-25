@@ -83,9 +83,11 @@ export function CartView() {
                           {item.name}
                         </p>
                       )}
-                      {item.size ? (
+                      {item.size || item.color ? (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Talla {item.size}
+                          {[item.size ? `Talla ${item.size}` : null, item.color ? `Color ${item.color}` : null]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </p>
                       ) : null}
                     </div>

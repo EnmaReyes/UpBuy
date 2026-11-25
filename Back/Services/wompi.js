@@ -2,16 +2,22 @@ const crypto = require("crypto");
 const {
   Payment,
   Order,
+  OrderItem,
   MastershopOrderOutbox,
+  VenndeloOrderOutbox,
   sequelize,
 } = require("../DataBase/models/index.js");
 const {
   PAYMENT_STATUS,
   FULFILLMENT_STATUS,
   PAYMENT_STATE,
+  SUPPLIER_SLUG,
 } = require("../DataBase/models/enums.js");
 const { registerPayment } = require("./payments.js");
 const { getOrderForUser } = require("./orders.js");
+const {
+  resolveOrderProvider,
+} = require("./orders/providerRouting.service.js");
 const { beginWebhookEvent, finishWebhookEvent } = require("./webhookEvents.js");
 const HttpError = require("../Utils/HttpError.js");
 const { createLogger } = require("../Utils/logger.js");
@@ -596,32 +602,71 @@ const handleWebhook = async (event, headerChecksum) => {
 
   await finishWebhookEvent(record, { ok: true });
 
-  // Si el pago se aprobo y se aplico, encolar la creacion del pedido en
-  // MasterShop para procesarla en segundo plano (patron outbox). El webhook
-  // no crea el pedido de forma sincrona: responde 200 y deja la fila para
-  // que el cron (Fase 4/5) llame a createOrder.
+  // Si el pago se aprobo y se aplico, encolar el pedido en el proveedor que
+  // corresponde (patron outbox). El webhook NO crea el pedido de forma
+  // sincrona: responde 200 y deja la fila para que el cron la procese.
+  //
+  // Enrutamiento conservador: todos los items deben pertenecer al mismo
+  // proveedor integrado. Un pedido mixto o con items manuales no se envia
+  // automaticamente (nunca se crea un pedido parcial).
   if (
     result.applied &&
     result.status === PAYMENT_STATUS.APROBADO &&
     result.order
   ) {
-    const [outbox, created] = await MastershopOrderOutbox.findOrCreate({
-      where: { orderId: result.order.id },
-      defaults: { status: "pending", attempts: 0, nextAttemptAt: new Date() },
-    });
-    if (!created && outbox.status !== "done") {
-      await outbox.update({
-        status: "pending",
-        attempts: 0,
-        nextAttemptAt: new Date(),
-        lastError: null,
+    try {
+      const items = await OrderItem.findAll({
+        where: { orderId: result.order.id },
+      });
+      const routing = await resolveOrderProvider(items);
+
+      const enqueue = async (Model, provider) => {
+        const [outbox, created] = await Model.findOrCreate({
+          where: { orderId: result.order.id },
+          defaults: {
+            status: "pending",
+            attempts: 0,
+            nextAttemptAt: new Date(),
+          },
+        });
+        if (!created && outbox.status !== "done") {
+          await outbox.update({
+            status: "pending",
+            attempts: 0,
+            nextAttemptAt: new Date(),
+            lastError: null,
+          });
+        }
+        logWebhook("encolado_outbox", {
+          ...resumen,
+          orderId: result.order.id,
+          provider,
+          outbox: created ? "nueva" : "reactivada",
+        });
+      };
+
+      if (routing.ok && routing.provider === SUPPLIER_SLUG.MASTERSHOP) {
+        await enqueue(MastershopOrderOutbox, SUPPLIER_SLUG.MASTERSHOP);
+      } else if (routing.ok && routing.provider === SUPPLIER_SLUG.VENNDELO) {
+        await enqueue(VenndeloOrderOutbox, SUPPLIER_SLUG.VENNDELO);
+      } else {
+        logWebhook("sin_outbox", {
+          ...resumen,
+          orderId: result.order.id,
+          motivo: routing.reason,
+          providers: routing.providers || null,
+        });
+      }
+    } catch (error) {
+      // El pago ya quedo aplicado: un fallo al encolar NO debe hacer que el
+      // webhook responda error (Wompi reintentaria un evento ya procesado).
+      // La fila se puede recrear desde el panel o el outbox administrativo.
+      logWebhook("error_encolado", {
+        ...resumen,
+        orderId: result.order.id,
+        error: error.message,
       });
     }
-    logWebhook("encolado_outbox", {
-      ...resumen,
-      orderId: result.order.id,
-      outbox: created ? "nueva" : "reactivada",
-    });
   }
 
   if (result.applied) {

@@ -25,7 +25,7 @@ const WebhookEvent = sequelize.define(
       primaryKey: true,
     },
 
-    // 'wompi' | 'vendelo' | ...
+    // 'wompi' | 'venndelo' | ...
     provider: {
       type: DataTypes.STRING(30),
       allowNull: false,

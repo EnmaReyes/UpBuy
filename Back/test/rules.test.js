@@ -187,10 +187,7 @@ test("netProfit usa total cuando existe", () => {
 // Extra: mapa de proveedores
 // ---------------------------------------------------------------------------
 
-test("mapProviderToCanonical entiende Vendelo y Dropi", () => {
-  assert.deepEqual(mapProviderToCanonical("vendelo", "shipped"), {
-    fulfillmentStatus: "shipped",
-  });
+test("mapProviderToCanonical entiende Dropi", () => {
   assert.deepEqual(mapProviderToCanonical("dropi", "DELIVERED"), {
     fulfillmentStatus: "delivered",
   });

@@ -24,7 +24,7 @@ const webhook = async (req, res) => {
 // POST /api/payments/intent — crea el intento de pago del pedido y devuelve
 // la URL del checkout del proveedor elegido. Hoy solo Wompi esta integrado;
 // `provider` existe para que el front no tenga que cambiar cuando se sume
-// otro (Vendelo checkout, por ejemplo).
+// otro (otra pasarela de pago, por ejemplo).
 //
 // Body: { orderId, provider? }
 const intent = async (req, res) => {

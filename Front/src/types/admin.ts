@@ -109,7 +109,7 @@ export type AccountingBucket = { orders: number; amount: number };
 
 /** Desglose de ventas por proveedor (contabilidad, ADM-6). */
 export type AccountingByProvider = {
-  /** `vendelo` | `dropi` | `sin_proveedor`. */
+  /** `dropi` | `sin_proveedor`. */
   provider: string;
   orders: number;
   gross: number;
@@ -119,7 +119,7 @@ export type AccountingByProvider = {
 
 /** Desglose por método de pago (contabilidad, ADM-6). */
 export type AccountingByMethod = {
-  /** `wompi` | `vendelo` | `cod_dropi` | `cod_vendelo` | `sin_metodo`. */
+  /** `wompi` | `cod_dropi` | `cod_vendelo` | `sin_metodo`. */
   method: string;
   orders: number;
   amount: number;
@@ -357,13 +357,11 @@ export const ADMIN_CHANNEL_LABELS: Record<string, string> = {
 };
 
 export const ADMIN_PROVIDER_LABELS: Record<string, string> = {
-  vendelo: "Vendelo",
   dropi: "Dropi",
 };
 
 export const ADMIN_PAYMENT_METHOD_CODE_LABELS: Record<string, string> = {
   wompi: "Wompi",
-  vendelo: "Vendelo",
   cod_dropi: "Contra entrega (Dropi)",
   cod_vendelo: "Contra entrega (Vendelo)",
 };

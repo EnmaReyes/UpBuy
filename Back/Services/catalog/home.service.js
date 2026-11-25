@@ -21,6 +21,7 @@ const {
   HOME_SECTION_VALUES,
 } = require("../../DataBase/models/enums.js");
 const catalogQuery = require("./catalogQuery.service.js");
+const { colorsBySupplierProduct } = require("./variant.service.js");
 const {
   COMMUNITY_FAVORITES_WINDOW_DAYS,
   fetchUnitsSold,
@@ -156,8 +157,8 @@ const buildSection = async (section) => {
   return [...curatedProducts, ...fillers].slice(0, HOME_SECTION_SIZE);
 };
 
-const toPublic = (product, section) => ({
-  ...catalogQuery.publicShape(product),
+const toPublic = (product, section, colors = []) => ({
+  ...catalogQuery.publicShape(product, { colors }),
   badge: BADGE_BY_SECTION[section] ?? null,
   categoryLabel: product.categories?.[0]?.name ?? null,
 });
@@ -179,14 +180,24 @@ const getHomePayload = async () => {
       }),
     ]);
 
+  // Colores de todas las tarjetas de la Home en una sola consulta.
+  const allProducts = [...featured, ...newArrivals, ...communityFavorites];
+  const colorsByProduct = await colorsBySupplierProduct(
+    allProducts.map((product) => product.supplierProductId),
+  );
+  const colorsFor = (product) =>
+    colorsByProduct.get(product.supplierProductId) || [];
+
   return {
     sections: {
-      featured: featured.map((product) => toPublic(product, HOME_SECTION.FEATURED)),
+      featured: featured.map((product) =>
+        toPublic(product, HOME_SECTION.FEATURED, colorsFor(product)),
+      ),
       newArrivals: newArrivals.map((product) =>
-        toPublic(product, HOME_SECTION.NEW_ARRIVALS),
+        toPublic(product, HOME_SECTION.NEW_ARRIVALS, colorsFor(product)),
       ),
       communityFavorites: communityFavorites.map((product) =>
-        toPublic(product, HOME_SECTION.FAVORITES),
+        toPublic(product, HOME_SECTION.FAVORITES, colorsFor(product)),
       ),
     },
     categories: categories.map((category) => ({

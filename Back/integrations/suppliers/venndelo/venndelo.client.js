@@ -91,10 +91,16 @@ const adminRequest = async (
 const adminJson = async (supplier, method, path, options = {}) => {
   const response = await adminRequest(supplier, method, path, options);
   if (!response.ok) {
-    throw new HttpError(
+    const error = new HttpError(
       mapStatus(response.status),
       `Venndelo respondió HTTP ${response.status} en ${method} ${path}`,
     );
+    // Se conserva el status real del proveedor para que los orquestadores
+    // distingan reintentable (5xx/429) de rechazo de esquema (400/422) o de
+    // configuracion (401/403). No se expone al cliente final.
+    error.providerStatus = response.status;
+    error.providerBody = response.data;
+    throw error;
   }
   // Venndelo sirve su documentación HTML en /v1/admin/*. Un 200 con HTML
   // significa que la ruta no existe, no que la operación funcionó.

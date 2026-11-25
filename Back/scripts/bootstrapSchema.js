@@ -38,6 +38,9 @@ const {
 const {
   ensureMastershopSchema,
 } = require("../DataBase/ensureMastershopSchema.js");
+const {
+  ensureVenndeloOrderSchema,
+} = require("../DataBase/ensureVenndeloOrderSchema.js");
 
 const run = async () => {
   await sequelize.authenticate();
@@ -47,13 +50,15 @@ const run = async () => {
   const catalog = await ensureCatalogSchema();
   const dropshipping = await ensureDropshippingSchema();
   const mastershop = await ensureMastershopSchema();
+  const venndelo = await ensureVenndeloOrderSchema();
 
   const aplicado =
     base.migrated ||
     admin.migrated ||
     catalog.migrated ||
     dropshipping.migrated ||
-    mastershop.migrated;
+    mastershop.migrated ||
+    venndelo.migrated;
 
   console.log(
     aplicado

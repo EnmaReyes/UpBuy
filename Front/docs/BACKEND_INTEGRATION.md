@@ -23,7 +23,7 @@ Autenticación: cookie `httpOnly` `access_token` (JWT, 12h). El frontend nunca l
 | GET | `/categories` | **Categorías activas** | `[{ id, name, slug, ... }]` |
 | GET | `/orders/:id/tracking?phone=&email=` | Tracking público | `phone` o `email` |
 | POST | `/webhooks/wompi` | Webhook Wompi (firma) | (backend) |
-| POST | `/webhooks/vendelo` | Webhook Vendelo (HMAC) | (backend) |
+| POST | `/webhooks/venndelo` | Webhook Venndelo (HMAC) | (backend) |
 | POST | `/payments/webhook` | Compatibilidad Wompi | (backend) |
 
 ### 1.1 Catálogo: contrato vigente (Venndelo Pro)
@@ -158,7 +158,7 @@ El panel usa tres lecturas y reutiliza las rutas Venndelo ya existentes:
 
 `overview` devuelve `catalogProviders[]` (Venndelo Pro y MasterShop:
 `configured`, productos importados/publicados, última corrida),
-`orderProviders[]` (Vendelo y Dropi: `configured`, `mode` `api`/`manual`, total y
+`orderProviders[]` (Dropi: `configured`, `mode` `api`/`manual`, total y
 desincronizados, último sync), `outOfSync` y `health.services[]`. Exige
 `providers.manage`. El front **no** interpreta estados crudos: solo muestra
 `label`, `mode`, contadores y la salud ya calculada.
@@ -247,7 +247,7 @@ la página. El backend revalida sesión y `orders.read` en cada petición.
   gráfico.
 - `accounting` cubre un rango `from`/`to` (días de Bogotá) y filtra por
   `provider`. Sin filtros, el panel usa el mes en curso. `byProvider` alimenta
-  el Spending Ring (Vendelo, Dropi, Sin proveedor) y `byPaymentMethodCode` la
+  el Spending Ring (Dropi, Sin proveedor) y `byPaymentMethodCode` la
   tabla de métodos de pago; `cod` alimenta el desglose COD por estado. Bruto y
   utilidad llevan etiquetas propias: nunca se mezclan con las ventas
   liquidadas.
@@ -377,6 +377,8 @@ Tabla `products`. La respuesta pública **no** incluye `cost` ni `markup`.
   stock: number;                  // unidades reales
   available: boolean;             // active && stock > 0
   sizes: string[];                // tallas; [] si no aplica
+  colors?: string[];              // colores; [] si no aplica
+  variants?: VariantPublic[];     // solo en GET /api/products/:slug
   combo: boolean;
   featured: boolean;              // destacadas
   categories: { id, name, slug }[];
@@ -387,6 +389,11 @@ Tabla `products`. La respuesta pública **no** incluye `cost` ni `markup`.
 ```
 
 Respuesta de listado: `{ products: Product[], total, limit, offset }`.
+
+`VariantPublic` = `{ id: string; size: string | null; color: string | null;
+stock: number; available: boolean; sku: string | null }`. Solo llega en el
+detalle; el listado trae `colors` derivados de las variaciones para no hacer
+N+1.
 
 Reglas:
 
@@ -488,7 +495,7 @@ Crear: `POST /api/orders` (sesión + perfil completo).
 
 ```ts
 {
-  items: { productId: string; quantity: number; size?: string | null }[];
+  items: { productId: string; quantity: number; size?: string | null; color?: string | null }[];
   shipping?: { recipientName?, email?, phone?, address?, city?, department?, postalCode?, reference? };
   notes?: string;
 }
@@ -500,6 +507,12 @@ Reglas del backend:
 - `size` solo es **obligatorio** si el producto tiene tallas (`sizes.length > 0`)
   y no es `combo`. Un producto sin tallas (accesorio, cuidado personal) se
   pide sin talla.
+- `color` es obligatorio si el producto tiene colores (`colors.length > 0`).
+  El backend resuelve la variante exacta `{ size, color }`; si no existe → 400,
+  si es ambigua → 409 y si no tiene stock → 409. En el pedido se persiste
+  `shirtColor`, `variantId` y `providerSku` de la variante.
+- El carrito separa líneas por `productId + size + color`: dos colores del
+  mismo producto nunca se fusionan.
 - Precio, descuento, stock y total se resuelven siempre en el servidor.
 - `shipping` es opcional: si falta, se completa con el perfil y la dirección
   principal. El pedido congela `addressSnapshot`.
@@ -617,7 +630,7 @@ elegido (respaldo ante un fallback inesperado).
 | DTF por categoría | ❌ Ya no aplica (DTF retirado) | Ya no aplica como fuente separada |
 | Tarifa de precios / variantes | ❌ Eliminado (antes `/prices`) | **Bloqueado** |
 | Envío (rates/quote) | ❌ Eliminado (antes `/shipping/*`) | **Bloqueado** (se resolverá en checkout) |
-| Sync de proveedores (Vendelo/Dropi) | ✅ `/cron/sync-providers` (Bearer `CRON_SECRET`) | N/A (backend) |
+| Sync de proveedores (Dropi) | ✅ `/cron/sync-providers` (Bearer `CRON_SECRET`) | N/A (backend) |
 | Proveedores (lista/estado) | ✅ `/admin/suppliers/overview` + `/admin/orders/providers` | ✅ `/admin/proveedores` (tarjetas, salud, contador, sync) |
 | Registro/login/logout | ✅ `/auth/*` | ✅ `/login`, `/registro` (incluye Google y Facebook, mostrar/ocultar contraseña y MFA de administradores) |
 | Perfil y direcciones | ✅ `/users/me*` | ✅ `/cuenta/perfil`, `/cuenta/direcciones` |
@@ -625,7 +638,7 @@ elegido (respaldo ante un fallback inesperado).
 | Cancelar pedido | ✅ `/orders/:id/cancel` + `canCancel` | ✅ `/pedido/[id]` (FASE 7) |
 | Tracking público | ✅ `/orders/:id/tracking` | ✅ `/seguimiento/[id]` (FASE 7) |
 | Pago Wompi | ✅ `/orders/:id/payment`, `/payment/verify`, `/payments/intent` | ✅ `/pedido/[id]` + `/mis-pedidos/[id]` (requiere `WOMPI_*`) |
-| Webhooks Wompi/Vendelo | ✅ firmados | N/A (backend) |
+| Webhooks Wompi/Venndelo | ✅ firmados | N/A (backend) |
 | Notificaciones | ✅ `/notifications/*` | ✅ Campana en navbar + `/cuenta/notificaciones` (FASE 8) |
 | Difusión por email (campañas) | ✅ `/admin/campaigns/*` + `/public/campaigns/unsubscribe` (ADM-7) | ✅ `/admin/difusion` (historial), `/admin/difusion/email` (composición + envío con Hold Button y step-up), `/baja` (pública). Requiere `GMAIL_*` + `GMAIL_TOKEN_ENCRYPTION_KEY`; sin ellas la UI lo informa y no envía |
 | Difusión por WhatsApp | ✅ `/admin/whatsapp/*` + `/admin/campaigns/*` (canal whatsapp, ADM-8) | ✅ `/admin/difusion/whatsapp`: con Cloud API, prueba + lotes de 20; sin configuración, modo manual (wa.me, copiar, CSV). Requiere `WHATSAPP_*` + plantilla Meta aprobada |

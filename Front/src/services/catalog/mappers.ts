@@ -27,6 +27,7 @@ export function toCardData(
     compareAtPrice: compareAt,
     discountPercent: product.discountPercent,
     sizes: product.sizes,
+    colors: product.colors ?? [],
     stock: product.stock,
     combo: product.combo,
     categoryLabel: product.categoryLabel ?? product.categories[0]?.name ?? null,

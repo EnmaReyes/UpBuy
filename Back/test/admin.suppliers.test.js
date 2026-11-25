@@ -15,7 +15,7 @@ const { buildOrdersCsv } = require("../Services/adminOrders.js");
 
 test("la salud convierte fallos parciales en un dia degradado", () => {
   const service = buildHealthService({
-    name: "Vendelo",
+    name: "Dropi",
     days: 3,
     endDate: "2026-11-14",
     events: [
@@ -50,7 +50,7 @@ test("si fallan todos los intentos del dia, la salud lo marca como caida", () =>
 
 test("un dia sin eventos no genera incidente", () => {
   const service = buildHealthService({
-    name: "Vendelo",
+    name: "Dropi",
     days: 2,
     endDate: "2026-11-14",
     events: [],

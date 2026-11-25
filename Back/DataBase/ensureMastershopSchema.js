@@ -11,8 +11,8 @@
 //
 //   - orders.msIdOrder / msExternalOrderId / msSyncedAt / msStatus /
 //     msSyncState / msSyncError: el resultado del envio a MasterShop, junto al
-//     pedido. No se usa la columna `provider` porque su CHECK solo admite los
-//     proveedores de pedidos historicos (vendelo/dropi).
+//     pedido. No se usa la columna `provider` porque su CHECK solo admite el
+//     proveedor de pedidos historico (dropi).
 //   - Indice unico parcial en msIdOrder: un pedido de MasterShop no puede
 //     quedar asociado a dos pedidos locales.
 //   - mastershop_attr_alias: excepciones del mapeo de atributos.

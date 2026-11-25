@@ -15,60 +15,21 @@
 // viven en la tabla `mastershop_attr_alias` y se aplican en la capa de
 // servicio. Este archivo es PURO (sin red, sin base de datos) y testeable.
 //
-// Decision de negocio (Fase 1): el checkout de UpBuy solo captura la TALLA.
-// Un producto cuyas variantes se distinguen tambien por color no se puede
-// resolver de forma unica, asi que se marca `ambiguous` y va a revision
-// manual en lugar de crear un pedido con la variante equivocada.
+// Decision de negocio: el checkout captura TALLA y COLOR cuando el producto
+// los ofrece. La variante solo se resuelve si `{ size, color }` identifica una
+// unica fila; si hay ambiguedad, el pedido va a revision manual en lugar de
+// elegir "la primera" variante.
 
-// Nombre canonico de cada familia de atributos.
-const KINDS = {
-  SIZE: "size",
-  COLOR: "color",
-};
-
-// Grafias observadas y sinonimos razonables. Todo se compara ya normalizado
-// (minusculas, sin tildes).
-const NAME_ALIASES = {
-  talla: KINDS.SIZE,
-  tallas: KINDS.SIZE,
-  talle: KINDS.SIZE,
-  tamanos: KINDS.SIZE,
-  tamano: KINDS.SIZE,
-  size: KINDS.SIZE,
-  sizes: KINDS.SIZE,
-  color: KINDS.COLOR,
-  colores: KINDS.COLOR,
-  colour: KINDS.COLOR,
-  colors: KINDS.COLOR,
-};
-
-// Texto de comparacion: minusculas, sin tildes, espacios colapsados.
-const fold = (value) =>
-  String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-
-// Texto para mostrar/guardar: recorta y colapsa espacios, conserva mayusculas
-// originales (MasterShop puede usar "Default Variant", "BRONCE", ...).
-const cleanValue = (value, max = 120) => {
-  const text = String(value ?? "").replace(/\s+/g, " ").trim();
-  return text ? text.slice(0, max) : null;
-};
-
-// Clave de comparacion de un valor de atributo ("azul" == "Azul" == "AZUL").
-const normalizeAttributeValue = (value) => fold(value).toUpperCase() || null;
-
-// Clave canonica de un nombre de atributo.
-//   "TALLAS" -> "size"; "Color" -> "color"; "Material" -> "material".
-const normalizeAttributeName = (value) => {
-  const folded = fold(value);
-  if (!folded) return null;
-  if (NAME_ALIASES[folded]) return NAME_ALIASES[folded];
-  return folded.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || null;
-};
+// Las utilidades viven en Utils/attributes.js para que el catalogo y los
+// pedidos las compartan sin depender de esta integracion.
+const {
+  KINDS,
+  NAME_ALIASES,
+  fold,
+  cleanValue,
+  normalizeAttributeValue,
+  normalizeAttributeName,
+} = require("../../../Utils/attributes.js");
 
 // Una opcion por si sola no dice nada si no trae nombre y valor.
 const isUsableOption = (option) =>

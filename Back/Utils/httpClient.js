@@ -1,7 +1,7 @@
 // Cliente HTTP con reintentos y backoff exponencial.
 //
 // El repo hacia `fetch` a mano (Services/wompi.js). Para las llamadas a
-// proveedores (Vendelo, Dropi) hace falta algo comun: timeout siempre,
+// proveedores (Dropi) hace falta algo comun: timeout siempre,
 // reintentos solo cuando tiene sentido (un 429 o un 503 del proveedor son
 // transitorios; un 400 es un bug nuestro y reintentarlo solo gasta tiempo),
 // y un backoff que no golpee al proveedor cada 100 ms.

@@ -14,7 +14,7 @@
 //   settled             el proveedor nos deposito (menos sus fees)
 //
 // Todo sale de las columnas del pedido, no del panel del proveedor: si
-// Vendelo/Dropi cambian sus reportes, estos numeros siguen cuadrando.
+// los proveedores cambian sus reportes, estos numeros siguen cuadrando.
 
 const { QueryTypes } = require("sequelize");
 const { sequelize } = require("../DataBase/db.js");

@@ -40,6 +40,12 @@ router.post("/wallet/topup", accountController.topup);
 router.post("/orders/quotation", accountController.quoteOrder);
 router.get("/orders", accountController.listOrders);
 router.post("/orders", accountController.createOrder);
+// Outbox del flujo automatico (pago Wompi -> pedido en Venndelo).
+router.get("/orders/outbox", accountController.listOutbox);
+router.post(
+  "/orders/outbox/:orderId/retry",
+  accountController.retryOutbox,
+);
 router.get("/orders/:id", accountController.getOrder);
 router.post("/orders/:id/cancel", accountController.cancelOrder);
 router.post("/orders/:id/confirmation", accountController.modifyConfirmation);

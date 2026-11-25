@@ -225,6 +225,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     price: product.price,
                     image: getCoverImage(product),
                     sizes: product.sizes,
+                    colors: product.colors ?? [],
+                    variants: product.variants ?? [],
                     available: product.available,
                     stock: product.stock,
                     combo: product.combo,
@@ -267,6 +269,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         <SpecRow
                           label="Tallas"
                           value={product.sizes.join(" · ")}
+                        />
+                      ) : null}
+                      {product.colors && product.colors.length > 0 ? (
+                        <SpecRow
+                          label="Colores"
+                          value={product.colors.join(" · ")}
                         />
                       ) : null}
                       <SpecRow

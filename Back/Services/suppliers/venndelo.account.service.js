@@ -13,6 +13,7 @@ const {
 } = require("../../config.js");
 const { getSupplierAdapter, SUPPLIER_SLUG } = require("../../integrations/suppliers/index.js");
 const account = require("../../integrations/suppliers/venndelo/venndelo.account.js");
+const regions = require("../../integrations/suppliers/venndelo/venndelo.regions.js");
 const runs = require("../catalog/catalogRuns.service.js");
 const HttpError = require("../../Utils/HttpError.js");
 const { createLogger } = require("../../Utils/logger.js");
@@ -63,6 +64,11 @@ const getWalletBalance = async () => {
   const supplier = await resolveSupplier();
   return account.getWalletBalance(supplier);
 };
+
+// Resuelve la ciudad/departamento capturados por UpBuy al registro oficial de
+// Venndelo (codigo DANE + nombre canonico). Devuelve null si no coincide.
+const resolveVenndeloCity = async (city, department) =>
+  regions.resolveCity({ city, department });
 
 // Metodos de pago que acepta Venndelo al crear un pedido (OpenAPI).
 // OJO: no son los metodos del comprador en Upbuy (wompi/cod_vendelo); esto
@@ -249,6 +255,7 @@ module.exports = {
   VENNDELO_PAYMENT_METHODS,
   createWalletTopup,
   getWalletBalance,
+  resolveVenndeloCity,
   createVenndeloOrder,
   listVenndeloOrders,
   getVenndeloOrder,

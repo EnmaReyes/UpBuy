@@ -164,7 +164,7 @@ reintenta desde `Services/cron.js:23`, expuesto en `/api/cron/*`
 `global.fetch` en `Back/test/mastershop.client.test.js` (patrón
 `jsonResponse()` + `captureFetch()`), reutilizable para las Fases 2 y 6.
 No existe `wompi.webhook.test.js`: la firma de Wompi no tiene tests propios
-(solo Vendelo/Venndelo en `test/webhook.signatures.test.js`).
+(solo Venndelo en `test/webhook.signatures.test.js`).
 
 ---
 
@@ -325,7 +325,7 @@ normalización + tabla solo para excepciones.
 | **Un POST no se reintenta** | `mastershop.client.js:112` | Correcto por defecto; pero el encargo pide backoff para 5xx y tratar "Código 409 - La orden ya existe" como éxito. Requiere control explícito, no el default. |
 | **`externalOrderId` no admite `_`** | sonda en vivo | Validar antes de llamar. La referencia UPBUY actual cumple. |
 | **Sin tests de firma Wompi** | `test/` | F3 debe añadirlos. |
-| **`orders.provider` tiene CHECK con solo `vendelo`/`dropi`** | `enums.js` `PROVIDER_VALUES` | **No** usar `orders.provider='mastershop'`; el vínculo va por columnas `ms_*`. |
+| **`orders.provider` tiene CHECK con solo `dropi`** | `enums.js` `PROVIDER_VALUES` | **No** usar `orders.provider='mastershop'`; el vínculo va por columnas `ms_*`. |
 | Secretos | `MASTERSHOP_API_KEY` / `WOMPI_PRIVATE_KEY` solo en `.env.local`, `.env.example` vacío | Sin riesgo actual. Mantener. |
 
 ### Propuesta de arquitectura (1 página)

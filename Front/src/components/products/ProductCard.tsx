@@ -38,19 +38,25 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
   const href = product.slug ? `/producto/${product.slug}` : "/productos";
 
   const sizes = product.combo ? [] : product.sizes;
+  const colors = product.combo ? [] : (product.colors ?? []);
   const requiresSize = sizes.length > 0;
+  const requiresColor = colors.length > 0;
   const size = requiresSize ? (sizes[0] ?? null) : null;
+  // Desde la tarjeta solo se puede añadir si el color es unico. Con varios
+  // colores hay que elegir en el detalle (nunca se adivina).
+  const color = colors.length === 1 ? colors[0] : null;
 
   const stock = product.stock ?? 0;
   const canBuy =
     Boolean(product.id) &&
     !soldOut &&
     typeof product.stock === "number" &&
-    stock > 0;
+    stock > 0 &&
+    colors.length <= 1;
   const max = maxQuantityForStock(stock);
 
   const lineKey = product.id
-    ? cartKey({ productId: product.id, size })
+    ? cartKey({ productId: product.id, size, color })
     : null;
   const quantityInCart = lineKey
     ? (items.find((item) => cartKey(item) === lineKey)?.quantity ?? 0)
@@ -80,7 +86,9 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
       price: product.price,
       image: product.image ?? null,
       size,
+      color,
       requiresSize,
+      requiresColor,
       stock,
       quantity: next,
     });

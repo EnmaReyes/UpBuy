@@ -26,8 +26,10 @@ export type CartItem = {
   price: number;
   image: string | null;
   size: string | null;
+  color: string | null;
   quantity: number;
   requiresSize: boolean;
+  requiresColor: boolean;
   stock: number;
 };
 
@@ -56,8 +58,14 @@ export const maxQuantityForStock = (stock: number) =>
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-export function cartKey(item: { productId: string; size: string | null }) {
-  return `${item.productId}::${item.size ?? ""}`;
+export function cartKey(item: {
+  productId: string;
+  size: string | null;
+  color: string | null;
+}) {
+  // Color incluido: dos colores del mismo producto y talla son lineas
+  // distintas y no deben fusionarse.
+  return `${item.productId}::${item.size ?? ""}::${item.color ?? ""}`;
 }
 
 const clampQuantity = (quantity: number, stock: number) => {
@@ -86,8 +94,10 @@ const sanitize = (value: unknown): CartItem[] => {
         price: Number(item.price) || 0,
         image: typeof item.image === "string" ? item.image : null,
         size: typeof item.size === "string" ? item.size : null,
+        color: typeof item.color === "string" ? item.color : null,
         quantity: clampQuantity(Number(item.quantity) || 1, Number(item.stock) || 0),
         requiresSize: Boolean(item.requiresSize),
+        requiresColor: Boolean(item.requiresColor),
         stock: Number(item.stock) || 0,
       },
     ];

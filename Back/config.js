@@ -554,43 +554,18 @@ module.exports = {
   })(),
 
   // ---------------------------------------------------------------------
-  // Proveedores de dropshipping (Vendelo / Dropi)
+  // Proveedores de pedidos (Dropi)
   //
   // Upbuy es la fuente de verdad de los estados. Ningun usuario ni admin ve
   // los estados crudos de estos proveedores: se mapean a los canonicos
   // (ver Services/statusMachine.js -> mapProviderToCanonical).
   //
-  // VENDELO_API_URL y VENDELO_TOKEN vacios = el proveedor no esta conectado:
-  // las rutas que lo necesitan responden 503 y el flujo manual sigue igual.
-  //
-  // VENDELO_OAUTH_URL + VENDELO_CLIENT_ID + VENDELO_CLIENT_SECRET +
-  // VENDELO_REFRESH_TOKEN se usan solo para obtener/renovar el token
-  // (ver test-venndelo.js). Una vez tienes el token, guardalo en
-  // VENDELO_TOKEN y el adaptador lo usa como Bearer.
   // ---------------------------------------------------------------------
-  VENDELO_API_URL: (process.env.VENDELO_API_URL || "").trim(),
-  // Token de acceso (Bearer) para llamar a la API de Vendelo.
-  VENDELO_TOKEN: (process.env.VENDELO_TOKEN || "").trim(),
-  // Llave de pago de Vendelo (para el checkout hosted del proveedor).
-  VENDELO_PAYMENT_KEY: (process.env.VENDELO_PAYMENT_KEY || "").trim(),
-
-  // Secreto para verificar la firma del webhook de pagos de Vendelo.
-  // Vacio = el endpoint /api/webhooks/vendelo responde 503.
-  VENDELO_WEBHOOK_SECRET: (process.env.VENDELO_WEBHOOK_SECRET || "").trim(),
-
-  // Flujo OAuth de Vendelo (solo para obtener/renovar el token de acceso).
-  // Estos valores no se usan directamente en el adaptador de API.
-  VENDELO_OAUTH_URL: (process.env.VENDELO_OAUTH_URL || "").trim(),
-  VENDELO_CLIENT_ID: (process.env.VENDELO_CLIENT_ID || "").trim(),
-  VENDELO_CLIENT_SECRET: (process.env.VENDELO_CLIENT_SECRET || "").trim(),
-  VENDELO_REFRESH_TOKEN: (process.env.VENDELO_REFRESH_TOKEN || "").trim(),
-
   // ---------------------------------------------------------------------
-  // Venndelo Pro API (catalogo de proveedores).
+  // Venndelo Pro API (catalogo de proveedores y pedidos administrativos).
   //
-  // OJO: NO confundir con las variables VENDELO_* de arriba, que son del
-  // adaptador de PEDIDOS (especulativo y hoy sin configurar). Estas VENNDELO_*
-  // (con doble N) son de la API administrativa real:
+  // OJO: la API real del proveedor usa DOBLE N (VENNDELO_*); se escribe
+  // siempre con doble N para no confundirla con otras integraciones.
   //
   //   base:      https://api.venndelo.com/v1/admin
   //   auth:      POST /oauth/token  (refresh_token, form-urlencoded)
@@ -688,13 +663,6 @@ module.exports = {
   // configuran estas dos variables y el mismo adaptador la usa.
   DROPI_API_URL: (process.env.DROPI_API_URL || "").trim(),
   DROPI_TOKEN: (process.env.DROPI_TOKEN || "").trim(),
-  // Proveedor por defecto cuando el pedido no dice de donde viene.
-  DROPI_DEFAULT_PROVIDER: (() => {
-    const raw = String(process.env.DROPI_DEFAULT_PROVIDER || "")
-      .trim()
-      .toLowerCase();
-    return ["vendelo", "dropi"].includes(raw) ? raw : "vendelo";
-  })(),
 
   // Markup por defecto (porcentaje) cuando el producto no trae uno propio.
   DEFAULT_MARKUP_PERCENT: toNumber(process.env.DEFAULT_MARKUP_PERCENT, 30),

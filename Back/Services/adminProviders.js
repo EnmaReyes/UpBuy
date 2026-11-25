@@ -1,8 +1,7 @@
 // Salud y contadores de proveedores para el panel (ADM-4).
 //
 // Este servicio solo LEE. Reutiliza:
-//   - `Services/providers/index.js` para los proveedores de pedidos
-//     (Vendelo con una N y Dropi).
+//   - `Services/providers/index.js` para los proveedores de pedidos (Dropi).
 //   - `integrations/suppliers` + `suppliers` para el catalogo (Venndelo Pro,
 //     con doble N).
 //
@@ -25,7 +24,6 @@ const BOGOTA_OFFSET_MS = 5 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const PROVIDER_LABELS = {
-  vendelo: "Vendelo",
   dropi: "Dropi",
   venndelo: "Venndelo Pro",
 };
@@ -214,7 +212,7 @@ const serializeRun = (run) => {
   };
 };
 
-// Proveedores de pedidos (Vendelo, Dropi): configuracion + contadores.
+// Proveedores de pedidos (Dropi): configuracion + contadores.
 const getOrderProviders = async () => {
   const providers = listProviders();
 

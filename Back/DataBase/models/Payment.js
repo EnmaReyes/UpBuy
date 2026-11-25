@@ -107,7 +107,7 @@ const Payment = sequelize.define(
     // ---------------------------------------------------------------------
     // Ciclo del dinero (dropshipping).
     //
-    // Para un pago online (Wompi/Vendelo), collectedAt y settledAt se
+    // Para un pago online (Wompi), collectedAt y settledAt se
     // llenan casi al mismo tiempo. Para un COD son moments distintos:
     //
     //   collectedAt -> el courier cobro al cliente (al entregar)

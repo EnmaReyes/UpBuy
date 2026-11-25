@@ -162,10 +162,23 @@ const resolveOrderItem = async ({ orderItem, product = null } = {}) => {
     attributes: applyValueAliases(variation.attributes, aliases.value),
   }));
 
+  // Producto sin variaciones vendibles: se crea con `id_product` y sin
+  // `id_variant` (MasterShop lo admite cuando no hay variantes). No es un
+  // error de mapeo: es un accesorio o un producto de variante unica.
+  if (variations.length === 0) {
+    return {
+      ok: true,
+      reason: "sin_variaciones",
+      idProduct: base.idProduct,
+      idVariant: null,
+      sku: null,
+      attributes: {},
+      variation: null,
+    };
+  }
+
   const wanted = {
     size: orderItem.size || null,
-    // El checkout web todavia no captura color: si el producto se distingue
-    // por color, la resolucion sera `ambiguo` a proposito.
     color: orderItem.shirtColor || null,
   };
 
@@ -219,8 +232,9 @@ const PAID_STATES = ["settled", "collected"];
 // Devuelve grupos independientes para que el reporte sea accionable:
 //   - publishedWithoutVariantLink: producto publicado sin nexo al proveedor.
 //   - supplierProductsWithoutVariations: no se podra resolver ningun item.
-//   - ambiguousProducts: se distinguen por color (revision manual hasta que el
-//     checkout capture color).
+//   - ambiguousProducts: se distinguen por color; los pedidos nuevos ya
+//     envian `{ size, color }`, pero el reporte sigue listando estos productos
+//     para detectar variantes duplicadas o sin atributos canonicos.
 //   - duplicateSkus: el mismo SKU en varias variantes.
 //   - outOfStockVariations: variantes sin unidades.
 //   - unknownAttributes: nombres de atributo fuera de {size, color}.

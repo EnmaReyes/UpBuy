@@ -13,7 +13,7 @@
 //   2. API (opcional): si algun dia Dropi habilita API y se configuran las
 //      variables, el mismo adaptador la usa con las rutas de abajo.
 //
-// Rutas: igual que Vendelo, ninguna esta confirmada. Se leen de
+// Rutas: ninguna esta confirmada. Se leen de
 // DROPI_PATH_* y los valores por defecto son una suposicion REST. Antes de
 // activar el modo API hay que confirmarlas con la documentacion de Dropi.
 //

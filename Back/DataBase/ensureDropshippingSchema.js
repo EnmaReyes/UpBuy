@@ -464,6 +464,20 @@ const applySchema = async (transaction, state) => {
     { transaction },
   );
 
+  // El proveedor "vendelo" (una N) y su metodo de pago online se eliminaron
+  // del proyecto. Antes de reescribir los CHECK se normalizan las filas
+  // historicas para que la nueva restriccion se pueda aplicar sin violaciones.
+  // Es idempotente: tras la primera corrida no queda ninguna fila que cambiar.
+  await sequelize.query(
+    `UPDATE orders SET provider = NULL WHERE provider = 'vendelo'`,
+    { transaction },
+  );
+  await sequelize.query(
+    `UPDATE orders SET "paymentMethodCode" = NULL
+      WHERE "paymentMethodCode" = 'vendelo'`,
+    { transaction },
+  );
+
   // CHECKs de los enums canonicos.
   await addCheckConstraint(
     transaction,
@@ -492,7 +506,7 @@ const applySchema = async (transaction, state) => {
     transaction,
     "orders",
     '"paymentMethodCode"',
-    ["wompi", "vendelo", "cod_dropi", "cod_vendelo"],
+    ["wompi", "cod_dropi", "cod_vendelo"],
     "orders_payment_method_code_check",
   );
 
@@ -500,7 +514,7 @@ const applySchema = async (transaction, state) => {
     transaction,
     "orders",
     "provider",
-    ["vendelo", "dropi"],
+    ["dropi"],
     "orders_provider_check",
   );
 

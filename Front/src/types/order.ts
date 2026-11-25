@@ -10,6 +10,7 @@ export type OrderItem = {
   title: string;
   imageUrl: string | null;
   size: string | null;
+  shirtColor?: string | null;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
@@ -99,6 +100,7 @@ export type CreateOrderItem = {
   productId: string;
   quantity: number;
   size?: string | null;
+  color?: string | null;
 };
 
 export type PaymentMethodCode =
@@ -146,5 +148,4 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   wompi: "Pago en línea (Wompi)",
   cod_vendelo: "Contra entrega",
   cod_dropi: "Contra entrega",
-  vendelo: "Pago en línea (Vendelo)",
 };

@@ -42,6 +42,8 @@ const {
 const {
   MastershopOrderAttempt,
 } = require("./MastershopOrderAttempt.js");
+const { VenndeloOrderOutbox } = require("./VenndeloOrderOutbox.js");
+const { VenndeloOrderAttempt } = require("./VenndeloOrderAttempt.js");
 const enums = require("./enums.js");
 
 // Define las asociaciones (requiere los modelos de arriba ya definidos).
@@ -81,5 +83,8 @@ module.exports = {
   MastershopAttrAlias,
   MastershopOrderOutbox,
   MastershopOrderAttempt,
+  // Integracion Venndelo (pago aprobado -> pedido)
+  VenndeloOrderOutbox,
+  VenndeloOrderAttempt,
   ...enums,
 };

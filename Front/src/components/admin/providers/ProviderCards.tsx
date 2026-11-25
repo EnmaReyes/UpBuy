@@ -278,12 +278,13 @@ export function ProvidersNamingNote() {
   return (
     <aside className="rounded-xl border border-coffee/25 bg-coffee/5 p-4 text-sm leading-relaxed text-coffee-deep">
       <p className="font-semibold text-carbon">
-        VENNDELO (doble N) no es VENDELO (una N)
+        Integraciones de proveedores de UpBuy
       </p>
       <ul className="mt-2 list-disc space-y-1 pl-5">
         <li>
           <strong>Venndelo Pro</strong> (<code>VENNDELO_*</code>): proveedor de
-          catálogo. Importa productos, stock y precios.
+          catálogo y de pedidos administrativos. Importa productos, stock y
+          precios; también expone wallet y pedidos.
         </li>
         <li>
           <strong>MasterShop</strong> (<code>MASTERSHOP_API_KEY</code>): proveedor
@@ -291,11 +292,8 @@ export function ProvidersNamingNote() {
           pedidos, billetera ni webhooks.
         </li>
         <li>
-          <strong>Vendelo</strong> (<code>VENDELO_*</code>): proveedor de
-          pedidos. Recibe y actualiza el cumplimiento.
-        </li>
-        <li>
-          <strong>Dropi</strong>: proveedor de pedidos con modo manual y API.
+          <strong>Dropi</strong> (<code>DROPI_*</code>): proveedor de pedidos con
+          modo manual y API.
         </li>
       </ul>
       <p className="mt-2">

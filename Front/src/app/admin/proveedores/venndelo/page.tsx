@@ -87,7 +87,7 @@ export default async function VenndeloPage({
       <CatalogSupplierHeader
         slug={SLUG}
         name="Venndelo Pro"
-        description="Catálogo, pedidos y wallet del proveedor con doble N (VENNDELO_*). No es Vendelo (pedidos)."
+        description="Catálogo, pedidos y wallet del proveedor con doble N (VENNDELO_*)."
         status={status}
         envHint="VENNDELO_CLIENT_ID, VENNDELO_CLIENT_SECRET y VENNDELO_REFRESH_TOKEN"
       />

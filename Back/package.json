@@ -25,6 +25,7 @@
     "db:grant-admin": "node scripts/grantAdmin.js",
     "security:prune": "node scripts/pruneSecurityLogs.js",
     "venndelo:check": "node scripts/check-venndelo.js",
+    "venndelo:cities": "node scripts/refreshVenndeloCities.js",
     "mastershop:sync": "node scripts/mastershopSync.js",
     "mastershop:report": "node scripts/mastershopReport.js",
     "reconcile:mastershop": "node scripts/reconcileMastershop.js",

@@ -156,7 +156,7 @@ unpaid → pending_collection → collected → settled
 
 ### UpBuy es la fuente de verdad
 
-Los estados crudos de los proveedores (Vendelo / Dropi / Venndelo) **nunca** se
+Los estados crudos de los proveedores (Dropi / Venndelo) **nunca** se
 exponen al usuario ni al admin: se mapean a los estados canónicos
 (`mapProviderToCanonical` en `statusMachine.js`). Si el proveedor falla, el
 pedido sigue su curso y queda marcado `providerOutOfSync` para reintentar.
@@ -179,14 +179,14 @@ pedido sigue su curso y queda marcado `providerOutOfSync` para reintentar.
 
 ### Proveedores
 
-- **Venndelo Pro** (catálogo): OAuth 2.0 con refresh + rotación + single-flight;
-  credenciales cifradas con AES-256-GCM; paginación por cursor; el **stock**
-  sigue las unidades reales; el **precio de venta nunca se pisa**; un producto
-  sin stock se **desactiva**, no se borra; un producto con pedidos jamás se
-  elimina. Detalle en [`Back/docs/PROVEEDORES.md`](Back/docs/PROVEEDORES.md).
-- **Vendelo / Dropi** (pedidos): `VENDELO_*` (una N) es el adaptador de pedidos
-  heredado; `VENNDELO_*` (doble N) es la API administrativa real. No los
-  confundas. Sin credenciales el adaptador queda en modo manual (CSV/panel).
+- **Venndelo Pro** (catálogo y pedidos administrativos): OAuth 2.0 con refresh +
+  rotación + single-flight; credenciales cifradas con AES-256-GCM; paginación
+  por cursor; el **stock** sigue las unidades reales; el **precio de venta nunca
+  se pisa**; un producto sin stock se **desactiva**, no se borra; un producto
+  con pedidos jamás se elimina. Detalle en
+  [`Back/docs/PROVEEDORES.md`](Back/docs/PROVEEDORES.md).
+- **Dropi** (pedidos): sin credenciales el adaptador queda en modo manual
+  (CSV/panel). `DROPI_*` es su única configuración.
 - **MasterShop** (catálogo **y pedidos**): autenticación por `MASTERSHOP_API_KEY`
   enviada en el header `ms-api-key` (sin OAuth). Sin clave el proveedor queda
   «no configurado» y sus rutas responden 503. Vive en

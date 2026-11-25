@@ -135,7 +135,6 @@ export default async function ProviderOrdersPage({
             className="mt-1 h-10 rounded-lg border border-border bg-background px-3 text-sm text-carbon focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             <option value="">Todos</option>
-            <option value="vendelo">Vendelo</option>
             <option value="dropi">Dropi</option>
           </select>
         </div>

@@ -19,6 +19,13 @@ const {
 const { aplicarDescuento } = require("../prices.js");
 const { isVisible } = require("./visibility.service.js");
 const { unitsSoldOrderExpression } = require("./bestSellers.service.js");
+const {
+  loadProductVariations,
+  publicVariants,
+  colorsFromVariations,
+  sizesFromVariations,
+  colorsBySupplierProduct,
+} = require("./variant.service.js");
 const HttpError = require("../../Utils/HttpError.js");
 const { normalizeProductSlug } = require("./productIdentity.service.js");
 
@@ -27,7 +34,7 @@ const NEW_ARRIVAL_WINDOW_DAYS = 30;
 const toArray = (value) => (Array.isArray(value) ? value : []);
 
 // Forma publica del producto: sin cost ni markup.
-const publicShape = (product) => {
+const publicShape = (product, extra = {}) => {
   const json = product.toJSON ? product.toJSON() : product;
   const resultado = aplicarDescuento(
     Number(json.price) || 0,
@@ -50,6 +57,7 @@ const publicShape = (product) => {
     stock: Number(json.stock) || 0,
     available: Boolean(json.active) && Number(json.stock) > 0,
     sizes: toArray(json.sizes),
+    colors: Array.isArray(extra.colors) ? extra.colors : toArray(json.colors),
     combo: Boolean(json.combo),
     featured: Boolean(json.destacadas),
     categories: toArray(json.categories).map((category) => ({
@@ -128,8 +136,17 @@ const listPublished = async ({
     subQuery: false,
   });
 
+  // Colores en una sola consulta para toda la pagina (no N+1).
+  const colorsByProduct = await colorsBySupplierProduct(
+    rows.map((row) => row.supplierProductId),
+  );
+
   return {
-    products: rows.map(publicShape),
+    products: rows.map((row) =>
+      publicShape(row, {
+        colors: colorsByProduct.get(row.supplierProductId) || [],
+      }),
+    ),
     total: count,
     limit: safeLimit,
     offset: safeOffset,
@@ -160,7 +177,20 @@ const getBySlugOrSku = async (value) => {
     throw new HttpError(404, "Producto no encontrado");
   }
 
-  return publicShape(product);
+  const shaped = publicShape(product);
+
+  // El detalle es el unico lugar que carga las variaciones completas: el
+  // listado se mantiene liviano (solo tallas y colores denormalizados).
+  const variations = await loadProductVariations(product.supplierProductId);
+  if (variations.length > 0) {
+    shaped.sizes = sizesFromVariations(variations);
+    shaped.colors = colorsFromVariations(variations);
+    shaped.variants = publicVariants(variations);
+  } else {
+    shaped.variants = [];
+  }
+
+  return shaped;
 };
 
 // Listado administrativo: incluye borradores/archivados y campos internos.

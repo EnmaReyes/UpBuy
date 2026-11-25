@@ -1,6 +1,7 @@
 // Capa HTTP de Venndelo (wallet y pedidos). Solo valida y delega.
 const { sendError } = require("../../Utils/respond.js");
 const service = require("../../Services/suppliers/venndelo.account.service.js");
+const orders = require("../../Services/venndeloOrders.service.js");
 
 // Clave de idempotencia: header estandar o variante con X-.
 const idempotencyKey = (req) =>
@@ -101,6 +102,27 @@ const modifyConfirmation = async (req, res) => {
   }
 };
 
+// GET /api/admin/suppliers/venndelo/orders/outbox
+const listOutbox = async (req, res) => {
+  try {
+    const { status, limit } = req.query || {};
+    const rows = await orders.listVenndeloOutbox({ status, limit });
+    return res.json({ outbox: rows, count: rows.length });
+  } catch (error) {
+    return sendError(res, error, "No se pudo listar el outbox de Venndelo");
+  }
+};
+
+// POST /api/admin/suppliers/venndelo/orders/outbox/:orderId/retry
+const retryOutbox = async (req, res) => {
+  try {
+    const result = await orders.retryVenndeloOutbox(req.params.orderId);
+    return res.status(200).json(result);
+  } catch (error) {
+    return sendError(res, error, "No se pudo reintentar el pedido en Venndelo");
+  }
+};
+
 module.exports = {
   topup,
   balance,
@@ -110,4 +132,6 @@ module.exports = {
   cancelOrder,
   quoteOrder,
   modifyConfirmation,
+  listOutbox,
+  retryOutbox,
 };

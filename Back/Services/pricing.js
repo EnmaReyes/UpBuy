@@ -1,5 +1,12 @@
 const { Product } = require("../DataBase/models/index.js");
 const HttpError = require("../Utils/HttpError.js");
+const { normalizeAttributeValue } = require("../Utils/attributes.js");
+const {
+  loadProductVariations,
+  findExactVariation,
+  colorsFromVariations,
+  sizesFromVariations,
+} = require("./catalog/variant.service.js");
 const {
   resolvePrice,
   COMBO_TIPO,
@@ -60,19 +67,36 @@ const resolveProduct = async (item, transaction, { allowUnavailable = false } = 
   if (!product) {
     throw new HttpError(404, "El producto ya no existe");
   }
-  if (!allowUnavailable) {
-    if (!product.active) {
-      throw new HttpError(409, `"${product.name}" no está disponible`);
-    }
-    if (Number(product.stock) < quantity) {
-      throw new HttpError(409, `"${product.name}" está agotado`);
-    }
+  if (!allowUnavailable && !product.active) {
+    throw new HttpError(409, `"${product.name}" no está disponible`);
+  }
+
+  // Variaciones reales del proveedor (un producto manual no tiene).
+  // Se resuelven antes de validar stock para no rechazar una combinacion que
+  // si tiene unidades aunque el agregado del producto este desactualizado.
+  const variations = await loadProductVariations(
+    product.supplierProductId,
+    transaction,
+  );
+
+  if (
+    !allowUnavailable &&
+    variations.length === 0 &&
+    Number(product.stock) < quantity
+  ) {
+    throw new HttpError(409, `"${product.name}" está agotado`);
   }
 
   // La talla es una medida: solo se pide si el producto ofrece tallas.
   // Un combo (o un producto sin tallas, como un accesorio) no la pide.
+  // Con variaciones reales, las tallas salen de sus atributos canonicos y no
+  // de `Product.sizes` (que en algunos proveedores puede traer un color por
+  // el fallback del normalizador).
   let size = null;
-  const sizes = toArray(product.sizes).map((s) => String(s));
+  const sizes =
+    variations.length > 0
+      ? sizesFromVariations(variations)
+      : toArray(product.sizes).map((s) => String(s));
 
   if (!product.combo && sizes.length > 0) {
     const requested = String(item.size || "").trim();
@@ -86,6 +110,96 @@ const resolveProduct = async (item, transaction, { allowUnavailable = false } = 
       );
     }
     size = requested;
+  }
+
+  // Color + variante exacta. Solo aplica a productos con variaciones de
+  // proveedor: un producto manual conserva el comportamiento anterior.
+  const requestedColor = String(item.color || "").trim().slice(0, 50) || null;
+  let color = null;
+  let variant = null;
+
+  if (variations.length > 0) {
+    const colors = colorsFromVariations(variations);
+    const requiresColor = colors.length > 0;
+
+    let matchedColor = null;
+    if (requiresColor && requestedColor) {
+      matchedColor =
+        colors.find(
+          (option) =>
+            normalizeAttributeValue(option) ===
+            normalizeAttributeValue(requestedColor),
+        ) || null;
+    }
+
+    if (!allowUnavailable) {
+      if (requiresColor && !requestedColor) {
+        throw new HttpError(
+          400,
+          `Selecciona un color para "${product.name}"`,
+        );
+      }
+      if (requiresColor && !matchedColor) {
+        throw new HttpError(
+          400,
+          `El color "${requestedColor}" no está disponible para "${product.name}"`,
+        );
+      }
+    }
+
+    const wantedColor = requiresColor ? matchedColor : null;
+    const resolution = findExactVariation(variations, {
+      size,
+      color: wantedColor,
+    });
+
+    if (resolution.status === "ok") {
+      variant = resolution.variation;
+      color = variant.attributes?.color || wantedColor || null;
+    } else if (!allowUnavailable) {
+      const combination = [
+        wantedColor ? `Color ${wantedColor}` : null,
+        size ? `Talla ${size}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      if (resolution.status === "ambiguo") {
+        throw new HttpError(
+          409,
+          `Selecciona color y talla para "${product.name}": hay más de una variante disponible`,
+        );
+      }
+      throw new HttpError(
+        400,
+        combination
+          ? `La combinación ${combination} no está disponible para "${product.name}"`
+          : `No hay una variante disponible para "${product.name}"`,
+      );
+    } else {
+      // Importacion de ventas ya ocurridas: se registra aunque la variante no
+      // sea unica, pero sin inventar color ni id de variante.
+      color = wantedColor || null;
+    }
+
+    if (!allowUnavailable && variant) {
+      if (variant.available === false) {
+        throw new HttpError(
+          409,
+          `"${product.name}" está agotado en la combinación seleccionada`,
+        );
+      }
+      const variantStock = Math.max(
+        0,
+        Math.trunc(Number(variant.quantity) || 0),
+      );
+      if (variantStock < quantity) {
+        throw new HttpError(
+          409,
+          `Solo quedan ${variantStock} unidades de "${product.name}" en la combinación seleccionada`,
+        );
+      }
+    }
   }
 
   const kind = product.combo ? "combo" : "unit";
@@ -112,16 +226,17 @@ const resolveProduct = async (item, transaction, { allowUnavailable = false } = 
     line: {
       productType: PRODUCT_TYPES[0],
       productId: product.id,
-      variantId: null,
+      variantId: variant?.id ?? null,
       title: product.name,
       imageUrl: firstImage(product.images),
       size,
-      shirtColor: null,
+      shirtColor: color,
       shirtName: null,
       dtfSize: null,
       unitPrice,
       unitCost: Number(product.cost) || 0,
-      providerSku: product.providerSku || null,
+      providerSku: variant?.sku || product.providerSku || null,
+      supplierProductId: product.supplierProductId || null,
       nameSnapshot: product.name,
       quantity,
       lineTotal: unitPrice * quantity,

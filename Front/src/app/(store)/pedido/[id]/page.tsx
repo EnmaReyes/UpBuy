@@ -105,7 +105,10 @@ export default async function OrderPage({ params }: OrderPageProps) {
                           {item.title}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {item.size ? `Talla ${item.size} · ` : ""}
+                          {[item.size ? `Talla ${item.size}` : null, item.shirtColor ? `Color ${item.shirtColor}` : null]
+                            .filter(Boolean)
+                            .join(" · ")}
+                          {item.size || item.shirtColor ? " · " : ""}
                           {item.quantity} × {formatPrice(item.unitPrice)}
                         </p>
                       </div>

@@ -1,4 +1,4 @@
-# Proveedores de dropshipping (Vendelo / Dropi)
+# Proveedores de dropshipping (Dropi)
 
 Upbuy es la **fuente de verdad**. El proveedor es una dependencia externa: si
 falla, se cae o cambia su API, el negocio sigue funcionando en modo manual.
@@ -10,7 +10,6 @@ El resto del backend solo usa el contrato común.
 Services/providers/
   index.js          registro + getProvider(name) + listProviders()
   payload.js        payload común de creación de pedido
-  vendelo.client.js adaptador Vendelo (API)
   dropi.client.js   adaptador Dropi (manual por defecto, API opcional)
 ```
 
@@ -22,7 +21,7 @@ Todo adaptador cumple:
 
 ```js
 {
-  name,                              // "vendelo" | "dropi"
+  name,                              // "dropi"
   isConfigured(),                    // false => modo manual / 503
   listProducts(page, { limit }),     // catálogo
   createOrder({ order, items }),     // { provider, providerOrderId, ... }
@@ -59,19 +58,7 @@ CATALOG_SYNC_PAGE_SIZE=500
 CATALOG_SYNC_SUPPLY_MODEL=DROPSHIP            # ANY | OWN_STOCK | DROPSHIP
 CATALOG_SYNC_SCHEDULE=0 12 * * *              # documentación (real: vercel.json)
 
-# --- Vendelo / Dropi (PEDIDOS, legado) ---
-VENDELO_API_URL=          # base, ej. https://api.vendelo.co
-VENDELO_TOKEN=            # Bearer token
-VENDELO_PAYMENT_KEY=      # checkout hosted (si se usa)
-VENDELO_WEBHOOK_SECRET=   # firma HMAC del webhook de pagos
-
-# Rutas (opcionales; por defecto las de abajo)
-VENDELO_PATH_PRODUCTS=/products
-VENDELO_PATH_ORDERS=/orders
-VENDELO_PATH_ORDER_DETAIL=/orders/{id}
-VENDELO_PATH_ORDER_STATUS=/orders/{id}/status
-
-# Dropi (la API es opcional)
+# --- Dropi (PEDIDOS, legado) ---
 DROPI_API_URL=
 DROPI_TOKEN=
 DROPI_PATH_PRODUCTS=/products
@@ -86,20 +73,7 @@ DROPI_PATH_ORDER_STATUS=/orders/{id}/status
 
 ---
 
-## 3. Vendelo
-
-Modo API. Si `VENDELO_API_URL` y `VENDELO_TOKEN` están configurados:
-
-- `createOrder` hace `POST` y devuelve el id asignado.
-- `getOrderStatus` hace `GET` y mapea el estado crudo.
-- `updateOrderStatus` hace `PATCH` con el estado canónico.
-
-Si faltan las credenciales, `createOrder`/`updateOrderStatus` lanzan `503` y
-`getOrderStatus` no se llama (el sync lo marca como `proveedor_no_configurado`).
-
----
-
-## 4. Dropi
+## 3. Dropi
 
 **Modo manual (por defecto).** Sin `DROPI_API_URL` / `DROPI_TOKEN`:
 
@@ -119,7 +93,7 @@ hay que cambiar nada fuera de este adaptador.
 
 ---
 
-## 5. Sincronización
+## 4. Sincronización
 
 ### Automática (cron, dirección IN)
 
@@ -154,7 +128,7 @@ Si el push falla:
 
 ---
 
-## 6. Agregar un proveedor nuevo (pedidos)
+## 5. Agregar un proveedor nuevo (pedidos)
 
 1. Crear `Services/providers/<nombre>.client.js` cumpliendo el contrato.
 2. Registrarlo en `CLIENTS` de `Services/providers/index.js`.
@@ -169,10 +143,10 @@ No hay que tocar `syncService`, `orderService` ni las rutas.
 
 # Venndelo Pro (catálogo)
 
-Integración de CATÁLOGO del proveedor Venndelo Pro. Es independiente del
-adaptador de pedidos "Vendelo" de arriba (variables `VENNDELO_*` con doble N).
+Integración de CATÁLOGO del proveedor Venndelo Pro. Usa variables `VENNDELO_*`
+(con doble N) y es independiente del adaptador de pedidos de Dropi.
 
-## 7. Código
+## 6. Código
 
 ```
 integrations/suppliers/
@@ -211,7 +185,7 @@ Contrato del registro:
 }
 ```
 
-## 8. Endpoints confirmados (OpenAPI oficial)
+## 7. Endpoints confirmados (OpenAPI oficial)
 
 | Método | Ruta | Notas |
 |---|---|---|
@@ -227,7 +201,7 @@ trae `variations[]` (con `quantity` y `price` reales) y `assets[]` (posición 1 
 principal, `url` exacta del proveedor). **No hay endpoint de categorías**: las
 categorías de Upbuy son internas.
 
-## 9. Flujo
+## 8. Flujo
 
 1. `POST /api/admin/suppliers/venndelo/sync` → importa `supplier_products` +
    variaciones + assets (idempotente por `supplierId + externalId`).
@@ -264,7 +238,7 @@ verdad (el `VENNDELO_REFRESH_TOKEN` del entorno queda obsoleto).
   `SUPPLIER_CREDENTIALS_ENCRYPTION_KEY_PREVIOUS` para poder descifrar lo
   guardado y volver a cifrarlo.
 
-## 10. Agregar otro proveedor de catálogo
+## 9. Agregar otro proveedor de catálogo
 
 1. Crear `integrations/suppliers/<slug>/` con `auth`, `client` y `catalog`.
 2. Registrarlo en `integrations/suppliers/index.js`.
@@ -295,7 +269,7 @@ Si no los expone, se usan los de Venndelo (comportamiento histórico).
 Integración de CATÁLOGO. No tiene adaptador de pedidos ni webhooks: esas
 superficies quedaron fuera de alcance.
 
-## 11. Autenticación
+## 10. Autenticación
 
 MasterShop usa una **llave estática** en el header `ms-api-key`. No hay OAuth,
 refresh token, rotación ni caché de token, y tampoco se persiste nada en
@@ -316,7 +290,7 @@ MASTERSHOP_SYNC_PAGE_SIZE=50
 Sin `MASTERSHOP_API_KEY` el adaptador queda "no configurado": las rutas de su
 panel responden 503 y el resto de la tienda sigue funcionando.
 
-## 12. Endpoints usados (documentación oficial)
+## 11. Endpoints usados (documentación oficial)
 
 | Método | Ruta | Notas |
 |---|---|---|
@@ -332,7 +306,7 @@ Campos del producto que se consumen: `idProduct`, `name`, `description`,
 `basePrice`, `baseCurrencyPrice`, `stockTotal`, `urlImageProduct`. El payload
 completo se conserva en `supplier_products.rawData`.
 
-## 13. Mapeo a Upbuy
+## 12. Mapeo a Upbuy
 
 - Se importa **a nivel de producto**: el esquema de `variation[]` no está
   documentado, así que no se leen variaciones ni se derivan tallas.
@@ -344,7 +318,7 @@ completo se conserva en `supplier_products.rawData`.
 - Un producto sin stock sigue **visible como agotado**; solo se oculta cuando el
   proveedor deja de ofrecerlo. Nunca se borra.
 
-## 14. Errores del proveedor
+## 13. Errores del proveedor
 
 | Proveedor | Nuestra API | Motivo |
 |---|---|---|
@@ -357,7 +331,7 @@ completo se conserva en `supplier_products.rawData`.
 Los headers `RateLimit-Limit`, `RateLimit-Remaining` y `RateLimit-Reset` se
 leen y se reportan sin secretos en `/test-connection`.
 
-## 15. Rutas del panel
+## 14. Rutas del panel
 
 Bajo `/api/admin/suppliers/mastershop`, con sesión revocable y permiso
 `providers.manage`:
@@ -380,21 +354,20 @@ catálogo. `publishPolicy` (`manual` | `auto_draft` | `auto_visible`) y
 `defaultCategoryId` viven en `suppliers`; publicar sin `visibility` explícita
 crea el producto en borrador salvo que la política sea `auto_visible`.
 
-## 16. Cron
+## 15. Cron
 
 `GET /api/cron/sync-catalog` recorre **todos** los proveedores configurados en
 orden. Si uno falla, se registra en su `catalog_sync_runs` y se continúa con el
 siguiente; la respuesta trae un arreglo `suppliers` con el resultado de cada
 uno y `ok` global.
 
-## 17. Limitaciones conocidas
+## 16. Limitaciones conocidas
 
 - **Dropi**: no hay catálogo por API. Decisión vigente: sus cargas se hacen
   **manualmente**; no se implementa el importador CSV de la Fase 6 mientras no
   exista contrato. La integración de pedidos de Dropi sigue como estaba.
 - **Pedidos**: sin integrar. `POST /api/orders` exige un esquema de
-  `variation[]` que no está documentado y `orders.provider` solo acepta
-  `vendelo`/`dropi`.
+  `variation[]` que no está documentado y `orders.provider` solo acepta `dropi`.
 - **Webhooks**: sin integrar. MasterShop no documenta firma HMAC ni secreto
   compartido, así que el origen no se puede verificar.
 - **Market / billetera / devoluciones**: fuera de alcance.

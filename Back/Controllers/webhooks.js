@@ -1,15 +1,14 @@
 // Webhooks publicos de pago.
 //
 // Ruta canonica: POST /api/webhooks/:provider
-//   - wompi   -> Services/wompi.js
-//   - vendelo -> Services/vendeloWebhook.js
+//   - wompi    -> Services/wompi.js
+//   - venndelo -> Services/venndeloChatbotWebhook.js
 //
 // No llevan sesion: la autenticidad la da la firma del evento. Por eso el
 // rate limit es mas permisivo que en el resto de la API, pero sigue existiendo
 // (un webhook legitimo reintenta, no martilla).
 
 const { handleWebhook } = require("../Services/wompi.js");
-const { handleVendeloWebhook } = require("../Services/vendeloWebhook.js");
 const {
   handleVenndeloWebhook,
 } = require("../Services/venndeloChatbotWebhook.js");
@@ -26,20 +25,6 @@ const wompi = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     return sendError(res, error, "No se pudo procesar el evento de pago");
-  }
-};
-
-// POST /api/webhooks/vendelo
-const vendelo = async (req, res) => {
-  try {
-    const result = await handleVendeloWebhook({
-      body: req.body,
-      rawBody: req.rawBody,
-      headers: req.headers,
-    });
-    return res.status(200).json(result);
-  } catch (error) {
-    return sendError(res, error, "No se pudo procesar el evento de Vendelo");
   }
 };
 
@@ -61,7 +46,6 @@ const venndelo = async (req, res) => {
 const dispatch = async (req, res) => {
   const provider = String(req.params.provider || "").toLowerCase();
   if (provider === "wompi") return wompi(req, res);
-  if (provider === "vendelo") return vendelo(req, res);
   if (provider === "venndelo") return venndelo(req, res);
   return sendError(
     res,
@@ -70,4 +54,4 @@ const dispatch = async (req, res) => {
   );
 };
 
-module.exports = { wompi, vendelo, venndelo, dispatch };
+module.exports = { wompi, venndelo, dispatch };

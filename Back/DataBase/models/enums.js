@@ -166,8 +166,8 @@ const STOCK_RESERVATION_MINUTES = 30;
 //   - viajan por la API,
 //   - ve el front.
 //
-// Upbuy es la fuente de verdad: los estados crudos de Dropi/Vendelo NUNCA se
-// exponen; se mapean a estos con mapProviderToCanonical().
+// Upbuy es la fuente de verdad: los estados crudos de los proveedores NUNCA
+// se exponen; se mapean a estos con mapProviderToCanonical().
 //
 // Los dos ciclos son independientes:
 //   fulfillmentStatus -> donde va el pedido fisicamente.
@@ -246,7 +246,6 @@ const PAYMENT_TRANSITIONS = {
 // pasarela mueve el dinero, y por eso distingue el pago contra entrega.
 const PAYMENT_METHOD_CODE = {
   WOMPI: "wompi",
-  VENDELO: "vendelo",
   COD_DROPI: "cod_dropi",
   COD_VENDELO: "cod_vendelo",
 };
@@ -261,9 +260,8 @@ const COD_PAYMENT_METHOD_CODES = [
 
 // Proveedor logistico (dropshipping) del ciclo de PEDIDOS. Se mantiene tal
 // cual porque `orders.provider` tiene un CHECK con estos valores y hay que
-// respetar el historico.
+// respetar el historico. El proveedor de pedidos vigente es Dropi.
 const PROVIDER = {
-  VENDELO: "vendelo",
   DROPI: "dropi",
 };
 

@@ -315,7 +315,6 @@ const PALABRAS_PAGO = {
 // Overrides por proveedor. Se aplican DESPUES de las palabras clave, asi
 // que tienen prioridad. Se completan segun la documentacion de cada uno.
 const OVERRIDES_POR_PROVEEDOR = {
-  [PROVIDER.VENDELO]: {},
   [PROVIDER.DROPI]: {},
 };
 

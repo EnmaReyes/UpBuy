@@ -273,7 +273,6 @@ export function VentasView() {
               className={fieldClass}
             >
               <option value="">Todos</option>
-              <option value="vendelo">Vendelo</option>
               <option value="dropi">Dropi</option>
             </select>
           </div>

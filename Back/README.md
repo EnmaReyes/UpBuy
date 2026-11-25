@@ -1,10 +1,10 @@
-# Upbuy — Backend (dropshipping Dropi / Vendelo)
+# Upbuy — Backend (dropshipping Dropi)
 
 API REST en Node.js + Express + Sequelize (PostgreSQL) para una tienda con
 dropshipping. La lógica de negocio vive en servicios; las rutas solo validan y
 delegan.
 
-**La fuente de verdad es Upbuy.** Los estados crudos de Dropi/Vendelo nunca se
+**La fuente de verdad es Upbuy.** Los estados crudos de los proveedores nunca se
 exponen: se mapean a estados canónicos. Si el proveedor falla, el pedido sigue
 su curso y queda marcado para reintentar.
 
@@ -43,6 +43,7 @@ contener secretos**.
 | `npm run db:verify-home` | Verifica la curaduría de la portada (idempotente) |
 | `npm run db:seed-home` | Siembra los favoritos de la portada (`--dry-run`, `--section`, `--limit`) |
 | `npm run venndelo:check` | Prueba la conexión real con Venndelo |
+| `npm run venndelo:cities` | Regenera el catálogo DANE de municipios de Venndelo |
 | `npm run mastershop:sync` | Importa el catálogo de MasterShop (productos + variantes) |
 | `npm run mastershop:report` | Reporta huecos de mapeo de variantes (solo lectura) |
 | `npm run reconcile:mastershop` | Concilia pagos Wompi vs pedidos en MasterShop (`--remote`, `--json`) |
@@ -96,10 +97,10 @@ Back/
       catalogSupplier.service.js  fachada genérica de proveedor de catálogo
       venndelo.service.js         instancia Venndelo
       mastershop.service.js       instancia MasterShop
-    providers/          adaptadores Vendelo / Dropi (pedidos)
+    providers/          adaptador Dropi (pedidos)
     syncService.js      sincronización IN/OUT de pedidos
     webhookEvents.js    idempotencia de webhooks
-    wompi.js / vendeloWebhook.js
+    wompi.js / venndeloChatbotWebhook.js
     cron.js             corrida periódica
   Controllers/          capa HTTP delgada (incluye suppliers/)
   Rutas/                routers de Express (incluye suppliers/)
@@ -145,7 +146,7 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 | GET | `/api/categories` | Categorías activas |
 | GET | `/api/orders/:id/tracking?phone=&email=` | Tracking sin sesión |
 | POST | `/api/webhooks/wompi` | Firma de Wompi |
-| POST | `/api/webhooks/vendelo` | Firma HMAC de Vendelo |
+| POST | `/api/webhooks/venndelo` | Firma HMAC de Venndelo |
 | POST | `/api/webhooks/:provider` | Alias |
 | POST | `/api/payments/webhook` | Compatibilidad con Wompi |
 
@@ -377,8 +378,8 @@ y el rate limit de importación.
 
 #### Proveedores y control operativo (ADM-4)
 
-No distingas las dos integraciones por el nombre: **Venndelo Pro** (doble N) es
-el catálogo; **Vendelo** (una N) y **Dropi** son los pedidos.
+**Venndelo Pro** (doble N) cubre el catálogo y los pedidos administrativos;
+**Dropi** es el proveedor de pedidos del ciclo logístico.
 
 `GET /api/admin/suppliers/overview` devuelve, en una sola llamada:
 
@@ -529,6 +530,20 @@ automático**. Lo curado nunca se desplaza; el relleno solo ocupa huecos.
 - `npm run db:verify-home` comprueba la tabla, los índices y los CHECK.
 - `GET /api/products` acepta `new=1` (solo novedades) y
   `sort=best_sellers` (orden por unidades vendidas de los últimos 90 días).
+- El JSON público incluye `colors: string[]`. El detalle
+  (`GET /api/products/:slug`) añade además `variants: { id, size, color, stock,
+  available, sku }[]`, con las combinaciones reales del proveedor. El listado
+  no carga variantes para evitar N+1. Un producto sin variaciones devuelve
+  `variants: []`.
+- `POST /api/orders` acepta `color` por ítem. El backend resuelve la variante
+  exacta por `{ size, color }` en `Services/catalog/variant.service.js`:
+  - Si el producto tiene colores y falta `color` → **400**.
+  - Si la combinación no existe → **400**; si hay más de una variante → **409**.
+  - Si la variante está agotada o no alcanza la cantidad → **409**.
+  - Al crear la línea persiste `shirtColor`, `variantId` (UUID de
+    `supplier_product_variations`) y `providerSku` de la variante.
+  - Los productos manuales sin variaciones conservan el comportamiento previo
+    (solo talla).
 
 #### Avisos de compra en vivo (ADM-5)
 
@@ -822,17 +837,64 @@ Resumen:
 
 ---
 
+## 6.d Creación de pedidos en Venndelo (pago Wompi aprobado)
+
+Mismo patrón outbox que MasterShop, con columnas y cola propias:
+
+- El webhook de Wompi resuelve el proveedor de **todos** los items del pedido
+  (`Services/orders/providerRouting.service.js`). Si todos son de Venndelo, deja
+  una fila en `venndelo_order_outbox`; si son de MasterShop, usa la cola de
+  MasterShop. Un pedido **mixto**, con items manuales o de un proveedor sin
+  integración de pedidos, **no se envía automáticamente** (nunca se crea un
+  pedido parcial).
+- El cron `/api/cron/sync-providers` añade la etapa `processVenndeloOutbox`.
+- `Services/venndeloOrders.service.js`:
+  - Resuelve cada `order_item` a su `variation_id` (el `externalId` de
+    `supplier_product_variations`). No usa el SKU como identidad: el catálogo
+    puede repetirlo entre variantes.
+  - Resuelve **ciudad y departamento** contra el catálogo de municipios DANE
+    empaquetado (`venndelo.cities.json`, 1.122 municipios) para obtener
+    `city_code`/`subdivision_code` y el nombre canónico (`Medellín` →
+    `Medellin`). Se regenera con `npm run venndelo:cities`; no hay llamadas de
+    red al crear el pedido. Si la ciudad no existe o el servicio está suspendido
+    → `needs_review`.
+  - Arma `line_items` con `type: "STANDARD"`, `variation_id`, `unit_price`,
+    dimensiones y peso (de `rawData`, o `0` si el proveedor no los reporta).
+  - Usa `payment_method_code: "EXTERNAL_PAYMENT"` (UpBuy ya cobró con Wompi) y
+    `external_order_id = "<orderNumber>-VD"`.
+  - Resultado en el pedido: `vdIdOrder`, `vdExternalOrderId`, `vdSyncedAt`,
+    `vdStatus`, `vdSyncState`, `vdSyncError`. Cada intento queda en
+    `venndelo_order_attempts` (request/response redactados).
+- Validado contra la API real: cotización y creación/cancelación de una orden
+  de prueba (`PENDING` → `CANCELLED`). Venndelo acepta dimensiones/peso `0` y
+  `variation_id`; rechaza teléfonos con patrones inválidos (secuencias). Un 500
+  con `invalid values` se clasifica como rechazo accionable, **no** como error
+  reintentable.
+- Idempotencia: `venndelo_order_outbox.orderId` único, `external_order_id`,
+  índice único parcial en `orders.vdIdOrder` y recuperación de duplicado por
+  `external_order_id`.
+- Rechazo de esquema o variante faltante → `needs_review`; 5xx/429/red →
+  reintento con backoff; 401/403 o integración sin configurar → `failed`.
+- Esquema: `ensureVenndeloOrderSchema()` (incluido en `db:bootstrap`).
+- Panel admin (permiso `providers.manage`):
+  - `GET /api/admin/suppliers/venndelo/orders/outbox` lista la cola.
+  - `POST /api/admin/suppliers/venndelo/orders/outbox/:orderId/retry` la
+    reactiva y procesa ese pedido de inmediato.
+- Requiere `VENNDELO_CLIENT_ID`, `VENNDELO_CLIENT_SECRET` y
+  `VENNDELO_REFRESH_TOKEN`; sin ellos la cola queda en `failed` y el resto de la
+  tienda sigue funcionando.
+
+---
+
 ## 7. Proveedores de pedidos
 
 Contrato, variables y modo manual de Dropi: [`docs/PROVEEDORES.md`](docs/PROVEEDORES.md).
 
 Resumen:
 
-- **Vendelo** (pedidos, legado): API. Rutas configurables por `VENDELO_PATH_*`
-  (no confirmadas hasta validarlas con su documentación). Sin `VENDELO_API_URL`
-  queda en 503 y no afecta a la tienda.
 - **Dropi**: sin API pública confirmada. Modo **manual** por defecto: registra
-  la exportación en `sync_logs` y genera CSV para el panel.
+  la exportación en `sync_logs` y genera CSV para el panel. Si algún día se
+  habilita su API, `DROPI_API_URL` y `DROPI_TOKEN` activan el mismo adaptador.
 
 Sin credenciales, el proveedor no se llama: el flujo manual sigue funcionando.
 

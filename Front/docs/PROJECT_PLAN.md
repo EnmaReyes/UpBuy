@@ -30,7 +30,7 @@ cierra la conexión con los proveedores por API. El catálogo vive en
 - Autenticación: JWT en cookie `httpOnly` (`access_token`, 12h), `sameSite`/`secure` según entorno. Roles: `admin`.
 - CORS con `FRONTEND_URL` (dev: `http://localhost:3001`).
 - Pagos: Wompi Web Checkout + webhook firmado.
-- Proveedores: Vendelo (API, si hay credenciales) y Dropi (modo manual por defecto).
+- Proveedores: Dropi (modo manual por defecto, API opcional).
 - Cron diario `0 12 * * *` (`/api/cron/sync-providers` con `Bearer CRON_SECRET`).
 
 Funcionalidades reutilizables: auth, usuarios/direcciones, catálogo unificado, categorías, DTF, pedidos, tracking público, pagos Wompi, envío, notificaciones, banners, campañas (admin), precios/tarifas, administración de pedidos/usuarios.

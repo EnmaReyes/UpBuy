@@ -5,9 +5,9 @@ const { SYNC_DIRECTION_VALUES } = require("./enums.js");
 
 // Bitacora de sincronizacion con los proveedores.
 //
-// Reemplaza a las antiguas tablas por proveedor (DropiSyncLog /
-// VendeloSyncLog): una sola tabla con la columna 'provider' hace las
-// consultas del cron y del panel mucho mas simples.
+// Reemplaza a las antiguas tablas por proveedor (DropiSyncLog): una sola
+// tabla con la columna 'provider' hace las consultas del cron y del panel
+// mucho mas simples.
 //
 //   direction = 'out' -> nosotros le mandamos algo al proveedor (crear
 //                         pedido, empujar un cambio de estado).

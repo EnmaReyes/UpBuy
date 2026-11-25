@@ -1,0 +1,7860 @@
+[
+  {
+    "code": "05002000",
+    "name": "Abejorral",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54003000",
+    "name": "Abrego",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05004000",
+    "name": "Abriaqui",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50006000",
+    "name": "Acacias",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27006000",
+    "name": "Acandi",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41006000",
+    "name": "Acevedo",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13006000",
+    "name": "Achi",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41013000",
+    "name": "Agrado",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25001000",
+    "name": "Agua de Dios",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20011000",
+    "name": "Aguachica",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68013000",
+    "name": "Aguada",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17013000",
+    "name": "Aguadas",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85010000",
+    "name": "Aguazul",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41016000",
+    "name": "Aipe",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25019000",
+    "name": "Alban",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44035000",
+    "name": "Albania",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18029000",
+    "name": "Albania",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68020000",
+    "name": "Albania",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76020000",
+    "name": "Alcala",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52022000",
+    "name": "Aldana",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05021000",
+    "name": "Alejandria",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47030000",
+    "name": "Algarrobo",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41020000",
+    "name": "Algeciras",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19022000",
+    "name": "Almaguer",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15022000",
+    "name": "Almeida",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73024000",
+    "name": "Alpujarra",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41026000",
+    "name": "Altamira",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27025000",
+    "name": "Alto Baudo",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13030000",
+    "name": "Altos Del Rosario",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolívar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73026000",
+    "name": "Alvarado",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05030000",
+    "name": "Amaga",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05031000",
+    "name": "Amalfi",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73030000",
+    "name": "Ambalema",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25035000",
+    "name": "Anapoima",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52036000",
+    "name": "Ancuya",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27450000",
+    "name": "Andagoya",
+    "subdivision_code": "27",
+    "subdivision_name": "Chocó",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76036000",
+    "name": "Andalucia",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05034000",
+    "name": "Andes",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05036000",
+    "name": "Angelopolis",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05038000",
+    "name": "Angostura",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27810000",
+    "name": "Animas",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "SUSPENDED",
+    "service_unavailable_message": "Destino suspendido temporalmente"
+  },
+  {
+    "code": "25040000",
+    "name": "Anolaima",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05040000",
+    "name": "Anori",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17042000",
+    "name": "Anserma",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76041000",
+    "name": "Anserma Nuevo",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05044000",
+    "name": "Anza",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73043000",
+    "name": "Anzoategui",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05045000",
+    "name": "Apartado",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66045000",
+    "name": "Apia",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25599000",
+    "name": "Apulo",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15047000",
+    "name": "Aquitania",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47053000",
+    "name": "Aracataca",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17050000",
+    "name": "Aranzazu",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68051000",
+    "name": "Aratoca",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "81001000",
+    "name": "Arauca",
+    "subdivision_code": "81",
+    "subdivision_name": "Arauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "81065000",
+    "name": "Arauquita",
+    "subdivision_code": "81",
+    "subdivision_name": "Arauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25053000",
+    "name": "Arbelaez",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54051000",
+    "name": "Arboledas",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05051000",
+    "name": "Arboletes",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15051000",
+    "name": "Arcabuco",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13042000",
+    "name": "Arenal",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76054000",
+    "name": "Argelia",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19050000",
+    "name": "Argelia",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05055000",
+    "name": "Argelia",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41378000",
+    "name": "Argentina",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13052000",
+    "name": "Arjona",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "63001000",
+    "name": "Armenia",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05059000",
+    "name": "Armenia Mantequilla",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73055000",
+    "name": "Armero Guayabal",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13062000",
+    "name": "Arroyohondo",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolívar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20032000",
+    "name": "Astrea",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73067000",
+    "name": "Ataco",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23068000",
+    "name": "Ayapel",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27073000",
+    "name": "Bagadó",
+    "subdivision_code": "27",
+    "subdivision_name": "Chocó",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27075000",
+    "name": "Bahia Solano Mutis",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27077000",
+    "name": "Bajo Baudo Pizarro",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66075000",
+    "name": "Balboa",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19075000",
+    "name": "Balboa",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08078000",
+    "name": "Baranoa",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41078000",
+    "name": "Baraya",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52079000",
+    "name": "Barbacoas",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05079000",
+    "name": "Barbosa",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68077000",
+    "name": "Barbosa",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68079000",
+    "name": "Barichara",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50110000",
+    "name": "Barranca de Upia",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68081000",
+    "name": "Barrancabermeja",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44078000",
+    "name": "Barrancas",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13074000",
+    "name": "Barranco de Loba",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "94343000",
+    "name": "Barranco Minas",
+    "subdivision_code": "94",
+    "subdivision_name": "Guainía",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08001000",
+    "name": "Barranquilla",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20045000",
+    "name": "Becerril",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17088000",
+    "name": "Belalcazar",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19517000",
+    "name": "Belalcazar Paez",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15087000",
+    "name": "Belen",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52083000",
+    "name": "Belen",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27086000",
+    "name": "Belen de Bajira",
+    "subdivision_code": "27",
+    "subdivision_name": "Chocó",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18094000",
+    "name": "Belen de los Andaquies",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66088000",
+    "name": "Belen de Umbria",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05088000",
+    "name": "Bello",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05086000",
+    "name": "Belmira",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25086000",
+    "name": "Beltrán",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15090000",
+    "name": "Berbeo",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52051000",
+    "name": "Berruecos Arboleda",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05091000",
+    "name": "Betania",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27425000",
+    "name": "Beté",
+    "subdivision_code": "27",
+    "subdivision_name": "Chocó",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15092000",
+    "name": "Beteitiva",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68092000",
+    "name": "Betulia",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05093000",
+    "name": "Betulia",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25095000",
+    "name": "Bituima",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15097000",
+    "name": "Boavita",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52490000",
+    "name": "Bocas De Satinga",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54099000",
+    "name": "Bochalema",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "11001000",
+    "name": "Bogota",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25099000",
+    "name": "Bojaca",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27099000",
+    "name": "Bojaya",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68101000",
+    "name": "Bolivar",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76100000",
+    "name": "Bolivar",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19100000",
+    "name": "Bolivar",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20060000",
+    "name": "Bosconia",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15104000",
+    "name": "Boyaca",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15106000",
+    "name": "Briceño",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05107000",
+    "name": "Briceño",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68001000",
+    "name": "Bucaramanga",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54109000",
+    "name": "Bucarasica",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23079000",
+    "name": "Buena Vista",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76109000",
+    "name": "Buenaventura",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "63111000",
+    "name": "Buenavista",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15109000",
+    "name": "Buenavista",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70110000",
+    "name": "Buenavista",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19110000",
+    "name": "Buenos Aires",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52110000",
+    "name": "Buesaco",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76111000",
+    "name": "Buga",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76113000",
+    "name": "Buga la Grande",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05113000",
+    "name": "Buritica",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15114000",
+    "name": "Busbanza",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25120000",
+    "name": "Cabrera",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68121000",
+    "name": "Cabrera",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50124000",
+    "name": "Cabuyaro",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "94886000",
+    "name": "Cacahual",
+    "subdivision_code": "94",
+    "subdivision_name": "Guainía",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05120000",
+    "name": "Caceres",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25123000",
+    "name": "Cachipay",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54128000",
+    "name": "Cachira",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54125000",
+    "name": "Cacota",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05125000",
+    "name": "Caicedo",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76122000",
+    "name": "Caicedonia",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70124000",
+    "name": "Caimito",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73124000",
+    "name": "Cajamarca",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19130000",
+    "name": "Cajibio",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25126000",
+    "name": "Cajica",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13140000",
+    "name": "Calamar",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "95015000",
+    "name": "Calamar",
+    "subdivision_code": "95",
+    "subdivision_name": "Guaviare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "63130000",
+    "name": "Calarca",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05129000",
+    "name": "Caldas",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15131000",
+    "name": "Caldas",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19137000",
+    "name": "Caldono",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76001000",
+    "name": "Cali",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68132000",
+    "name": "California",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19142000",
+    "name": "Caloto",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05134000",
+    "name": "Campamento",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "94887000",
+    "name": "Campo Alegre",
+    "subdivision_code": "94",
+    "subdivision_name": "Guainía",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08137000",
+    "name": "Campo de la Cruz",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41132000",
+    "name": "Campoalegre",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15135000",
+    "name": "Campohermoso",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23090000",
+    "name": "Canalete",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08141000",
+    "name": "Candelaria",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76130000",
+    "name": "Candelaria",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13160000",
+    "name": "Cantagallo",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05138000",
+    "name": "Cañasgordas",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25148000",
+    "name": "Caparrapi",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68147000",
+    "name": "Capitanejo",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25151000",
+    "name": "Caqueza",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05142000",
+    "name": "Caracoli",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05145000",
+    "name": "Caramanta",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68152000",
+    "name": "Carcasi",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05147000",
+    "name": "Carepa",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52224000",
+    "name": "Carlosama Cuaspud",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73148000",
+    "name": "Carmen de Apicala",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25154000",
+    "name": "Carmen de Carupa",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05150000",
+    "name": "Carolina del Principe",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13001000",
+    "name": "Cartagena",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18150000",
+    "name": "Cartagena del Chaira",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76147000",
+    "name": "Cartago",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "97161000",
+    "name": "Carurú",
+    "subdivision_code": "97",
+    "subdivision_name": "Vaupés",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73152000",
+    "name": "Casabianca",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50150000",
+    "name": "Castilla la Nueva",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05154000",
+    "name": "Caucasia",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68160000",
+    "name": "Cepitá",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23162000",
+    "name": "Cerete",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15162000",
+    "name": "Cerinza",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68162000",
+    "name": "Cerrito",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47161000",
+    "name": "Cerro San Antonio",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27160000",
+    "name": "Certegui",
+    "subdivision_code": "27",
+    "subdivision_name": "Chocó",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52240000",
+    "name": "Chachagui",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25168000",
+    "name": "Chaguani",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70230000",
+    "name": "Chalán",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85015000",
+    "name": "Chámeza",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73168000",
+    "name": "Chaparral",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68167000",
+    "name": "Charala",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68169000",
+    "name": "Charta",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25175000",
+    "name": "Chia",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05172000",
+    "name": "Chigorodo",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23168000",
+    "name": "Chima",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68176000",
+    "name": "Chima",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20175000",
+    "name": "Chimichagua",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54172000",
+    "name": "Chinacota",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15172000",
+    "name": "Chinavita",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17174000",
+    "name": "Chinchina",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23182000",
+    "name": "Chinu",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25178000",
+    "name": "Chipaque",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68179000",
+    "name": "Chipata",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15176000",
+    "name": "Chiquinquira",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15232000",
+    "name": "Chiquiza",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20178000",
+    "name": "Chiriguana",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15180000",
+    "name": "Chiscas",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15183000",
+    "name": "Chita",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54174000",
+    "name": "Chitaga",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15185000",
+    "name": "Chitaraque",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15187000",
+    "name": "Chivata",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47170000",
+    "name": "Chivolo",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15236000",
+    "name": "Chivor",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25181000",
+    "name": "Choachi",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25183000",
+    "name": "Choconta",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13188000",
+    "name": "Cicuco",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47189000",
+    "name": "Cienaga",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23189000",
+    "name": "Cienaga de Oro",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15189000",
+    "name": "Cienega",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68190000",
+    "name": "Cimitarra",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "63190000",
+    "name": "Circasia",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05190000",
+    "name": "Cisneros",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05101000",
+    "name": "Ciudad Bolivar",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13222000",
+    "name": "Clemencia",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19585000",
+    "name": "Coconuco",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05197000",
+    "name": "Cocorna",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20013000",
+    "name": "Codazzi Agustin",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73200000",
+    "name": "Coello",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25200000",
+    "name": "Cogua",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41206000",
+    "name": "Colombia",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86219000",
+    "name": "Colon",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15204000",
+    "name": "Combita",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68207000",
+    "name": "Concepcion",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05206000",
+    "name": "Concepcion",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05209000",
+    "name": "Concordia",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47205000",
+    "name": "CONCORDIA",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27205000",
+    "name": "Condoto",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68209000",
+    "name": "Confines",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52207000",
+    "name": "Consaca",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52210000",
+    "name": "Contadero",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68211000",
+    "name": "Contratacion",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54206000",
+    "name": "Convencion",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05212000",
+    "name": "Copacabana",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15212000",
+    "name": "Coper",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13212000",
+    "name": "Cordoba",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52215000",
+    "name": "Cordoba",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "63212000",
+    "name": "Cordoba",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19212000",
+    "name": "Corinto",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68217000",
+    "name": "Coromoro",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70215000",
+    "name": "Corozal",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15215000",
+    "name": "Corrales",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25214000",
+    "name": "Cota",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23300000",
+    "name": "Cotorra",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15218000",
+    "name": "Covarachia",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70221000",
+    "name": "Coveñas",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73217000",
+    "name": "Coyaima",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "81220000",
+    "name": "Cravo Norte",
+    "subdivision_code": "81",
+    "subdivision_name": "Arauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15223000",
+    "name": "Cubara",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50223000",
+    "name": "Cubarral San Luis",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15224000",
+    "name": "Cucaita",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25224000",
+    "name": "Cucunuba",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54001000",
+    "name": "Cucuta",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54223000",
+    "name": "Cucutilla",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15226000",
+    "name": "Cuitiva",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50226000",
+    "name": "Cumaral",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "99773000",
+    "name": "Cumaribo",
+    "subdivision_code": "99",
+    "subdivision_name": "Vichada",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52227000",
+    "name": "Cumbal",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52233000",
+    "name": "Cumbitara",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73226000",
+    "name": "Cunday",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18205000",
+    "name": "Curillo",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68229000",
+    "name": "Curiti",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20228000",
+    "name": "Curumani",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05234000",
+    "name": "Dabeiba",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76233000",
+    "name": "Dagua",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76126000",
+    "name": "Darien",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44090000",
+    "name": "Dibulla",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44098000",
+    "name": "Distraccion",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73236000",
+    "name": "Dolores",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05237000",
+    "name": "Don Matias",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66170000",
+    "name": "Dosquebradas",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15238000",
+    "name": "Duitama",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54239000",
+    "name": "Durania",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05240000",
+    "name": "Ebejico",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76243000",
+    "name": "El Aguila",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05250000",
+    "name": "El Bagre",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47245000",
+    "name": "El Banco",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19532000",
+    "name": "El Bordo",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76246000",
+    "name": "El Cairo",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50245000",
+    "name": "El Calvario",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54245000",
+    "name": "El Carmen",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27245000",
+    "name": "El Carmen de Atrato",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13244000",
+    "name": "El Carmen de Bolivar",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68235000",
+    "name": "El Carmen de Chucuri",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05148000",
+    "name": "El Carmen de Viboral",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50251000",
+    "name": "El Castillo",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76248000",
+    "name": "El Cerrito",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52250000",
+    "name": "El Charco",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15244000",
+    "name": "El Cocuy",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25245000",
+    "name": "El Colegio Mesitas",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20238000",
+    "name": "El Copey",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47058000",
+    "name": "El Dificil",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18247000",
+    "name": "El Doncello",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50270000",
+    "name": "El Dorado",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76250000",
+    "name": "El Dovio",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "91263000",
+    "name": "El Encanto",
+    "subdivision_code": "91",
+    "subdivision_name": "Amazonas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15248000",
+    "name": "El Espino",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68245000",
+    "name": "El Guacamayo",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13248000",
+    "name": "El Guamo",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44110000",
+    "name": "El Molino",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20250000",
+    "name": "El Paso",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18256000",
+    "name": "El Paujil",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52254000",
+    "name": "El Peñol",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05541000",
+    "name": "El Peñol",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68250000",
+    "name": "El Peñon",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25258000",
+    "name": "El Peñón",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13268000",
+    "name": "El Peñón",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolívar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47258000",
+    "name": "El Piñon",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68255000",
+    "name": "El Playon",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47268000",
+    "name": "El Reten",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "95025000",
+    "name": "El Retorno",
+    "subdivision_code": "95",
+    "subdivision_name": "Guaviare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25260000",
+    "name": "El Rosal",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52256000",
+    "name": "El Rosario",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05697000",
+    "name": "El Santuario",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52258000",
+    "name": "El Tablon de Gomez",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52260000",
+    "name": "El Tambo",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19256000",
+    "name": "El Tambo",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54250000",
+    "name": "El Tarra",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte De Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54261000",
+    "name": "El Zulia",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41244000",
+    "name": "Elías",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68264000",
+    "name": "Encino",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68266000",
+    "name": "Enciso",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05264000",
+    "name": "Entrerrios",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05266000",
+    "name": "Envigado",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73268000",
+    "name": "Espinal",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25269000",
+    "name": "Facatativa",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73270000",
+    "name": "Falan",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17272000",
+    "name": "Filadelfia",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "63272000",
+    "name": "Filandia",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15272000",
+    "name": "Firavitoba",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73275000",
+    "name": "Flandes",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19290000",
+    "name": "Florencia",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18001000",
+    "name": "Florencia",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15276000",
+    "name": "Floresta",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68271000",
+    "name": "Florian",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76275000",
+    "name": "Florida",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68276000",
+    "name": "Floridablanca",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25279000",
+    "name": "Fomeque",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44279000",
+    "name": "Fonseca",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "11030000",
+    "name": "Fontibon",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "81300000",
+    "name": "Fortul",
+    "subdivision_code": "81",
+    "subdivision_name": "Arauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25281000",
+    "name": "Fosca",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05282000",
+    "name": "Fredonia",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73283000",
+    "name": "Fresno",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05284000",
+    "name": "Frontino",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50287000",
+    "name": "Fuente de Oro",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47288000",
+    "name": "Fundacion",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52287000",
+    "name": "Funes",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25286000",
+    "name": "Funza",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25288000",
+    "name": "Fuquene",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25290000",
+    "name": "Fusagasuga",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25890000",
+    "name": "Fusagasuga - Cun",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25293000",
+    "name": "Gachala",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25295000",
+    "name": "Gachancipa",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15293000",
+    "name": "Gachantiva",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25297000",
+    "name": "Gacheta",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68296000",
+    "name": "Galan",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08296000",
+    "name": "Galapa",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70235000",
+    "name": "Galeras",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25299000",
+    "name": "Gama",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20295000",
+    "name": "Gamarra",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68298000",
+    "name": "Gambita",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15296000",
+    "name": "Gameza",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15299000",
+    "name": "Garagoa",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41298000",
+    "name": "Garzon",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52203000",
+    "name": "Genova",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "63302000",
+    "name": "Genova",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41306000",
+    "name": "Gigante",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76306000",
+    "name": "Ginebra",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05306000",
+    "name": "Giraldo",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25307000",
+    "name": "Girardot",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05308000",
+    "name": "Girardota",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68307000",
+    "name": "Giron",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05310000",
+    "name": "Gomez Plata",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20310000",
+    "name": "Gonzalez",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54313000",
+    "name": "Gramalote",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05313000",
+    "name": "Granada",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25312000",
+    "name": "Granada",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50313000",
+    "name": "Granada",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68318000",
+    "name": "Guaca",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15317000",
+    "name": "Guacamayas",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76318000",
+    "name": "Guacari",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52699000",
+    "name": "Guachavez San Cruz",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19300000",
+    "name": "Guachene",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25317000",
+    "name": "Guacheta",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52317000",
+    "name": "Guachucal",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68320000",
+    "name": "Guadalupe",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41319000",
+    "name": "Guadalupe",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05315000",
+    "name": "Guadalupe",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25320000",
+    "name": "Guaduas",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52320000",
+    "name": "Guaitarilla",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52323000",
+    "name": "Gualmatan",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50318000",
+    "name": "Guamal",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47318000",
+    "name": "Guamal",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73319000",
+    "name": "Guamo",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19318000",
+    "name": "Guapi",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68322000",
+    "name": "Guapotá",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70265000",
+    "name": "Guaranda",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05318000",
+    "name": "Guarne",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25322000",
+    "name": "Guasca",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05321000",
+    "name": "Guatape",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25324000",
+    "name": "Guataqui",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25326000",
+    "name": "Guatavita",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15322000",
+    "name": "Guateque",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66318000",
+    "name": "Guatica",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68324000",
+    "name": "Guavata",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25328000",
+    "name": "Guayabal de Siquima",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25335000",
+    "name": "Guayabetal",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15325000",
+    "name": "Guayata",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68327000",
+    "name": "Guepsa",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15332000",
+    "name": "Guican",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25339000",
+    "name": "Gutierrez",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54344000",
+    "name": "HACARI",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13300000",
+    "name": "Hatillo de Loba",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68344000",
+    "name": "Hato",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85125000",
+    "name": "Hato Corozal",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44378000",
+    "name": "Hato Nuevo",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05347000",
+    "name": "Heliconia",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73347000",
+    "name": "Herbeo",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54347000",
+    "name": "Herran",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05353000",
+    "name": "Hispania",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41349000",
+    "name": "Hobo",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73349000",
+    "name": "Honda",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73001000",
+    "name": "Ibague",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73352000",
+    "name": "Icononzo",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52352000",
+    "name": "Iles",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52354000",
+    "name": "Imues",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "94001000",
+    "name": "Inirida",
+    "subdivision_code": "94",
+    "subdivision_name": "Guainia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19355000",
+    "name": "Inza",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52356000",
+    "name": "Ipiales",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41357000",
+    "name": "Iquira",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52696000",
+    "name": "Iscuandé",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27361000",
+    "name": "Istmina",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "SUSPENDED",
+    "service_unavailable_message": "La población actualmente se encuentra inactiva por situaciones logísticas recientes que generan retrasos en las entregas de pedidos."
+  },
+  {
+    "code": "05360000",
+    "name": "Itagui",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05361000",
+    "name": "Ituango",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15362000",
+    "name": "Iza",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19364000",
+    "name": "Jambalo",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76364000",
+    "name": "Jamundi",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05364000",
+    "name": "Jardin Suroeste",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15367000",
+    "name": "Jenesano",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15368000",
+    "name": "Jerico",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05368000",
+    "name": "Jerico",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25368000",
+    "name": "Jerusalen",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68368000",
+    "name": "Jesus Maria",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68370000",
+    "name": "Jordán Sube",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08372000",
+    "name": "Juan de Acosta",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25372000",
+    "name": "Junin",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27372000",
+    "name": "Jurado",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23350000",
+    "name": "La Apartada",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68377000",
+    "name": "La Belleza",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25377000",
+    "name": "La Calera",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15380000",
+    "name": "La Capilla",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05376000",
+    "name": "La Ceja",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66383000",
+    "name": "La Celia",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "91405000",
+    "name": "La Chorrera",
+    "subdivision_code": "91",
+    "subdivision_name": "Amazonas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52378000",
+    "name": "La Cruz",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76377000",
+    "name": "La Cumbre",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17380000",
+    "name": "La Dorada",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86757000",
+    "name": "La Dorada San Miguel",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54385000",
+    "name": "La Esperanza",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05380000",
+    "name": "La Estrella",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52381000",
+    "name": "La Florida",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20383000",
+    "name": "La Gloria",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "94885000",
+    "name": "La Guadalupe",
+    "subdivision_code": "94",
+    "subdivision_name": "Guainía",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86865000",
+    "name": "La Hormiga - Valle Guamuez",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20400000",
+    "name": "La Jagua de Ibirico",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44420000",
+    "name": "La Jagua del Pilar",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52385000",
+    "name": "La Llanada",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50350000",
+    "name": "La Macarena",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17388000",
+    "name": "La Merced",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25386000",
+    "name": "La Mesa",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18410000",
+    "name": "La Montañita",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25394000",
+    "name": "La Palma",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68397000",
+    "name": "La Paz",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20621000",
+    "name": "La Paz",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "91407000",
+    "name": "La Pedrera",
+    "subdivision_code": "91",
+    "subdivision_name": "Amazonas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25398000",
+    "name": "La Peña",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05390000",
+    "name": "La Pintada",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41396000",
+    "name": "La Plata",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54398000",
+    "name": "LA PLAYA",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "99524000",
+    "name": "La Primavera",
+    "subdivision_code": "99",
+    "subdivision_name": "Vichada",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85136000",
+    "name": "La Salina",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19392000",
+    "name": "La Sierra",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "63401000",
+    "name": "La Tebaida",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52390000",
+    "name": "La Tola",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76400000",
+    "name": "La Union",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52399000",
+    "name": "La Union",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05400000",
+    "name": "La Union",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70400000",
+    "name": "La Union",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15403000",
+    "name": "La Uvita",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19397000",
+    "name": "La Vega",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25402000",
+    "name": "La Vega",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76403000",
+    "name": "La Victoria",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15401000",
+    "name": "La Victoria",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66400000",
+    "name": "La Virginia",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54377000",
+    "name": "Labateca",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15377000",
+    "name": "Labranzagrande",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68385000",
+    "name": "Landazuri",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68406000",
+    "name": "Lebrija",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52405000",
+    "name": "Leiva",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50400000",
+    "name": "Lejanias",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25407000",
+    "name": "Lenguazaque",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73408000",
+    "name": "Lerida",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "91001000",
+    "name": "Leticia",
+    "subdivision_code": "91",
+    "subdivision_name": "Amazonas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73411000",
+    "name": "Libano",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05411000",
+    "name": "Liborina",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52411000",
+    "name": "Linares",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27413000",
+    "name": "Lloro",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19418000",
+    "name": "Lopez de Micay",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23417000",
+    "name": "Lorica",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23419000",
+    "name": "Los Cordobas",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70418000",
+    "name": "Los Palmitos",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54405000",
+    "name": "Los Patios",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68418000",
+    "name": "Los Santos",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54418000",
+    "name": "Lourdes",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08421000",
+    "name": "Luruaco",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15425000",
+    "name": "Macanal",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68425000",
+    "name": "Macaravita",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05425000",
+    "name": "Maceo",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25426000",
+    "name": "Macheta",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25430000",
+    "name": "Madrid",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13430000",
+    "name": "Magangue",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13433000",
+    "name": "Mahates",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44430000",
+    "name": "Maicao",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70429000",
+    "name": "Majagual",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68432000",
+    "name": "Malaga",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08433000",
+    "name": "Malambo",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27135000",
+    "name": "Managrú",
+    "subdivision_code": "27",
+    "subdivision_name": "Chocó",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08436000",
+    "name": "Manati",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44560000",
+    "name": "Manaure",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20443000",
+    "name": "Manaure Balcon del Cesar",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85139000",
+    "name": "Mani",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17001000",
+    "name": "Manizales",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25436000",
+    "name": "Manta",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17433000",
+    "name": "Manzanares",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50325000",
+    "name": "Mapiripán",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13440000",
+    "name": "Margarita",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13442000",
+    "name": "Maria la Baja",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05440000",
+    "name": "Marinilla",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15442000",
+    "name": "Maripi",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73443000",
+    "name": "Mariquita",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17442000",
+    "name": "Marmato",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17444000",
+    "name": "Marquetalia",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66440000",
+    "name": "Marsella",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17446000",
+    "name": "Marulanda",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68444000",
+    "name": "Matanza",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05001000",
+    "name": "Medellin",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25438000",
+    "name": "Medina",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73449000",
+    "name": "Melgar",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19450000",
+    "name": "Mercaderes",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50330000",
+    "name": "Mesetas",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52545000",
+    "name": "Mesitas",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18460000",
+    "name": "Milán",
+    "subdivision_code": "18",
+    "subdivision_name": "Caquetá",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15455000",
+    "name": "Miraflores",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "95200000",
+    "name": "Miraflores",
+    "subdivision_code": "95",
+    "subdivision_name": "Guaviare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19455000",
+    "name": "Miranda",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "91460000",
+    "name": "Mirití",
+    "subdivision_code": "91",
+    "subdivision_name": "Amazonas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66456000",
+    "name": "Mistrato",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "97001000",
+    "name": "Mitu",
+    "subdivision_code": "97",
+    "subdivision_name": "Vaupes",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86001000",
+    "name": "Mocoa",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68464000",
+    "name": "Mogotes",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68468000",
+    "name": "Molagavita",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23464000",
+    "name": "Momil",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13468000",
+    "name": "Mompos",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15464000",
+    "name": "Mongua",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15466000",
+    "name": "Mongui",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15469000",
+    "name": "Moniquira",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05467000",
+    "name": "Montebello",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13458000",
+    "name": "Montecristo",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23466000",
+    "name": "Montelibano",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "63470000",
+    "name": "Montenegro",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23001000",
+    "name": "Monteria",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85162000",
+    "name": "Monterrey",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23500000",
+    "name": "Moñitos",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13473000",
+    "name": "Morales",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19473000",
+    "name": "Morales",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18479000",
+    "name": "Morelia",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "97777000",
+    "name": "Morichal",
+    "subdivision_code": "97",
+    "subdivision_name": "Vaupés",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "94888000",
+    "name": "Morichal Nuevo",
+    "subdivision_code": "94",
+    "subdivision_name": "Guainía",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70473000",
+    "name": "Morroa",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25473000",
+    "name": "Mosquera",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52473000",
+    "name": "Mosquera",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15476000",
+    "name": "Motavita",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73461000",
+    "name": "Murillo",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05475000",
+    "name": "Murindo",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05480000",
+    "name": "Mutata",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54480000",
+    "name": "Mutiscua",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15480000",
+    "name": "Muzo",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25483000",
+    "name": "Nariño",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52480000",
+    "name": "Nariño",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05483000",
+    "name": "Nariño",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41483000",
+    "name": "Nataga",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73483000",
+    "name": "Natagaima",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05495000",
+    "name": "Nechi",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05490000",
+    "name": "Necocli",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17486000",
+    "name": "Neira",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41001000",
+    "name": "Neiva",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25486000",
+    "name": "Nemocon",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25488000",
+    "name": "Nilo",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25489000",
+    "name": "Nimaima",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15491000",
+    "name": "Nobsa",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25491000",
+    "name": "Nocaima",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17495000",
+    "name": "Norcasia",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13490000",
+    "name": "Norosi",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolívar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27491000",
+    "name": "Novita",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47460000",
+    "name": "Nueva Granada",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15494000",
+    "name": "Nuevo Colon",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85225000",
+    "name": "Nunchia",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27495000",
+    "name": "Nuqui",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76497000",
+    "name": "Obando",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68498000",
+    "name": "Ocamonte",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54498000",
+    "name": "Ocaña",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68500000",
+    "name": "Oiba",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15500000",
+    "name": "Oicata",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05501000",
+    "name": "Olaya",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68502000",
+    "name": "Onzaga",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41503000",
+    "name": "Oporapa",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86320000",
+    "name": "Orito",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85230000",
+    "name": "Orocue",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73504000",
+    "name": "Ortega",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52506000",
+    "name": "Ospina",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15507000",
+    "name": "Otanche",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70508000",
+    "name": "Ovejas",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15511000",
+    "name": "Pachavita",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25513000",
+    "name": "Pacho",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "91430000",
+    "name": "Pacoa",
+    "subdivision_code": "91",
+    "subdivision_name": "Amazonas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "97511000",
+    "name": "Pacoa",
+    "subdivision_code": "97",
+    "subdivision_name": "Vaupés",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17513000",
+    "name": "Pacora",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19513000",
+    "name": "Padilla",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15514000",
+    "name": "Paez",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41518000",
+    "name": "Paicol",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20517000",
+    "name": "Pailitas",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27600000",
+    "name": "Paimadó",
+    "subdivision_code": "27",
+    "subdivision_name": "Chocó",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25518000",
+    "name": "Paime",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15516000",
+    "name": "Paipa",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19760000",
+    "name": "Paispamba Sotara",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15518000",
+    "name": "Pajarito",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41524000",
+    "name": "Palermo",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41530000",
+    "name": "Palestina",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17524000",
+    "name": "Palestina",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68522000",
+    "name": "Palmar",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08520000",
+    "name": "Palmar de Varela",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68524000",
+    "name": "Palmas Del Socorro",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76520000",
+    "name": "Palmira",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70523000",
+    "name": "Palmito",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73520000",
+    "name": "Palocabildo",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54518000",
+    "name": "Pamplona",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54520000",
+    "name": "Pamplonita",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25524000",
+    "name": "Pandi",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15522000",
+    "name": "Panqueba",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68533000",
+    "name": "Paramo",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25530000",
+    "name": "Paratebueno",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25535000",
+    "name": "Pasca",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52001000",
+    "name": "Pasto",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15531000",
+    "name": "Pauna",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15533000",
+    "name": "Paya",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyacá",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52427000",
+    "name": "Payán",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85250000",
+    "name": "Paz de Ariporo",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15537000",
+    "name": "Paz de Rio",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47541000",
+    "name": "PEDRAZA",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20550000",
+    "name": "Pelaya",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17541000",
+    "name": "Pensilvania",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05543000",
+    "name": "Peque",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66001000",
+    "name": "Pereira",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15542000",
+    "name": "Pesca",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19533000",
+    "name": "Piamonte",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68547000",
+    "name": "Piedecuesta",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52435000",
+    "name": "Piedrahancha",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73547000",
+    "name": "Piedras",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19548000",
+    "name": "Piendamo",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "63548000",
+    "name": "Pijao",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47545000",
+    "name": "Pijiño del Carmen",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68549000",
+    "name": "Pinchote",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13549000",
+    "name": "Pinillos",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolívar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08549000",
+    "name": "Piojo",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15550000",
+    "name": "Pisba",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyacá",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41548000",
+    "name": "Pital",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41551000",
+    "name": "Pitalito",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47551000",
+    "name": "Pivijay",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73555000",
+    "name": "Planadas",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23555000",
+    "name": "Planeta Rica",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47555000",
+    "name": "Plato",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52540000",
+    "name": "Policarpa",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08558000",
+    "name": "Polonuevo",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08560000",
+    "name": "Ponedera",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19001000",
+    "name": "Popayan",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85263000",
+    "name": "Pore",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52560000",
+    "name": "Potosi",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76563000",
+    "name": "Pradera",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73563000",
+    "name": "Prado",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47980000",
+    "name": "Prado Sevilla",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "88564000",
+    "name": "Providencia",
+    "subdivision_code": "88",
+    "subdivision_name": "San Andres y Providencia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52565000",
+    "name": "Providencia",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20570000",
+    "name": "Pueblo Bello",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23570000",
+    "name": "Pueblo Nuevo",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66572000",
+    "name": "Pueblo Rico",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05576000",
+    "name": "Pueblorrico",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47570000",
+    "name": "Puebloviejo",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68572000",
+    "name": "Puente Nacional",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52573000",
+    "name": "Puerres",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "91530000",
+    "name": "Puerto Alegría",
+    "subdivision_code": "91",
+    "subdivision_name": "Amazonas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "91536000",
+    "name": "Puerto Arica",
+    "subdivision_code": "91",
+    "subdivision_name": "Amazonas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86568000",
+    "name": "Puerto Asis",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05579000",
+    "name": "Puerto Berrio",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15572000",
+    "name": "Puerto Boyaca",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86569000",
+    "name": "Puerto Caicedo",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "99001000",
+    "name": "Puerto Carreño",
+    "subdivision_code": "99",
+    "subdivision_name": "Vichada",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08573000",
+    "name": "Puerto Colombia",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "94884000",
+    "name": "Puerto Colombia",
+    "subdivision_code": "94",
+    "subdivision_name": "Guainía",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50450000",
+    "name": "Puerto Concordia",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23574000",
+    "name": "Puerto Escondido",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50568000",
+    "name": "Puerto Gaitan",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86571000",
+    "name": "Puerto Guzman",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86573000",
+    "name": "Puerto Leguizamo",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23580000",
+    "name": "Puerto Libertador",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50577000",
+    "name": "Puerto Lleras",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50573000",
+    "name": "Puerto Lopez",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27430000",
+    "name": "Puerto Meluk",
+    "subdivision_code": "27",
+    "subdivision_name": "Chocó",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05585000",
+    "name": "Puerto Nare",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "91540000",
+    "name": "Puerto Nariño",
+    "subdivision_code": "91",
+    "subdivision_name": "Amazonas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68573000",
+    "name": "Puerto Parra",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50590000",
+    "name": "Puerto Rico",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18592000",
+    "name": "Puerto Rico",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13810000",
+    "name": "Puerto Rico Tiquisio",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "81591000",
+    "name": "Puerto Rondon",
+    "subdivision_code": "81",
+    "subdivision_name": "Arauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25572000",
+    "name": "Puerto Salgar",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54553000",
+    "name": "Puerto Santander",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "91669000",
+    "name": "Puerto Santander",
+    "subdivision_code": "91",
+    "subdivision_name": "Amazonas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19573000",
+    "name": "Puerto Tejada",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05591000",
+    "name": "Puerto Triunfo",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68575000",
+    "name": "Puerto Wilches",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25580000",
+    "name": "Puli",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52585000",
+    "name": "Pupiales",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73585000",
+    "name": "Purificacion",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23586000",
+    "name": "Purisima",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25592000",
+    "name": "Quebradanegra",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25594000",
+    "name": "Quetame",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27001000",
+    "name": "Quibdo",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "SUSPENDED",
+    "service_unavailable_message": "La población actualmente se encuentra inactiva por situaciones logísticas recientes que generan retrasos en las entregas de pedidos."
+  },
+  {
+    "code": "63594000",
+    "name": "Quimbaya",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66594000",
+    "name": "Quinchia",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15580000",
+    "name": "Quipama",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25596000",
+    "name": "Quipile",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54599000",
+    "name": "Ragonvalia",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15599000",
+    "name": "Ramiriqui",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15600000",
+    "name": "Raquira",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85279000",
+    "name": "Recetor",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13580000",
+    "name": "Regidor",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05604000",
+    "name": "Remedios",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47605000",
+    "name": "Remolino",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08606000",
+    "name": "Repelon",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76606000",
+    "name": "Restrepo",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50606000",
+    "name": "Restrepo",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05607000",
+    "name": "Retiro",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25612000",
+    "name": "Ricaurte",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52612000",
+    "name": "Ricaurte",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70204000",
+    "name": "Ricaurte -coloso",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20614000",
+    "name": "Rio de Oro",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76616000",
+    "name": "Rio Frio",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13600000",
+    "name": "Rio Viejo",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73616000",
+    "name": "Rioblanco",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44001000",
+    "name": "Riohacha",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68615000",
+    "name": "Rionegro",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05615000",
+    "name": "Rionegro",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17614000",
+    "name": "Riosucio",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27615000",
+    "name": "Riosucio",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17616000",
+    "name": "Risaralda",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41615000",
+    "name": "Rivera",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76622000",
+    "name": "Roldanillo",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73622000",
+    "name": "Roncesvalles",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15621000",
+    "name": "Rondon",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19622000",
+    "name": "Rosas",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73624000",
+    "name": "Rovira",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68655000",
+    "name": "Sabana de Torres",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08634000",
+    "name": "Sabanagrande",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05628000",
+    "name": "Sabanalarga",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85300000",
+    "name": "Sabanalarga",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08638000",
+    "name": "Sabanalarga",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47660000",
+    "name": "Sabanas de San Angel",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05631000",
+    "name": "Sabaneta",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15632000",
+    "name": "Saboya",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85315000",
+    "name": "Sácama",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15638000",
+    "name": "Sachica",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23660000",
+    "name": "Sahagun",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41660000",
+    "name": "Salado Blanco",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52520000",
+    "name": "Salahonda",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17653000",
+    "name": "Salamina",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47675000",
+    "name": "Salamina",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54660000",
+    "name": "Salazar",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73671000",
+    "name": "Saldana",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "63690000",
+    "name": "Salento",
+    "subdivision_code": "63",
+    "subdivision_name": "Quindio",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05642000",
+    "name": "Salgar",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15646000",
+    "name": "Samaca",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17662000",
+    "name": "Samana",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52678000",
+    "name": "Samaniego",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70670000",
+    "name": "Sampues",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41668000",
+    "name": "San Agustin",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20710000",
+    "name": "San Alberto",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68669000",
+    "name": "San Andres",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05647000",
+    "name": "San Andres de Cuerquia",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23670000",
+    "name": "San Andres de Sotavento",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "88001000",
+    "name": "San Andres Isla",
+    "subdivision_code": "88",
+    "subdivision_name": "San Andres y Providencia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25645000",
+    "name": "San Ant de Tequen",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23672000",
+    "name": "San Antero",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73675000",
+    "name": "San Antonio",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68673000",
+    "name": "San Benito",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70678000",
+    "name": "San Benito Abad",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52685000",
+    "name": "San Bernardo",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25649000",
+    "name": "San Bernardo",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23675000",
+    "name": "San Bernardo del Viento",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54670000",
+    "name": "San Calixto",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05649000",
+    "name": "San Carlos",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23678000",
+    "name": "San Carlos",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50680000",
+    "name": "San Carlos de Guaroa",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54673000",
+    "name": "San Cayetano",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13620000",
+    "name": "San Cristóbal",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolívar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20750000",
+    "name": "San Diego",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15660000",
+    "name": "San Eduardo",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13647000",
+    "name": "San Estanislao",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "94883000",
+    "name": "San Felipe",
+    "subdivision_code": "94",
+    "subdivision_name": "Guainía",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13650000",
+    "name": "San Fernando",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05652000",
+    "name": "San Francisco",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25658000",
+    "name": "San Francisco",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86755000",
+    "name": "San Francisco",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68679000",
+    "name": "San Gil",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13654000",
+    "name": "San Jacinto",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13655000",
+    "name": "San Jacinto Del Cauca",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolívar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05656000",
+    "name": "San Jeronimo",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68682000",
+    "name": "San Joaquin",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17665000",
+    "name": "San Jose",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52621000",
+    "name": "San José",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52019000",
+    "name": "San Jose de Alban",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41359000",
+    "name": "San Jose de Isnos",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05658000",
+    "name": "San Jose de la Montaña",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68684000",
+    "name": "San Jose de Miranda",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15664000",
+    "name": "San Jose de Pare",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23682000",
+    "name": "San Jose de Ure",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18610000",
+    "name": "San Jose del Fragua",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "95001000",
+    "name": "San Jose del Guaviare",
+    "subdivision_code": "95",
+    "subdivision_name": "Guaviare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27660000",
+    "name": "SAN JOSE DEL PALMAR",
+    "subdivision_code": "27",
+    "subdivision_name": "Chocó",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50683000",
+    "name": "San Juan de Arama",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70702000",
+    "name": "San Juan de Betulia",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25662000",
+    "name": "San Juan de Rioseco",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05659000",
+    "name": "San Juan de Uraba",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44650000",
+    "name": "San Juan del Cesar",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13657000",
+    "name": "San Juan Nepomuceno",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50686000",
+    "name": "San Juanito",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52687000",
+    "name": "San Lorenzo",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05660000",
+    "name": "San Luis",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73678000",
+    "name": "San Luis",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15667000",
+    "name": "San Luis de Gaceno",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85325000",
+    "name": "San Luis de Palenque",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70708000",
+    "name": "San Marcos",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20770000",
+    "name": "San Martin",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50689000",
+    "name": "San Martin",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13667000",
+    "name": "San Martin de Loba",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15673000",
+    "name": "San Mateo",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68686000",
+    "name": "San Miguel",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15676000",
+    "name": "San Miguel de Sema",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70713000",
+    "name": "San Onofre",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13670000",
+    "name": "San Pablo",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52693000",
+    "name": "San Pablo",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15681000",
+    "name": "San Pablo de Borbur",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76670000",
+    "name": "San Pedro",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70717000",
+    "name": "San Pedro",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76670000",
+    "name": "San Pedro",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle Del Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52694000",
+    "name": "San Pedro de Cartago",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05664000",
+    "name": "San Pedro de los Milagros",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05665000",
+    "name": "San Pedro de Uraba",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23686000",
+    "name": "San Pelayo",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05667000",
+    "name": "San Rafael",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05670000",
+    "name": "San Roque",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47692000",
+    "name": "San Sebast de Buenavi",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19693000",
+    "name": "San Sebastian",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05674000",
+    "name": "San Vicente",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68689000",
+    "name": "San Vicente de Chucuri",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18753000",
+    "name": "San Vicente del Caguan",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47703000",
+    "name": "San Zenon",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52683000",
+    "name": "Sandona",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47707000",
+    "name": "Santa Ana",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05679000",
+    "name": "Santa Barbara",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68705000",
+    "name": "Santa Bárbara",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47720000",
+    "name": "Santa Barbara de Pinto",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13673000",
+    "name": "Santa Catalina",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05042000",
+    "name": "Santa Fe de Antioquia",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "SUSPENDED",
+    "service_unavailable_message": "Ciudad temporalmente fuera de servicio por dificultades logísticas"
+  },
+  {
+    "code": "27250000",
+    "name": "Santa Genoveva De Docordó",
+    "subdivision_code": "27",
+    "subdivision_name": "Chocó",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68720000",
+    "name": "Santa Helena del Opon",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73686000",
+    "name": "Santa Isabel",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08675000",
+    "name": "Santa Lucia",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41676000",
+    "name": "Santa Maria",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15690000",
+    "name": "Santa Maria",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47001000",
+    "name": "Santa Marta",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19701000",
+    "name": "Santa Rosa",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66682000",
+    "name": "Santa Rosa de Cabal",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66382000",
+    "name": "Santa rosa de cabal - old",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13683000",
+    "name": "Santa Rosa De Lima",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolívar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05686000",
+    "name": "Santa Rosa de Osos",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15693000",
+    "name": "Santa Rosa de Viterbo",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13688000",
+    "name": "Santa Rosa del Sur",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "99624000",
+    "name": "Santa Rosalia",
+    "subdivision_code": "99",
+    "subdivision_name": "Vichada",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15696000",
+    "name": "Santa Sofia",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15686000",
+    "name": "Santana",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19698000",
+    "name": "Santander de Quilichao",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54680000",
+    "name": "Santiago",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86760000",
+    "name": "Santiago",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05690000",
+    "name": "Santo Domingo",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08685000",
+    "name": "Santo Tomas",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "66687000",
+    "name": "Santuario",
+    "subdivision_code": "66",
+    "subdivision_name": "Risaralda",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52720000",
+    "name": "Sapuyes",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "81736000",
+    "name": "Saravena",
+    "subdivision_code": "81",
+    "subdivision_name": "Arauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54720000",
+    "name": "Sardinata",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25718000",
+    "name": "Sasaima",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15720000",
+    "name": "Sativanorte",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15723000",
+    "name": "Sativasur",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05736000",
+    "name": "Segovia",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25736000",
+    "name": "Sesquile",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76736000",
+    "name": "Sevilla",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15740000",
+    "name": "Siachoque",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25740000",
+    "name": "Sibate",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86749000",
+    "name": "Sibundoy",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54743000",
+    "name": "Silos",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25743000",
+    "name": "Silvania",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19743000",
+    "name": "Silvia",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68745000",
+    "name": "Simacota",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25745000",
+    "name": "Simijaca",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13744000",
+    "name": "Simiti",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70742000",
+    "name": "Since",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70001000",
+    "name": "Sincelejo",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27745000",
+    "name": "Sipi",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47745000",
+    "name": "Sitio Nuevo",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25754000",
+    "name": "Soacha",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15753000",
+    "name": "Soata",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15757000",
+    "name": "Socha",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68755000",
+    "name": "Socorro",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15755000",
+    "name": "Socota",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15759000",
+    "name": "Sogamoso",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18756000",
+    "name": "Solano",
+    "subdivision_code": "18",
+    "subdivision_name": "Caquetá",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08758000",
+    "name": "Soledad",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18785000",
+    "name": "Solita",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15761000",
+    "name": "Somondoco",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05756000",
+    "name": "Sonson",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05761000",
+    "name": "Sopetran",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13760000",
+    "name": "Soplaviento",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25758000",
+    "name": "Sopo",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15762000",
+    "name": "Sora",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15764000",
+    "name": "Soraca",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15763000",
+    "name": "Sotaquirá",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52418000",
+    "name": "Sotomayor",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68770000",
+    "name": "Suaita",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08770000",
+    "name": "Suan",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73770000",
+    "name": "Suarez",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19780000",
+    "name": "Suarez",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41770000",
+    "name": "Suaza",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "11040000",
+    "name": "Suba",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25769000",
+    "name": "Subachoque",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70771000",
+    "name": "Sucre",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68773000",
+    "name": "Sucre",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25772000",
+    "name": "Suesca",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25777000",
+    "name": "Supata",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17777000",
+    "name": "Supia",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68780000",
+    "name": "Suratá",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25779000",
+    "name": "Susa",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15774000",
+    "name": "Susacon",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15776000",
+    "name": "Sutamarchan",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25781000",
+    "name": "Sutatausa",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15778000",
+    "name": "Sutatenza",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25785000",
+    "name": "Tabio",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27787000",
+    "name": "Tado",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13780000",
+    "name": "Talaigua Nuevo",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20787000",
+    "name": "Tamalameque",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85400000",
+    "name": "Tamara",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "81794000",
+    "name": "Tame",
+    "subdivision_code": "81",
+    "subdivision_name": "Arauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05789000",
+    "name": "Tamesis",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52786000",
+    "name": "Taminango",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52788000",
+    "name": "Tangua",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "97666000",
+    "name": "Taraira",
+    "subdivision_code": "97",
+    "subdivision_name": "Vaupés",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "91798000",
+    "name": "Tarapacá",
+    "subdivision_code": "91",
+    "subdivision_name": "Amazonas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05790000",
+    "name": "Taraza",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41791000",
+    "name": "Tarqui",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05792000",
+    "name": "Tarso",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15790000",
+    "name": "Tasco",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85410000",
+    "name": "Tauramena",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25793000",
+    "name": "Tausa",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41799000",
+    "name": "Tello",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25797000",
+    "name": "Tena",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "47798000",
+    "name": "Tenerife",
+    "subdivision_code": "47",
+    "subdivision_name": "Magdalena",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25799000",
+    "name": "Tenjo",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15798000",
+    "name": "Tenza",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54800000",
+    "name": "Teorama",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41801000",
+    "name": "Teruel",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41797000",
+    "name": "Tesalia",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25805000",
+    "name": "Tibacuy",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15804000",
+    "name": "Tibana",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15806000",
+    "name": "Tibasosa",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25807000",
+    "name": "Tibirita",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54810000",
+    "name": "Tibu",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23807000",
+    "name": "Tierra Alta",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41807000",
+    "name": "Timana",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19807000",
+    "name": "Timbio",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19809000",
+    "name": "Timbiqui",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15808000",
+    "name": "Tinjaca",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15810000",
+    "name": "Tipacoque",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05809000",
+    "name": "Titiribi",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15814000",
+    "name": "Toca",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25815000",
+    "name": "Tocaima",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25817000",
+    "name": "Tocancipa",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15816000",
+    "name": "Togui",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54820000",
+    "name": "Toledo",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05819000",
+    "name": "Toledo",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70820000",
+    "name": "Tolu",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "70823000",
+    "name": "Tolu Viejo",
+    "subdivision_code": "70",
+    "subdivision_name": "Sucre",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68820000",
+    "name": "Tona",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15820000",
+    "name": "Topaga",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25823000",
+    "name": "Topaipi",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19821000",
+    "name": "Toribio",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76823000",
+    "name": "Toro",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15822000",
+    "name": "Tota",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19824000",
+    "name": "Totoro",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85430000",
+    "name": "Trinidad",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76828000",
+    "name": "Trujillo",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08832000",
+    "name": "Tubara",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23815000",
+    "name": "Tuchin",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76834000",
+    "name": "Tulua",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52835000",
+    "name": "Tumaco",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15001000",
+    "name": "Tunja",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15832000",
+    "name": "Tunungua",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52838000",
+    "name": "Tuquerres",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13836000",
+    "name": "Turbaco",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13838000",
+    "name": "Turbana",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05837000",
+    "name": "Turbo",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15835000",
+    "name": "Turmeque",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15837000",
+    "name": "Tuta",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15839000",
+    "name": "Tutaza",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25839000",
+    "name": "Ubala",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25841000",
+    "name": "Ubaque",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25843000",
+    "name": "Ubate",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76845000",
+    "name": "Ulloa",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15842000",
+    "name": "Umbita",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25845000",
+    "name": "Une",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27800000",
+    "name": "Unguia",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05842000",
+    "name": "Uramita",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50370000",
+    "name": "Uribe",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44847000",
+    "name": "Uribia",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05847000",
+    "name": "Urrao",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44855000",
+    "name": "Urumita",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "08849000",
+    "name": "Usiacuri",
+    "subdivision_code": "08",
+    "subdivision_name": "Atlantico",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25851000",
+    "name": "Utica",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05854000",
+    "name": "Valdivia",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "23855000",
+    "name": "Valencia",
+    "subdivision_code": "23",
+    "subdivision_name": "Cordoba",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68855000",
+    "name": "Valle de San Jose",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73854000",
+    "name": "Valle de San Juan",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "20001000",
+    "name": "Valledupar",
+    "subdivision_code": "20",
+    "subdivision_name": "Cesar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05856000",
+    "name": "Valparaiso",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "18860000",
+    "name": "Valparaiso",
+    "subdivision_code": "18",
+    "subdivision_name": "Caqueta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05858000",
+    "name": "Vegachi",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68861000",
+    "name": "Velez",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73861000",
+    "name": "Venadillo",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25506000",
+    "name": "Venecia",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05861000",
+    "name": "Venecia",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15861000",
+    "name": "Ventaquemada",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25862000",
+    "name": "Vergara",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76863000",
+    "name": "Versalles",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68867000",
+    "name": "Vetas",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25867000",
+    "name": "Viani",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17867000",
+    "name": "Victoria",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05873000",
+    "name": "Vigía Del Fuerte",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76869000",
+    "name": "Vijes",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54871000",
+    "name": "Villa Caro",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15407000",
+    "name": "Villa de Leyva",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "54874000",
+    "name": "Villa del Rosario",
+    "subdivision_code": "54",
+    "subdivision_name": "Norte de Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73873000",
+    "name": "Villa Rica",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "19845000",
+    "name": "Villa Rica",
+    "subdivision_code": "19",
+    "subdivision_name": "Cauca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41872000",
+    "name": "Villa Vieja",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "86885000",
+    "name": "Villagarzon",
+    "subdivision_code": "86",
+    "subdivision_name": "Putumayo",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25871000",
+    "name": "Villagomez",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "73870000",
+    "name": "Villahermosa",
+    "subdivision_code": "73",
+    "subdivision_name": "Tolima",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17873000",
+    "name": "Villamaria",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68872000",
+    "name": "Villanueva",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13873000",
+    "name": "Villanueva",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "44874000",
+    "name": "Villanueva",
+    "subdivision_code": "44",
+    "subdivision_name": "La Guajira",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85440000",
+    "name": "Villanueva",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25873000",
+    "name": "Villapinzon",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50001000",
+    "name": "Villavicencio",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25875000",
+    "name": "Villeta",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25878000",
+    "name": "Viota",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15879000",
+    "name": "Viracacha",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "50711000",
+    "name": "Vista Hermosa",
+    "subdivision_code": "50",
+    "subdivision_name": "Meta",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "17877000",
+    "name": "Viterbo",
+    "subdivision_code": "17",
+    "subdivision_name": "Caldas",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25885000",
+    "name": "Yacopi",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "52885000",
+    "name": "Yacuanquer",
+    "subdivision_code": "52",
+    "subdivision_name": "Nariño",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "41885000",
+    "name": "Yaguara",
+    "subdivision_code": "41",
+    "subdivision_name": "Huila",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05885000",
+    "name": "Yali",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05887000",
+    "name": "Yarumal",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "97889000",
+    "name": "Yavaraté",
+    "subdivision_code": "97",
+    "subdivision_name": "Vaupés",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05890000",
+    "name": "Yolombo",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05893000",
+    "name": "Yondo Casabe",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "85001000",
+    "name": "Yopal",
+    "subdivision_code": "85",
+    "subdivision_name": "Casanare",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76890000",
+    "name": "Yotoco",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76892000",
+    "name": "Yumbo",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "27050000",
+    "name": "Yuto",
+    "subdivision_code": "27",
+    "subdivision_name": "Choco",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "13894000",
+    "name": "Zambrano",
+    "subdivision_code": "13",
+    "subdivision_name": "Bolivar",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "68895000",
+    "name": "Zapatoca",
+    "subdivision_code": "68",
+    "subdivision_name": "Santander",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "05895000",
+    "name": "Zaragoza",
+    "subdivision_code": "05",
+    "subdivision_name": "Antioquia",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "76895000",
+    "name": "Zarzal",
+    "subdivision_code": "76",
+    "subdivision_name": "Valle",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "15897000",
+    "name": "Zetaquira",
+    "subdivision_code": "15",
+    "subdivision_name": "Boyaca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25898000",
+    "name": "Zipacon",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  },
+  {
+    "code": "25899000",
+    "name": "Zipaquira",
+    "subdivision_code": "25",
+    "subdivision_name": "Cundinamarca",
+    "service_status": "ACTIVE"
+  }
+]

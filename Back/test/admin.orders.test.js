@@ -20,7 +20,7 @@ test("el detalle traduce el estado del proveedor y nunca expone el crudo", () =>
     orderNumber: "UPBUY-2026-000001",
     fulfillmentStatus: "pending_payment",
     paymentState: "unpaid",
-    provider: "vendelo",
+    provider: "dropi",
     providerOrderId: "V-9001",
     providerStatus: "pending",
     providerOutOfSync: true,
@@ -30,7 +30,7 @@ test("el detalle traduce el estado del proveedor y nunca expone el crudo", () =>
   const data = decorateAdminOrder(order, [
     {
       id: "log-1",
-      provider: "vendelo",
+      provider: "dropi",
       direction: "in",
       attempt: 2,
       ok: false,
@@ -42,7 +42,7 @@ test("el detalle traduce el estado del proveedor y nunca expone el crudo", () =>
   assert.equal("providerStatus" in data, false);
   assert.equal(JSON.stringify(data).includes("pending\""), false);
 
-  assert.equal(data.providerSync.provider, "vendelo");
+  assert.equal(data.providerSync.provider, "dropi");
   assert.equal(data.providerSync.providerOrderId, "V-9001");
   assert.equal(data.providerSync.fulfillmentStatus, "pending_payment");
   assert.equal(data.providerSync.fulfillmentLabel, "Pendiente de pago");

@@ -20,7 +20,6 @@ import type { DashboardProvider, DashboardSummary } from "@/types/admin";
 export const dynamic = "force-dynamic";
 
 const PROVIDER_LABELS: Record<string, string> = {
-  vendelo: "Vendelo",
   dropi: "Dropi",
 };
 

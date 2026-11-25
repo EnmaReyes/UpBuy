@@ -20,6 +20,7 @@ const {
   SALE_CHANNEL,
   SALE_CHANNEL_VALUES,
   PAYMENT_METHOD_VALUES,
+  PROVIDER_VALUES,
   STATUS_SOURCE,
 } = require("../DataBase/models/enums.js");
 const { releaseOrderStock, restoreOrderStock } = require("./orders.js");
@@ -132,7 +133,7 @@ const buildOrderWhere = ({
   }
 
   if (provider) {
-    if (!["vendelo", "dropi"].includes(provider)) {
+    if (!PROVIDER_VALUES.includes(provider)) {
       throw new HttpError(400, "Proveedor inválido");
     }
     where.provider = provider;
@@ -776,7 +777,6 @@ const CSV_CHANNEL_LABELS = {
 
 const CSV_PAYMENT_CODE_LABELS = {
   wompi: "Wompi",
-  vendelo: "Vendelo",
   cod_dropi: "Contra entrega (Dropi)",
   cod_vendelo: "Contra entrega (Vendelo)",
 };
