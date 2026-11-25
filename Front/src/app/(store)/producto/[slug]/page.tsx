@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, RefreshCcw, ShieldCheck, Truck } from "lucide-react";
 import { ProductCard } from "@/components/products/ProductCard";
+import { ProductDescription } from "@/components/products/ProductDescription";
 import { ProductGallery } from "@/components/products/ProductGallery";
 import { ProductPurchasePanel } from "@/components/products/ProductPurchasePanel";
 import { ProductVideosReels } from "@/components/products/ProductVideosReels";
@@ -212,9 +213,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 </p>
 
                 {product.description ? (
-                  <p className="mt-5 text-sm leading-relaxed text-coffee-deep sm:text-base">
-                    {product.description}
-                  </p>
+                  <ProductDescription
+                    description={product.description}
+                    className="mt-5"
+                  />
                 ) : null}
 
                 <ProductPurchasePanel
