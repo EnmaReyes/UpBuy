@@ -5,6 +5,7 @@ import { ChevronRight, RefreshCcw, ShieldCheck, Truck } from "lucide-react";
 import { ProductCard } from "@/components/products/ProductCard";
 import { ProductGallery } from "@/components/products/ProductGallery";
 import { ProductPurchasePanel } from "@/components/products/ProductPurchasePanel";
+import { ProductVideosReels } from "@/components/products/ProductVideosReels";
 import { CatalogUnavailable } from "@/components/products/CatalogStates";
 import { Reveal } from "@/components/shared/Reveal";
 import { formatPrice } from "@/lib/format";
@@ -157,6 +158,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               <ProductGallery
                 productName={product.name}
                 images={getImageUrls(product.images)}
+                orientation="vertical"
               />
             </div>
 
@@ -313,6 +315,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
         </div>
       </section>
+
+      <div className="container-page pb-10">
+        <ProductVideosReels urls={product.promotionVideos ?? []} />
+      </div>
 
       {related.length > 0 ? (
         <section className="border-t border-border bg-background py-16 sm:py-20">

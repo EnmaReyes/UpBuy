@@ -13,12 +13,14 @@ export function SafeImage({
   className,
   fallback = null,
   eager = false,
+  onLoad,
 }: {
   src: string | null | undefined;
   alt: string;
   className?: string;
   fallback?: React.ReactNode;
   eager?: boolean;
+  onLoad?: React.ReactEventHandler<HTMLImageElement>;
 }) {
   const [failed, setFailed] = useState(false);
 
@@ -37,6 +39,7 @@ export function SafeImage({
       src={src}
       alt={alt}
       loading={eager ? "eager" : "lazy"}
+      onLoad={onLoad}
       onError={() => setFailed(true)}
       className={className}
     />

@@ -194,6 +194,12 @@ const createProduct = async ({ patch = {}, uid = null, ip = null } = {}) => {
 
   const images = normalizeCreateImages(patch.images);
   const sizes = normalizeSizes(patch.sizes);
+  const promotionVideos = Array.isArray(patch.promotionVideos)
+    ? patch.promotionVideos
+        .map((v) => String(v || "").trim())
+        .filter(Boolean)
+        .slice(0, 10)
+    : [];
   const currency = normalizeCurrency(patch.currency);
   const categoryIds = Array.isArray(patch.categoryIds) ? patch.categoryIds : [];
 

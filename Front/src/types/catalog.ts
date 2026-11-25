@@ -24,6 +24,7 @@ export type PublicProduct = {
   name: string;
   description: string | null;
   images: ProductImageRef[];
+  promotionVideos?: string[];
   /** Precio final (ya con descuento aplicado). Entero en COP. */
   price: number;
   /** Precio base antes del descuento. Entero en COP. */

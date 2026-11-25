@@ -49,6 +49,27 @@ const MS_SYNC_STATE = {
 const MASTERSHOP_COUNTRY = "CO";
 const MASTERSHOP_CURRENCY = "COP";
 
+// Confirmado contra la API real (2026-11-24): first_name/last_name NO admiten
+// null ni cadena vacia; exigen "solo letras y espacios". UpBuy no captura el
+// nombre separado, asi que se deriva del recipientName congelado. Si no hay
+// nombre, queda vacio y MasterShop lo rechaza con 400 -> needs_review (alerta
+// accionable), en vez de inventar un dato del cliente.
+const splitName = (fullName) => {
+  const parts = String(fullName || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return {
+    first_name: parts[0] || "",
+    last_name: parts.slice(1).join(" ") || parts[0] || "",
+  };
+};
+
+// TODO: confirmar con api@mastershop.com cual de las opciones validas
+// (`cod` | `pia`) corresponde a un pago online confirmado por Wompi. La API
+// rechaza cualquier otro valor (incluido "Wompi"/"Tarjeta") con 400.
+const MASTERSHOP_PAYMENT_METHOD = "pia";
+
 // Umbral de alarma: si mas de este porcentaje de intentos fallan en la
 // ventana, se loguea ERROR para que el operador revise el proveedor.
 const FAILURE_RATE_THRESHOLD = 0.5;
@@ -88,29 +109,33 @@ const redactObject = (obj) => {
 
 // Convierte el addressSnapshot congelado de la orden a las 11 llaves que
 // MasterShop exige (pueden ser null, nunca ausentes).
-const mapAddress = (snapshot = {}) => ({
-  zip: snapshot.postalCode || null,
-  country: MASTERSHOP_COUNTRY,
-  city: snapshot.city || null,
-  address1: snapshot.address || null,
-  address2: null,
-  full_name: snapshot.recipientName || null,
-  first_name: null,
-  last_name: null,
-  phone: snapshot.phone || null,
-  company: null,
-  state: snapshot.department || null,
-  district: null,
-});
+const mapAddress = (snapshot = {}) => {
+  const names = splitName(snapshot.recipientName);
+  return {
+    zip: snapshot.postalCode || null,
+    country: MASTERSHOP_COUNTRY,
+    city: snapshot.city || null,
+    address1: snapshot.address || null,
+    address2: null,
+    full_name: snapshot.recipientName || null,
+    first_name: names.first_name,
+    last_name: names.last_name,
+    phone: snapshot.phone || null,
+    company: null,
+    state: snapshot.department || null,
+    district: null,
+  };
+};
 
 // Datos del comprador. documentType/documentNumber no se capturan hoy:
 // MasterShop acepta ambos o ninguno, asi que van null/null.
 const mapCustomer = (snapshot = {}) => {
   const fullName = snapshot.recipientName || null;
+  const names = splitName(fullName);
   return {
     full_name: fullName,
-    first_name: null,
-    last_name: null,
+    first_name: names.first_name,
+    last_name: names.last_name,
     phone: snapshot.phone || null,
     email: snapshot.email || null,
     documentType: null,
@@ -146,7 +171,15 @@ const resolveOrderItems = async (orderItems) => {
       quantity: Number(item.quantity) || 1,
       sku: resolution.sku || item.providerSku || null,
       name: item.nameSnapshot || item.title || null,
-      weight: 0,
+      // La API real exige peso > 0. La Fase 1 guarda el peso de la variante
+      // en rawData; se usa ese, con un minimo seguro si el proveedor lo manda
+      // en 0 (por ejemplo la variante por defecto).
+      weight: Math.max(
+        Number(resolution.variation?.rawData?.weight) ||
+          Number(resolution.variation?.weight) ||
+          0.01,
+        0.01,
+      ),
       price: Number(item.unitPrice) || 0,
     });
   }
@@ -321,7 +354,8 @@ const syncPaidOrderToMastershop = async (reference) => {
     orderTransaction: {
       total: Number(order.total) || 0,
       currency: MASTERSHOP_CURRENCY,
-      payment_method: payment.paymentMethodType || "Wompi",
+      // Solo `cod` | `pia` son validos (confirmado contra la API real).
+      payment_method: MASTERSHOP_PAYMENT_METHOD,
       payment_gateway: "Wompi",
     },
     customer: mapCustomer(snapshot),

@@ -49,6 +49,15 @@ export function ArticuloNuevoForm({
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
+  const [promotionVideos, setPromotionVideos] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState("");
+
+  const toPlayableUrl = (url: string) => {
+    const match = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    return match
+      ? `https://drive.google.com/uc?export=download&id=${match[1]}`
+      : url;
+  };
   const [error, setError] = useState<string | null>(null);
 
   const addImage = () => {
@@ -72,6 +81,29 @@ export function ArticuloNuevoForm({
 
   const removeImage = (idx: number) => {
     setImages((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const addVideo = () => {
+    const url = videoUrl.trim();
+    if (!url) return;
+    if (promotionVideos.length >= 3) {
+      setError("El maximo es 3 videos por producto.");
+      return;
+    }
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "https:") throw new Error();
+    } catch {
+      setError("Cada video necesita una URL valida (https).");
+      return;
+    }
+    setError(null);
+    setPromotionVideos((prev) => [...prev, url]);
+    setVideoUrl("");
+  };
+
+  const removeVideo = (idx: number) => {
+    setPromotionVideos((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const toggleCategory = (id: string) => {
@@ -128,6 +160,7 @@ export function ArticuloNuevoForm({
       destacadas,
       descuentoPorcentaje: descuento === "" ? null : Number(descuento),
       images,
+      promotionVideos,
       categoryIds,
     };
 
@@ -378,6 +411,50 @@ export function ArticuloNuevoForm({
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-carbon">Material de promoción (videos, URLs)</span>
+        <div className="flex gap-2">
+          <input
+            className="h-10 flex-1 rounded-lg border border-coffee/30 px-3"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="https://drive.google.com/..."
+          />
+          <button
+            type="button"
+            onClick={addVideo}
+            className="inline-flex h-10 items-center gap-1 rounded-lg bg-carbon px-3 text-cream"
+          >
+            <Plus className="h-4 w-4" /> Agregar
+          </button>
+        </div>
+        <ul className="flex flex-col gap-2">
+          {promotionVideos.map((u, i) => (
+            <li key={`${u}-${i}`} className="flex flex-col gap-2 rounded-lg border border-coffee/20 p-3">
+              <div className="flex items-center gap-3">
+                <span className="min-w-0 flex-1 truncate text-xs text-coffee-deep">{u}</span>
+                <button
+                  type="button"
+                  onClick={() => removeVideo(i)}
+                  aria-label={`Eliminar video ${i + 1}`}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-md text-coffee-deep transition-colors hover:bg-terracotta/10 hover:text-terracotta focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:outline-none"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+              <div className="aspect-video w-full overflow-hidden rounded-md border border-coffee/15">
+                <iframe
+                  src={toPlayableUrl(u)}
+                  title={`Vista previa del video ${i + 1}`}
+                  className="h-full w-full"
+                  allow="autoplay"
+                />
+              </div>
             </li>
           ))}
         </ul>

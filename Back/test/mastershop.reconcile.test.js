@@ -88,6 +88,8 @@ test("mapAddress devuelve las 11 llaves y country=CO", () => {
   assert.equal(address.address2, null);
   assert.equal(address.district, null);
   assert.equal(address.company, null);
+  assert.equal(address.first_name, "Ana");
+  assert.equal(address.last_name, "Perez");
 });
 
 test("mapAddress con snapshot vacio deja todo null salvo country", () => {
@@ -107,6 +109,8 @@ test("mapCustomer no inventa documento (ambos null) y agrega tags", () => {
   assert.equal(customer.documentType, null);
   assert.equal(customer.documentNumber, null);
   assert.equal(customer.full_name, "Ana Perez");
+  assert.equal(customer.first_name, "Ana");
+  assert.equal(customer.last_name, "Perez");
   assert.ok(Array.isArray(customer.tags));
 });
 

@@ -120,6 +120,10 @@ export function ProductDrawer({
   const originalImages = useMemo(() => initialImages(product), [product]);
   const [images, setImages] = useState<string[]>(originalImages);
   const [newImage, setNewImage] = useState("");
+  const [promotionVideos, setPromotionVideos] = useState<string[]>(
+    product.promotionVideos ?? [],
+  );
+  const [newVideo, setNewVideo] = useState("");
   const [saving, setSaving] = useState(false);
   const [visibilityPending, setVisibilityPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -262,6 +266,7 @@ export function ProductDrawer({
         descuentoPorcentaje: discount,
         destacadas: form.featured,
         categoryIds: form.categoryIds,
+        promotionVideos,
       });
 
       if (imagesDirty) {
@@ -778,6 +783,58 @@ export function ProductDrawer({
                       {imageError}
                     </p>
                   ) : null}
+                </section>
+
+                <section className="flex flex-col gap-2" aria-labelledby="edit-videos">
+                  <h3 id="edit-videos" className="font-heading text-sm font-semibold text-carbon">
+                    Material de promoción (videos)
+                  </h3>
+                  <ul className="flex flex-col gap-2">
+                    {promotionVideos.map((url, index) => (
+                      <li key={`${url}-${index}`} className="flex items-center gap-2 rounded-lg border border-border bg-background p-2">
+                        <span className="min-w-0 flex-1 truncate text-xs text-coffee-deep">{url}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPromotionVideos((current) =>
+                              current.filter((_, i) => i !== index),
+                            )
+                          }
+                          disabled={!canWrite || saving}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-terracotta-deep hover:bg-terracotta/10 disabled:opacity-30"
+                          aria-label={`Quitar video ${index + 1}`}
+                        >
+                          <Trash2 aria-hidden="true" className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex gap-2">
+                    <input
+                      value={newVideo}
+                      onChange={(e) => setNewVideo(e.target.value)}
+                      placeholder="https://drive.google.com/..."
+                      disabled={!canWrite || saving || promotionVideos.length >= 3}
+                      className={`${fieldClass} min-w-0`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = newVideo.trim();
+                        if (!url || !/^https:\/\//i.test(url)) return;
+                        if (promotionVideos.includes(url)) return;
+                        if (promotionVideos.length >= 3) return;
+                        setPromotionVideos((current) => [...current, url]);
+                        setNewVideo("");
+                      }}
+                      disabled={!canWrite || saving || promotionVideos.length >= 3 || !newVideo.trim()}
+                      className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-semibold text-carbon transition-colors hover:border-carbon focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+                    >
+                      <Plus aria-hidden="true" className="h-4 w-4" />
+                      Añadir
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-coffee-deep">Máximo 3 videos. La previsualización se valida al guardar.</p>
                 </section>
 
                 <section className="flex flex-col gap-2" aria-labelledby="edit-visibility">

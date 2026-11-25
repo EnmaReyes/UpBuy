@@ -22,6 +22,7 @@ export type UpdateAdminProductPayload = {
   descuentoPorcentaje?: number | null;
   destacadas?: boolean;
   categoryIds?: string[];
+  promotionVideos?: string[];
 };
 
 export async function updateAdminProduct(

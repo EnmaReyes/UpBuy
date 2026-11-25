@@ -58,6 +58,13 @@ const Product = sequelize.define(
       allowNull: false,
       defaultValue: [],
     },
+    // URLs de "Material de Promocion" (videos, p.ej. Google Drive). Lista de
+    // strings. Se gestiona manualmente desde el panel admin.
+    promotionVideos: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: [],
+    },
     // Costo que paga Upbuy al proveedor (pesos COP, enteros).
     cost: {
       type: DataTypes.INTEGER,

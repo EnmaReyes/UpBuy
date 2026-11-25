@@ -474,6 +474,7 @@ const applySchema = async (transaction, state) => {
       name VARCHAR(255) NOT NULL,
       description TEXT,
       images JSONB NOT NULL DEFAULT '[]'::jsonb,
+       "promotionVideos" JSONB NOT NULL DEFAULT '[]'::jsonb,
       cost INTEGER NOT NULL DEFAULT 0,
       markup INTEGER NOT NULL DEFAULT 30,
       price INTEGER NOT NULL DEFAULT 0,
@@ -494,6 +495,10 @@ const applySchema = async (transaction, state) => {
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
       "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
     )`,
+    { transaction },
+  );
+  await sequelize.query(
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS "promotionVideos" JSONB NOT NULL DEFAULT '[]'::jsonb`,
     { transaction },
   );
   await sequelize.query(

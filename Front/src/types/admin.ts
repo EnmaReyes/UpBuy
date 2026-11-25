@@ -1074,6 +1074,7 @@ export type AdminProduct = {
   active: boolean;
   available: boolean;
   images: string[];
+  promotionVideos: string[];
   gallery: AdminProductImage[];
   categories: AdminProductCategory[];
   sizes?: string[];
@@ -1115,6 +1116,7 @@ export type AdminProductCreatePayload = {
   combo?: boolean;
   descuentoPorcentaje?: number | null;
   images?: string[];
+  promotionVideos?: string[];
   categoryIds?: string[];
   supplierId?: string | null;
   manualOverrides?: Record<string, boolean>;

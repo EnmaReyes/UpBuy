@@ -41,6 +41,7 @@ const publicShape = (product) => {
     name: json.name,
     description: json.description,
     images: toArray(json.images),
+    promotionVideos: toArray(json.promotionVideos),
     price: resultado.precioFinal,
     priceBase: resultado.precioOriginal,
     compareAtPrice: json.compareAtPrice ?? null,
@@ -363,6 +364,13 @@ const EDITABLE = {
   destacadas: (value) => Boolean(value),
   stock: (value) => Math.max(0, Math.trunc(Number(value) || 0)),
   sizes: (value) => (Array.isArray(value) ? value.map((s) => String(s).trim()).filter(Boolean) : []),
+  promotionVideos: (value) =>
+    Array.isArray(value)
+      ? value
+          .map((v) => String(v || "").trim())
+          .filter(Boolean)
+          .slice(0, 10)
+      : [],
   providerSku: (value) => (value ? String(value).trim().slice(0, 100) : null),
   descuentoPorcentaje: (value) => {
     if (value === null || value === "") return null;

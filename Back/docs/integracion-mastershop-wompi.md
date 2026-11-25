@@ -235,8 +235,42 @@ producción y **hay que cancelarlo**. Procedimiento:
 5. Registrar en el ticket: `idOrder`, fecha, monto, resultado de la
    cancelación.
 
-> **TODO: verificar con api@mastershop.com** cualquier caso borde antes de un
-> smoke test masivo (producto de variante única con `includeAllVariations`).
+### Resultado del intento del 2026-11-24 (importante)
+
+Ejecutado contra la API real dos veces (2026-11-24) con:
+
+| Intento | `idProduct` | `idVariant` | SKU | Precio usado | Resultado |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 70255 | 153076 | `""` | 19.500 (precio venta UpBuy) | 500 opaco |
+| 2 | 266536 | 748819 | `A544` | 36.500 (precio real proveedor) | 500 opaco |
+
+**No se creó ningún pedido**: la API devolvió 400 en la primera validación y
+después un 500 opaco (`Código 400 - Request failed with status code 400 -
+Error interno del servidor`, `data: null`). Al no haberse creado el pedido, no
+hubo que cancelar nada. Al repetir con otro producto, variante, SKU y precio
+reales el error es el mismo, así que **no es específico del producto**.
+
+La validación 400 sí reveló detalles del contrato que el Anexo A no indicaba y
+que **ya están corregidos en el código**:
+
+| Campo | Comportamiento real | Ajuste aplicado |
+| --- | --- | --- |
+| `shipping_address.first_name` / `last_name` | No admiten `null` ni `""`; exigen solo letras y espacios | Se derivan de `addressSnapshot.recipientName` (`splitName`) |
+| `customer.first_name` / `last_name` | Igual | Igual |
+| `order_items[].weight` | Debe ser > 0 | Se toma el peso de la variante de la Fase 1 (mín. 0.01) |
+| `order_transaction.payment_method` | Solo `cod` \| `pia`; rechaza `Wompi`/`Tarjeta` | Se fija `pia` — **TODO: confirmar con api@mastershop.com** |
+
+Queda abierto el 500 interno de MasterShop: el proveedor no devuelve `data[]`
+con el detalle y ocurre con productos distintos. Hipótesis a confirmar: la
+llave actual tiene **alcance solo de catálogo** (lectura) y no permisos de
+creación de pedidos, o hay un fallo interno del endpoint `POST /api/orders`.
+Dado que UpBuy cobra con Wompi fuera de MasterShop (la API del proveedor no
+conecta con la pasarela), conviene confirmar con `api@mastershop.com` si
+existe una llave/permiso distinto para escribir pedidos.
+**TODO: verificar con api@mastershop.com** antes de reintentar.
+
+> **TODO adicional: verificar con api@mastershop.com** el caso de producto con
+> variante única con `includeAllVariations=false`.
 
 ## 11. Checklist end-to-end en staging (Wompi test)
 

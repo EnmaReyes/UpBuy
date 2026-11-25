@@ -17,6 +17,16 @@ const BACKEND_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
 const DEV_TUNNEL_ORIGINS = ["*.trycloudflare.com"];
 
 const nextConfig: NextConfig = {
+  // El monorepo tiene un package-lock.json vacio en la raiz (para skills). Sin
+  // esta clave Turbopack infiere E:/UpBuy como raiz y vigila/resuelve tambien
+  // Back/, docs/ y demas, lo que encarece cada compilacion en `next dev`.
+  // Front es un proyecto independiente: su raiz es el propio directorio.
+  // Lo mismo aplica al tracing de archivos de produccion: sin esta clave Next
+  // intenta trazar desde la raiz del monorepo.
+  turbopack: {
+    root: __dirname,
+  },
+  outputFileTracingRoot: __dirname,
   allowedDevOrigins: DEV_TUNNEL_ORIGINS,
   ...(BACKEND_URL
     ? {
