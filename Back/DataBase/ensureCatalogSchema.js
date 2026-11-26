@@ -66,6 +66,11 @@ const getSchemaState = async (transaction) => {
        ) AS "hasManualOverrides",
        EXISTS (
          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'products'
+            AND column_name = 'promotionVideos'
+       ) AS "hasPromotionVideos",
+       EXISTS (
+         SELECT 1 FROM information_schema.columns
           WHERE table_schema = 'public' AND table_name = 'suppliers'
             AND column_name = 'publishPolicy'
        ) AS "hasSupplierPublishPolicy",
@@ -112,6 +117,7 @@ const needsMigration = (state) => {
     !state.hasHomeSectionChecks ||
     !state.hasSupplierProductId ||
     !state.hasManualOverrides ||
+    !state.hasPromotionVideos ||
     !state.hasSupplierPublishPolicy ||
     !state.hasSupplierDefaultCategoryId ||
     !state.hasCatalogRunPublishCounters ||

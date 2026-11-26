@@ -67,5 +67,5 @@ export function BrandBanner() {
 const SHIPPING_STATS = [
   { value: "$150.000+", label: "Envío gratis desde este monto" },
   { value: "2–5 días", label: "Entrega estándar en Colombia" },
-  { value: "30 días", label: "Cambios y devoluciones" },
+  { value: "15 días", label: "Cambios de producto" },
 ];

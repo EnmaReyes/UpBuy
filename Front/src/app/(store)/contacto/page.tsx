@@ -30,7 +30,12 @@ const FAQ = [
   {
     question: "¿Puedo cambiar una talla?",
     answer:
-      "Sí. Aceptamos cambios dentro de los 30 días posteriores a la compra, siempre que la prenda esté sin uso y conserve sus etiquetas.",
+      "Sí. Aceptamos cambios de talla, color o referencia dentro de los 15 días calendario posteriores a la entrega, siempre que la prenda esté sin uso, conserve sus etiquetas y haya stock disponible. El envío de retorno corre por cuenta del cliente y el cambio no genera reembolso de dinero.",
+  },
+  {
+    question: "¿Cómo funcionan las devoluciones y los reembolsos?",
+    answer:
+      "Las devoluciones no son automáticas: se revisan con un asesor para validar el motivo y el estado del producto. Solo se reembolsa el dinero cuando el producto no llega dentro de los 10 días hábiles siguientes al despacho, cuando se ejerce el retracto legal, cuando la garantía lo determina o cuando el producto no está disponible y el cliente elige el reembolso.",
   },
   {
     question: "¿Cómo sé qué talla elegir?",

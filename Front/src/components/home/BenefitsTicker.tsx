@@ -4,7 +4,7 @@ import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 
 const MESSAGES = [
   "Envío a toda Colombia",
-  "Cambios en 30 días",
+  "Cambios en 15 días",
   "Compra segura",
   "Nuevas colecciones",
   "Diseño con identidad",

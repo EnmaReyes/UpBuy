@@ -8,9 +8,9 @@ export const termsDocument: LegalDocument = {
   eyebrow: "Legal",
   title: "Términos y Condiciones de Uso y Compra",
   description:
-    "Reglas de uso del sitio de UPBUY y condiciones de compra, envío, retracto, cambios y garantía en Colombia y Argentina.",
-  updatedAt: "2026-11-17",
-  updatedLabel: "17 de noviembre de 2026",
+    "Reglas de uso del sitio de UPBUY y condiciones de compra, envío, retracto, cambios, devoluciones, reembolsos y garantía en Colombia y Argentina.",
+  updatedAt: "2026-11-26",
+  updatedLabel: "26 de noviembre de 2026",
   intro: [
     "Estos términos regulan el uso del sitio de UPBUY y la compra de indumentaria y accesorios a través de nuestros canales oficiales.",
     "Al navegar, crear una cuenta o confirmar un pedido aceptas estas condiciones. Si no estás de acuerdo, no uses el sitio ni completes la compra.",
@@ -192,6 +192,10 @@ export const termsDocument: LegalDocument = {
             "Los tiempos de entrega pueden extenderse por temporadas altas, paros, fenómenos naturales o causas ajenas a UPBUY.",
           ],
         },
+        {
+          kind: "paragraph",
+          text: "Sin perjuicio de los plazos estimados, si el producto no llega dentro de los 10 días hábiles siguientes a la confirmación del despacho, puedes solicitar el reembolso en los términos de la sección 11.",
+        },
       ],
     },
     {
@@ -202,6 +206,10 @@ export const termsDocument: LegalDocument = {
         {
           kind: "paragraph",
           text: "En compras a distancia tienes derecho a retractarte dentro de los plazos legales de tu país, sin necesidad de explicar el motivo. El plazo se cuenta desde la entrega del producto y exige que lo devuelvas en las condiciones indicadas.",
+        },
+        {
+          kind: "paragraph",
+          text: "El retracto legal es independiente de la política comercial de cambios y devoluciones de la sección 10. Ningún plazo, revisión o condición comercial limita el ejercicio del retracto ni de la garantía legal.",
         },
         {
           kind: "table",
@@ -243,45 +251,109 @@ export const termsDocument: LegalDocument = {
     {
       id: "cambios",
       number: "10",
-      title: "Cambios y devoluciones por talla o defecto",
+      title: "Cambios de producto y devoluciones",
       blocks: [
         {
           kind: "paragraph",
-          text: "Además del retracto legal, ofrecemos cambios voluntarios dentro de los 30 días calendario siguientes a la entrega, sujetos a disponibilidad de talla o color. Este plazo comercial no reduce ni reemplaza tus derechos legales.",
+          text: "Además del retracto legal de la sección 09 y de la garantía legal de la sección 12, UPBUY ofrece una política comercial de cambios de producto dentro de los 15 días calendario siguientes a la entrega. Esta política no reduce ni reemplaza tus derechos legales.",
+        },
+        {
+          kind: "paragraph",
+          text: "El plazo de 15 días aplica únicamente a cambios de producto por talla, color o referencia. Las devoluciones no tienen un plazo automático dentro de esta política: toda solicitud se somete a revisión y autorización de un asesor de UPBUY, que valida el motivo, el estado del producto y si el caso amerita la devolución. Con esta revisión se busca mantener un volumen razonable de cambios y devoluciones y proteger la calidad del servicio.",
         },
         {
           kind: "table",
-          head: ["Tipo de solicitud", "Plazo", "Condiciones", "Costo"],
+          head: ["Tipo de solicitud", "Plazo", "Condiciones", "Costo del envío"],
           rows: [
             [
-              "Cambio voluntario de talla o color",
-              "30 días calendario desde la entrega",
-              "Producto sin uso, con etiquetas y empaque original; sujeto a stock.",
-              "El retorno corre por tu cuenta, salvo promoción vigente.",
+              "Cambio por producto equivocado o en mal estado",
+              "15 días calendario desde la entrega",
+              "La talla, el color o la referencia no corresponde a lo pedido, o el producto llegó defectuoso o deteriorado. Se exige foto y conservar el empaque.",
+              "UPBUY asume el envío de retorno y el reenvío del producto.",
             ],
             [
-              "Producto defectuoso o distinto al pedido",
-              "Garantía legal",
-              "Falla de fabricación, error de referencia o producto incompleto.",
-              "UPBUY asume el retorno cuando se confirma el defecto o el error.",
+              "Cambio voluntario de talla, color o referencia",
+              "15 días calendario desde la entrega",
+              "Producto sin uso, con etiquetas, accesorios y empaque original; sujeto a stock. No aplica a productos personalizados.",
+              "El cliente asume el envío de retorno. No hay reembolso de dinero.",
             ],
             [
               "Producto dañado en el transporte",
               "Al momento de la entrega o dentro de las 48 horas siguientes",
-              "Conserva el empaque y documenta el daño con fotos.",
+              "Conserva el empaque y documenta el daño con fotos o video.",
               "UPBUY asume la investigación y la solución.",
+            ],
+            [
+              "Devolución voluntaria",
+              "No automático: se evalúa según el caso",
+              "No es automática: requiere revisión y autorización de un asesor. Solo procede si el caso lo amerita.",
+              "Se informa por escrito antes de que envíes el producto.",
             ],
           ],
         },
         {
+          kind: "subheading",
+          text: "Cambios: reglas generales",
+        },
+        {
+          kind: "list",
+          items: [
+            "El cambio se solicita por correo a upbuy.official@gmail.com con el asunto “Cambio”, indicando el número de pedido, el producto, la talla, el color o la referencia deseada y el motivo.",
+            "El producto debe estar sin uso, sin lavar y sin alterar, con etiquetas, accesorios y empaque original. UPBUY puede rechazar el cambio si el producto no cumple estas condiciones.",
+            "El cambio está sujeto a disponibilidad de stock. Si la talla, el color o la referencia solicitada no está disponible, puedes elegir un vale por el valor pagado o un producto equivalente.",
+            "Un cambio voluntario no genera reembolso de dinero. Si el producto elegido cuesta más, pagas la diferencia; si cuesta menos, la diferencia queda a favor como vale.",
+            "UPBUY no recibe cambios sin autorización previa ni envíos por cobrar. Un producto enviado sin autorización puede ser rechazado o devuelto al remitente a su costo.",
+          ],
+        },
+        {
+          kind: "subheading",
+          text: "Devoluciones: revisión previa obligatoria",
+        },
+        {
           kind: "paragraph",
-          text: "Un cambio voluntario no es una garantía: si el producto presenta una falla, se tramita por la garantía legal y no se te puede exigir que aceptes un cambio de talla como única solución.",
+          text: "La devolución voluntaria no es un derecho automático dentro de la política comercial. Cada caso se revisa con un asesor para validar que el motivo sea verificable, que el producto conserve sus condiciones y que la devolución realmente proceda. UPBUY comunica la decisión por escrito y, si el caso no procede, ofrece las alternativas disponibles: cambio, vale o garantía legal cuando corresponda.",
+        },
+        {
+          kind: "note",
+          text: "El plazo de 15 días no convierte la devolución en automática ni amplía el retracto legal. Si tu solicitud es de retracto o de garantía, se tramita por la sección 09 o la sección 12, según corresponda.",
+        },
+      ],
+    },
+    {
+      id: "reembolsos",
+      number: "11",
+      title: "Reembolsos",
+      blocks: [
+        {
+          kind: "paragraph",
+          text: "El reembolso en dinero no es la regla general de la política comercial. UPBUY reconoce el reembolso únicamente en los siguientes casos:",
+        },
+        {
+          kind: "list",
+          items: [
+            "El producto no llega dentro del plazo máximo de 10 días hábiles contados desde la confirmación del despacho. Antes de reembolsar, UPBUY verifica el estado del envío con la transportadora. Si el producto figura como entregado, o la demora obedece a una dirección errónea o a la ausencia del destinatario, el plazo se suspende y se coordina una nueva entrega.",
+            "Ejercer el retracto legal en los plazos y condiciones de la sección 09.",
+            "La garantía legal de la sección 12 concluye que la solución aplicable es el reembolso.",
+            "El producto no está disponible después de la compra y el cliente opta por el reembolso, conforme a la sección 05.",
+          ],
+        },
+        {
+          kind: "paragraph",
+          text: "En los demás casos, incluido el cambio voluntario, no se reembolsa el dinero. Si el cambio no es posible por falta de stock, el cliente puede elegir un vale por el valor pagado o un producto equivalente; si el producto elegido cuesta más, paga la diferencia.",
+        },
+        {
+          kind: "paragraph",
+          text: "El reembolso se hace por el mismo medio de pago utilizado. Si no es posible, se acuerda contigo un medio equivalente. El valor se reconoce por el producto afectado y, cuando corresponda, por el envío. El procesamiento se realiza dentro de los 30 días calendario siguientes a la aprobación o al plazo legal menor que resulte aplicable.",
+        },
+        {
+          kind: "note",
+          text: "Para solicitar un reembolso escribe a upbuy.official@gmail.com con el asunto “Reembolso” e indica el número de pedido, el producto y el motivo. Te confirmaremos por escrito si el caso procede y los pasos siguientes.",
         },
       ],
     },
     {
       id: "garantia",
-      number: "11",
+      number: "12",
       title: "Garantía legal",
       blocks: [
         {
@@ -301,7 +373,7 @@ export const termsDocument: LegalDocument = {
     },
     {
       id: "promociones",
-      number: "12",
+      number: "13",
       title: "Promociones, cupones y sorteos",
       blocks: [
         {
@@ -321,7 +393,7 @@ export const termsDocument: LegalDocument = {
     },
     {
       id: "propiedad-intelectual",
-      number: "13",
+      number: "14",
       title: "Propiedad intelectual",
       blocks: [
         {
@@ -336,7 +408,7 @@ export const termsDocument: LegalDocument = {
     },
     {
       id: "conducta",
-      number: "14",
+      number: "15",
       title: "Conducta del usuario",
       blocks: [
         {
@@ -360,7 +432,7 @@ export const termsDocument: LegalDocument = {
     },
     {
       id: "responsabilidad",
-      number: "15",
+      number: "16",
       title: "Limitación de responsabilidad",
       blocks: [
         {
@@ -379,7 +451,7 @@ export const termsDocument: LegalDocument = {
     },
     {
       id: "suspension",
-      number: "16",
+      number: "17",
       title: "Suspensión del servicio y fuerza mayor",
       blocks: [
         {
@@ -394,7 +466,7 @@ export const termsDocument: LegalDocument = {
     },
     {
       id: "ley-conflictos",
-      number: "17",
+      number: "18",
       title: "Ley aplicable y resolución de conflictos",
       blocks: [
         {
@@ -403,7 +475,7 @@ export const termsDocument: LegalDocument = {
         },
         {
           kind: "paragraph",
-          text: "Antes de acudir a una autoridad, te pedimos intentar una solución directa: escríbenos a upbuy.official@gmail.com o al +57 320 3775834 con el número de pedido y una descripción del conflicto. Responderemos dentro de los plazos de la sección 18.",
+          text: "Antes de acudir a una autoridad, te pedimos intentar una solución directa: escríbenos a upbuy.official@gmail.com o al +57 320 3775834 con el número de pedido y una descripción del conflicto. Responderemos dentro de los plazos de la sección 19.",
         },
         {
           kind: "paragraph",
@@ -413,7 +485,7 @@ export const termsDocument: LegalDocument = {
     },
     {
       id: "atencion",
-      number: "18",
+      number: "19",
       title: "Atención al cliente y PQR",
       blocks: [
         {
@@ -456,7 +528,7 @@ export const termsDocument: LegalDocument = {
     },
     {
       id: "modificaciones",
-      number: "19",
+      number: "20",
       title: "Modificaciones de los términos",
       blocks: [
         {

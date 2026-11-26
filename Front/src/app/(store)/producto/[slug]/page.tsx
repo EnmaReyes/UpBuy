@@ -243,8 +243,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   />
                   <BenefitLine
                     icon={RefreshCcw}
-                    title="Cambios en 30 días"
-                    detail="Sobre prendas sin uso y con etiquetas originales."
+                    title="Cambios en 15 días"
+                    detail="Solo cambio de producto, sin reembolso. Con etiquetas y sin uso."
                   />
                   <BenefitLine
                     icon={ShieldCheck}
@@ -300,8 +300,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     </summary>
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                       Enviamos a todo el país. El costo final y el plazo se confirman
-                      en el checkout con los datos de entrega. Los cambios se gestionan
-                      dentro de los 30 días posteriores a la compra.
+                      en el checkout con los datos de entrega. Los cambios de talla,
+                      color o referencia se gestionan dentro de los 15 días
+                      calendario posteriores a la entrega, sujetos a revisión y
+                      disponibilidad. Las devoluciones requieren autorización de un
+                      asesor y no generan reembolso, salvo los casos previstos en
+                      los términos.
                     </p>
                   </details>
 

@@ -4,7 +4,7 @@ import { termsDocument } from "@/data/legal/terms";
 
 const title = "Términos y Condiciones — UPBUY";
 const description =
-  "Condiciones de uso y compra de UPBUY: precios, pagos, envíos, retracto, cambios, garantía y atención al cliente en Colombia y Argentina.";
+  "Condiciones de uso y compra de UPBUY: precios, pagos, envíos, retracto, cambios, devoluciones, reembolsos, garantía y atención al cliente en Colombia y Argentina.";
 
 export const metadata: Metadata = {
   title,

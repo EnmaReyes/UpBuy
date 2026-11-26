@@ -31,7 +31,7 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
     { label: "Envíos", href: "/terminos-y-condiciones#envios" },
     {
       label: "Cambios y devoluciones",
-      href: "/terminos-y-condiciones#retracto",
+      href: "/terminos-y-condiciones#cambios",
     },
   ],
   Políticas: [

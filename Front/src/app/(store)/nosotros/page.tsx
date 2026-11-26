@@ -46,7 +46,7 @@ const VALUES = [
 const NUMBERS = [
   { value: "100%", label: "Piezas revisadas antes de publicarse" },
   { value: "6", label: "Tallas en las siluetas principales" },
-  { value: "30", label: "Días para cambios y devoluciones" },
+  { value: "15", label: "Días para cambios de producto" },
 ];
 
 export default function NosotrosPage() {
