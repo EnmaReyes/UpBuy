@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/account/ProfileForm";
 import { getProfile } from "@/services/account/queries";
@@ -24,5 +25,11 @@ export default async function PerfilPage() {
     throw error;
   }
 
-  return <ProfileForm profile={profile} />;
+  return (
+    <Suspense
+      fallback={<p className="text-sm text-muted-foreground">Cargando…</p>}
+    >
+      <ProfileForm profile={profile} />
+    </Suspense>
+  );
 }

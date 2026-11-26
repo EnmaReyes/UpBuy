@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, CircleAlert } from "lucide-react";
 import { updateProfile } from "@/services/account";
 import { ApiError } from "@/services/api/client";
+import { safeInternalPath } from "@/lib/safe-url";
 import {
   MISSING_FIELD_LABELS,
   type MissingProfileField,
@@ -17,6 +19,9 @@ import { Field, FormMessage, SubmitButton, inputClass } from "@/components/auth/
 // se recalculan con la respuesta real del servidor tras guardar.
 export function ProfileForm({ profile }: { profile: Profile }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Vuelta al checkout tras completar el perfil cuando se llegó desde allí.
+  const nextPath = safeInternalPath(searchParams?.get("next"));
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +63,14 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       setMissing(result.missing ?? []);
       setComplete(result.profileComplete);
       setSaved(true);
+
+      // Si venía del checkout y ya tiene todo, vuelve a finalizar la compra.
+      // Si aún falta la dirección, se queda aquí para guiarlo a completarla.
+      if (result.profileComplete && nextPath) {
+        router.push(nextPath);
+        return;
+      }
+
       router.refresh();
     } catch (caught) {
       setError(
@@ -72,7 +85,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <ProfileStatus complete={complete} missing={missing} />
+      <ProfileStatus complete={complete} missing={missing} nextPath={nextPath} />
 
       <form
         onSubmit={onSubmit}
@@ -161,9 +174,11 @@ export function ProfileForm({ profile }: { profile: Profile }) {
 function ProfileStatus({
   complete,
   missing,
+  nextPath,
 }: {
   complete: boolean;
   missing: MissingProfileField[];
+  nextPath: string | null;
 }) {
   if (complete) {
     return (
@@ -173,6 +188,10 @@ function ProfileStatus({
       </p>
     );
   }
+
+  const addressesHref = nextPath
+    ? `/cuenta/direcciones?next=${encodeURIComponent(nextPath)}`
+    : "/cuenta/direcciones";
 
   return (
     <div className="rounded-lg border border-terracotta/30 bg-terracotta/5 p-4">
@@ -185,7 +204,14 @@ function ProfileStatus({
       </p>
       {missing.includes("address") ? (
         <p className="mt-1 text-xs text-muted-foreground">
-          La dirección se añade en la sección «Direcciones».
+          La dirección se añade en{" "}
+          <Link
+            href={addressesHref}
+            className="font-semibold text-carbon underline underline-offset-4 hover:text-terracotta-deep"
+          >
+            Mis direcciones
+          </Link>
+          .
         </p>
       ) : null}
     </div>

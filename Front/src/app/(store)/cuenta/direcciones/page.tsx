@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { AddressManager } from "@/components/account/AddressManager";
 import { listAddresses } from "@/services/account/queries";
@@ -23,5 +24,11 @@ export default async function DireccionesPage() {
     throw error;
   }
 
-  return <AddressManager addresses={addresses} />;
+  return (
+    <Suspense
+      fallback={<p className="text-sm text-muted-foreground">Cargando…</p>}
+    >
+      <AddressManager addresses={addresses} />
+    </Suspense>
+  );
 }

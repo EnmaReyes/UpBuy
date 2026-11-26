@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, ShoppingBag } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Check, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   cartKey,
@@ -77,6 +78,7 @@ const sameValue = (a: string | null | undefined, b: string | null | undefined) =
 // crear el pedido: el carrito nunca calcula el total final.
 export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) {
   const { items, add, setQuantity, remove } = useCart();
+  const router = useRouter();
 
   const sizes = product.combo ? [] : product.sizes;
   const colors = product.combo ? [] : product.colors;
@@ -160,6 +162,31 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
       });
     }
     setAdded(true);
+  };
+
+  // Compra directa: deja una unidad de esta variante en el carrito y va al
+  // checkout sin obligar a pasar por la pagina del carrito. El backend valida
+  // precio, stock, sesión y perfil; aquí no se decide nada de autenticación.
+  const onBuyNow = () => {
+    if (!canAdd) return;
+
+    if (!current) {
+      add({
+        productId: product.productId,
+        slug: product.slug,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        size: lineSize,
+        color: lineColor,
+        requiresSize,
+        requiresColor,
+        stock,
+        quantity: 1,
+      });
+    }
+
+    router.push("/checkout");
   };
 
   const selectColor = (next: string) => {
@@ -298,6 +325,17 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
           </button>
         )}
       </div>
+
+      {canAdd ? (
+        <button
+          type="button"
+          onClick={onBuyNow}
+          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-terracotta px-6 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta sm:w-auto"
+        >
+          Comprar ahora
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+      ) : null}
 
       {stock > 0 && stock <= 5 ? (
         <p className="text-xs font-medium text-terracotta-deep">

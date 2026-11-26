@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, MapPin, Pencil, Star, Trash2, X } from "lucide-react";
 import {
   createAddress,
@@ -10,6 +10,7 @@ import {
   updateAddress,
 } from "@/services/account";
 import { ApiError } from "@/services/api/client";
+import { safeInternalPath } from "@/lib/safe-url";
 import type { Address } from "@/types/auth";
 import { Field, FormMessage, SubmitButton, inputClass } from "@/components/auth/fields";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,9 @@ import { cn } from "@/lib/utils";
 // lista y el estado de "perfil completo" vengan siempre del backend.
 export function AddressManager({ addresses }: { addresses: Address[] }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Vuelta al checkout tras agregar la dirección que faltaba.
+  const nextPath = safeInternalPath(searchParams?.get("next"));
 
   const [editing, setEditing] = useState<Address | null>(null);
   const [pending, setPending] = useState(false);
@@ -59,6 +63,14 @@ export function AddressManager({ addresses }: { addresses: Address[] }) {
       }
       formEl.reset();
       setEditing(null);
+
+      // Si se llegó desde el checkout para completar la dirección, se vuelve
+      // allí; en caso contrario se refresca la lista en el sitio.
+      if (!editing && nextPath) {
+        router.push(nextPath);
+        return;
+      }
+
       router.refresh();
     } catch (caught) {
       setError(
