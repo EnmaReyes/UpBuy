@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/drawer";
 import { SafeImage } from "@/components/shared/SafeImage";
 import { StepUpDialog } from "@/components/admin/StepUpDialog";
+import { useAdminAction } from "@/components/admin/orders/useAdminAction";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { formatPrice } from "@/lib/format";
 import { ApiError } from "@/services/api/client";
 import {
@@ -86,14 +88,6 @@ function initialImages(product: AdminProduct): string[] {
   return [...new Set(list.filter(Boolean))];
 }
 
-function isStepUp(error: unknown): boolean {
-  return (
-    error instanceof ApiError &&
-    error.status === 403 &&
-    error.code === "STEP_UP_REQUIRED"
-  );
-}
-
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof ApiError ? error.message : fallback;
 }
@@ -124,12 +118,26 @@ export function ProductDrawer({
     product.promotionVideos ?? [],
   );
   const [newVideo, setNewVideo] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [visibilityPending, setVisibilityPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [stepUpOpen, setStepUpOpen] = useState(false);
-  const [pendingVisible, setPendingVisible] = useState<boolean | null>(null);
+
+  // La accion del editor (guardar, visibilidad, restaurar imagenes) pasa por el
+  // hook canonico: detecta el step-up, guarda la accion pendiente y la repite
+  // tras validar el codigo. `busy` y `error` son los unicos del editor.
+  const {
+    busy,
+    error,
+    setError,
+    stepUpOpen,
+    setStepUpOpen,
+    run,
+    retry,
+  } = useAdminAction();
+
+  // Mientras el step-up esta abierto la ficha deja de ser modal para que el
+  // dialogo reciba el foco; aun asi se bloquean sus acciones.
+  const locked = busy || stepUpOpen;
+
+  useBodyScrollLock(true);
 
   const visible = product.status === "active" && product.active;
   const priceValue = Number(form.price);
@@ -255,8 +263,7 @@ export function ProductDrawer({
       }
     }
 
-    setSaving(true);
-    try {
+    await run(async () => {
       let updated = await updateAdminProduct(product.id, {
         name,
         description: form.description.trim() || null,
@@ -275,18 +282,15 @@ export function ProductDrawer({
 
       onSaved(updated, "Cambios guardados.");
       onClose();
-    } catch (caught) {
-      setError(errorMessage(caught, "No se pudieron guardar los cambios."));
-    } finally {
-      setSaving(false);
-    }
+    }).catch(() => {
+      // `run` ya dejo el mensaje en `error`; el formulario sigue intacto.
+    });
   };
 
   const changeVisibility = async (nextVisible: boolean) => {
     if (!canWrite) return;
-    setVisibilityPending(true);
-    setError(null);
-    try {
+
+    await run(async () => {
       const updated = await setAdminProductVisibility(product.id, nextVisible);
       onSaved(
         updated,
@@ -295,35 +299,21 @@ export function ProductDrawer({
           : "Producto oculto. Se puede volver a mostrar cuando quieras.",
       );
       onClose();
-    } catch (caught) {
-      if (isStepUp(caught)) {
-        setPendingVisible(nextVisible);
-        setStepUpOpen(true);
-      } else {
-        setError(
-          errorMessage(caught, "No se pudo cambiar la visibilidad."),
-        );
-      }
-    } finally {
-      setVisibilityPending(false);
-    }
+    }).catch(() => {
+      // `run` ya dejo el mensaje en `error`.
+    });
   };
 
   const restoreImages = async () => {
     if (!canWrite) return;
-    setSaving(true);
-    setError(null);
-    try {
+
+    await run(async () => {
       const updated = await restoreAdminProductImages(product.id);
       onSaved(updated, "Imágenes restauradas desde el proveedor.");
       onClose();
-    } catch (caught) {
-      setError(
-        errorMessage(caught, "No se pudieron restaurar las imágenes."),
-      );
-    } finally {
-      setSaving(false);
-    }
+    }).catch(() => {
+      // `run` ya dejo el mensaje en `error`.
+    });
   };
 
   return (
@@ -331,11 +321,13 @@ export function ProductDrawer({
       <Drawer
         open
         onOpenChange={(open) => {
-          if (!open && !saving) onClose();
+          if (!open && !locked) onClose();
         }}
+        modal={!stepUpOpen}
+        disablePointerDismissal={stepUpOpen}
         swipeDirection="right"
       >
-        <DrawerContent className="bg-card text-carbon max-sm:h-dvh! max-sm:rounded-none! max-sm:border-l-0! data-[swipe-axis=x]:[--drawer-content-width:100%] data-[swipe-axis=x]:sm:[--drawer-content-width:34rem]">
+        <DrawerContent className="bg-card text-carbon max-sm:h-dvh! max-sm:rounded-none! max-sm:border-l-0! data-[swipe-axis=x]:[--drawer-content-width:100%] data-[swipe-axis=x]:sm:[--drawer-content-width:65vw]">
           <div className="flex h-full min-h-0 flex-col">
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-4 py-3 sm:px-5 sm:py-4">
               <div className="min-w-0">
@@ -349,7 +341,7 @@ export function ProductDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                disabled={saving}
+                disabled={locked}
                 aria-label="Cerrar ficha"
                 className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-coffee-deep transition-colors hover:bg-muted hover:text-carbon focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
               >
@@ -385,7 +377,7 @@ export function ProductDrawer({
                       value={form.name}
                       onChange={(event) => update("name", event.target.value)}
                       maxLength={255}
-                      disabled={!canWrite || saving}
+                      disabled={!canWrite || locked}
                       className={`${fieldClass} mt-1`}
                     />
                   </div>
@@ -401,7 +393,7 @@ export function ProductDrawer({
                         update("description", event.target.value)
                       }
                       rows={4}
-                      disabled={!canWrite || saving}
+                      disabled={!canWrite || locked}
                       className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-carbon placeholder:text-muted-foreground focus-visible:border-terracotta focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-60"
                     />
                   </div>
@@ -421,7 +413,7 @@ export function ProductDrawer({
                         onChange={(event) =>
                           update("price", event.target.value)
                         }
-                        disabled={!canWrite || saving}
+                        disabled={!canWrite || locked}
                         className={`${fieldClass} mt-1 tabular-nums`}
                       />
                     </div>
@@ -439,7 +431,7 @@ export function ProductDrawer({
                         onChange={(event) =>
                           update("compareAtPrice", event.target.value)
                         }
-                        disabled={!canWrite || saving}
+                        disabled={!canWrite || locked}
                         className={`${fieldClass} mt-1 tabular-nums`}
                       />
                     </div>
@@ -461,7 +453,7 @@ export function ProductDrawer({
                         onChange={(event) =>
                           update("discount", event.target.value)
                         }
-                        disabled={!canWrite || saving}
+                        disabled={!canWrite || locked}
                         className={`${fieldClass} mt-1 tabular-nums`}
                       />
                     </div>
@@ -473,7 +465,7 @@ export function ProductDrawer({
                           onChange={(event) =>
                             update("featured", event.target.checked)
                           }
-                          disabled={!canWrite || saving}
+                          disabled={!canWrite || locked}
                           className="h-4 w-4 accent-terracotta"
                         />
                         <Star aria-hidden="true" className="h-4 w-4 text-terracotta" />
@@ -575,7 +567,7 @@ export function ProductDrawer({
                             type="checkbox"
                             checked={form.categoryIds.includes(category.id)}
                             onChange={() => toggleCategory(category.id)}
-                            disabled={!canWrite || saving}
+                            disabled={!canWrite || locked}
                             className="h-4 w-4 accent-terracotta"
                           />
                           <span className="truncate">{category.name}</span>
@@ -610,14 +602,14 @@ export function ProductDrawer({
                           }}
                           placeholder="Ej. Deportivo"
                           maxLength={120}
-                          disabled={saving || creatingCategory}
+                          disabled={locked || creatingCategory}
                           className={`${fieldClass} min-w-0`}
                         />
                         <button
                           type="button"
                           onClick={createCategory}
                           disabled={
-                            saving ||
+                            locked ||
                             creatingCategory ||
                             !newCategory.trim()
                           }
@@ -668,7 +660,7 @@ export function ProductDrawer({
                       <button
                         type="button"
                         onClick={restoreImages}
-                        disabled={!canWrite || saving}
+                        disabled={!canWrite || locked}
                         className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-xs font-semibold text-carbon transition-colors hover:border-carbon focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
                       >
                         <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
@@ -708,7 +700,7 @@ export function ProductDrawer({
                             <button
                               type="button"
                               onClick={() => moveImage(index, -1)}
-                              disabled={!canWrite || saving || index === 0}
+                              disabled={!canWrite || locked || index === 0}
                               aria-label={`Subir imagen ${index + 1}`}
                               className="inline-flex h-11 w-11 items-center justify-center rounded-md text-coffee-deep hover:bg-muted disabled:opacity-30 sm:h-9 sm:w-9"
                             >
@@ -718,7 +710,7 @@ export function ProductDrawer({
                               type="button"
                               onClick={() => moveImage(index, 1)}
                               disabled={
-                                !canWrite || saving || index === images.length - 1
+                                !canWrite || locked || index === images.length - 1
                               }
                               aria-label={`Bajar imagen ${index + 1}`}
                               className="inline-flex h-11 w-11 items-center justify-center rounded-md text-coffee-deep hover:bg-muted disabled:opacity-30 sm:h-9 sm:w-9"
@@ -732,7 +724,7 @@ export function ProductDrawer({
                                   current.filter((_, i) => i !== index),
                                 )
                               }
-                              disabled={!canWrite || saving}
+                              disabled={!canWrite || locked}
                               aria-label={`Quitar imagen ${index + 1}`}
                               className="inline-flex h-11 w-11 items-center justify-center rounded-md text-terracotta-deep hover:bg-terracotta/10 disabled:opacity-30 sm:h-9 sm:w-9"
                             >
@@ -760,14 +752,14 @@ export function ProductDrawer({
                       }}
                       placeholder="https://…"
                       inputMode="url"
-                      disabled={!canWrite || saving || images.length >= 8}
+                      disabled={!canWrite || locked || images.length >= 8}
                       className={`${fieldClass} min-w-0`}
                     />
                     <button
                       type="button"
                       onClick={addImage}
                       disabled={
-                        !canWrite || saving || images.length >= 8 || !newImage.trim()
+                        !canWrite || locked || images.length >= 8 || !newImage.trim()
                       }
                       className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-semibold text-carbon transition-colors hover:border-carbon focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
                     >
@@ -800,7 +792,7 @@ export function ProductDrawer({
                               current.filter((_, i) => i !== index),
                             )
                           }
-                          disabled={!canWrite || saving}
+                          disabled={!canWrite || locked}
                           className="inline-flex h-9 w-9 items-center justify-center rounded-md text-terracotta-deep hover:bg-terracotta/10 disabled:opacity-30"
                           aria-label={`Quitar video ${index + 1}`}
                         >
@@ -814,7 +806,7 @@ export function ProductDrawer({
                       value={newVideo}
                       onChange={(e) => setNewVideo(e.target.value)}
                       placeholder="https://drive.google.com/..."
-                      disabled={!canWrite || saving || promotionVideos.length >= 3}
+                      disabled={!canWrite || locked || promotionVideos.length >= 3}
                       className={`${fieldClass} min-w-0`}
                     />
                     <button
@@ -827,7 +819,7 @@ export function ProductDrawer({
                         setPromotionVideos((current) => [...current, url]);
                         setNewVideo("");
                       }}
-                      disabled={!canWrite || saving || promotionVideos.length >= 3 || !newVideo.trim()}
+                      disabled={!canWrite || locked || promotionVideos.length >= 3 || !newVideo.trim()}
                       className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-semibold text-carbon transition-colors hover:border-carbon focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
                     >
                       <Plus aria-hidden="true" className="h-4 w-4" />
@@ -854,10 +846,10 @@ export function ProductDrawer({
                       <button
                         type="button"
                         onClick={() => changeVisibility(false)}
-                        disabled={!canWrite || saving || visibilityPending}
+                        disabled={!canWrite || locked}
                         className="inline-flex h-11 items-center gap-1.5 rounded-lg border border-terracotta/40 bg-terracotta/5 px-3 text-sm font-semibold text-terracotta-deep transition-colors hover:bg-terracotta/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
                       >
-                        {visibilityPending ? (
+                        {busy ? (
                           <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
                         ) : (
                           <EyeOff aria-hidden="true" className="h-4 w-4" />
@@ -868,10 +860,10 @@ export function ProductDrawer({
                       <button
                         type="button"
                         onClick={() => changeVisibility(true)}
-                        disabled={!canWrite || saving || visibilityPending}
+                        disabled={!canWrite || locked}
                         className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-carbon px-3 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
                       >
-                        {visibilityPending ? (
+                        {busy ? (
                           <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
                         ) : (
                           <Eye aria-hidden="true" className="h-4 w-4" />
@@ -904,7 +896,7 @@ export function ProductDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                disabled={saving}
+                disabled={locked}
                 className="inline-flex h-11 flex-1 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-semibold text-carbon transition-colors hover:border-carbon focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:flex-none"
               >
                 Cancelar
@@ -912,13 +904,13 @@ export function ProductDrawer({
               <button
                 type="submit"
                 form="product-edit-form"
-                disabled={!canWrite || saving}
+                disabled={!canWrite || locked}
                 className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-carbon px-4 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
               >
-                {saving ? (
+                {busy ? (
                   <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
                 ) : null}
-                {saving ? "Guardando…" : "Guardar cambios"}
+                {busy ? "Guardando…" : "Guardar cambios"}
               </button>
             </div>
           </div>
@@ -927,16 +919,14 @@ export function ProductDrawer({
 
       <StepUpDialog
         open={stepUpOpen}
-        onOpenChange={(open) => {
-          setStepUpOpen(open);
-          if (!open) setPendingVisible(null);
-        }}
-        actionLabel="Ocultar productos"
+        onOpenChange={setStepUpOpen}
+        actionLabel="Ocultar producto"
         description="Ocultar un producto lo saca de la tienda pública. Para confirmarlo necesitamos un código reciente."
         onVerified={async () => {
-          if (pendingVisible !== null) {
-            await changeVisibility(pendingVisible);
-          }
+          // `retry` repite la acción que quedó pendiente (ocultar) y conserva
+          // el estado del formulario. Si la acción falla, el mensaje queda en
+          // el editor.
+          await retry().catch(() => {});
         }}
       />
     </>

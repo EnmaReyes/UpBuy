@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { KeyRound, ShieldCheck, X } from "lucide-react";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { apiSend, ApiError } from "@/services/api/client";
 import { cn } from "@/lib/utils";
 
@@ -43,10 +45,18 @@ export function StepUpDialog({
   const titleId = useId();
   const descriptionId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
+  const [mounted, setMounted] = useState(false);
   const [code, setCode] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useBodyScrollLock(open);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Limpia el código cada vez que se abre y enfoca el campo.
   useEffect(() => {
@@ -58,17 +68,48 @@ export function StepUpDialog({
     return () => window.clearTimeout(timer);
   }, [open]);
 
-  // Escape cierra el diálogo; el foco no abandona el documento.
+  // Escape cierra el diálogo y Tab queda atrapado dentro (el Drawer deja de
+  // ser modal mientras el step-up está abierto, así que el ciclo es propio).
   useEffect(() => {
     if (!open) return;
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !pending) onOpenChange(false);
+      if (event.key === "Escape") {
+        if (!pending) onOpenChange(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const node = dialogRef.current;
+      if (!node) return;
+
+      const focusables = Array.from(
+        node.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey) {
+        if (active === first || !node.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !node.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      }
     };
+
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, pending, onOpenChange]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -104,9 +145,9 @@ export function StepUpDialog({
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-carbon/60 p-4 sm:items-center"
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-carbon/60 p-4 sm:items-center"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !pending) {
           onOpenChange(false);
@@ -114,6 +155,7 @@ export function StepUpDialog({
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -222,6 +264,7 @@ export function StepUpDialog({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
