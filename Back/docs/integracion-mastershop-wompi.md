@@ -79,6 +79,7 @@ Vercel.
 | `MASTERSHOP_API_KEY` | Header `ms-api-key`. Sin ella el flujo queda deshabilitado. | sí |
 | `MASTERSHOP_HTTP_TIMEOUT_MS` | Timeout del cliente (default 20000) | no |
 | `MASTERSHOP_SYNC_PAGE_SIZE` | Tamaño de página (máx. 50) | no |
+| `MASTERSHOP_WEBHOOK_URL` | URL pública del webhook de estado/tracking | no (sin ella no se registran) |
 | `WOMPI_PUBLIC_KEY` / `WOMPI_PRIVATE_KEY` | Checkout / reconsulta de transacción | sí |
 | `WOMPI_INTEGRITY_SECRET` | Firma del checkout | sí |
 | `WOMPI_EVENTS_SECRET` | Firma de los eventos del webhook | sí |
@@ -101,6 +102,70 @@ Sin `MASTERSHOP_API_KEY` y sin llaves de Wompi el pedido sigue su curso manual
 Estados del **outbox** (`mastershop_order_outbox.status`): `pending`,
 `processing`, `done`, `needs_review`, `failed`.
 
+### 4.1 Cancelación (`orders.msCancelState`)
+
+Cuando un pedido se cancela en UpBuy y ya existe en MasterShop (`msIdOrder`),
+se empuja la cancelación con `PUT /api/orders/{idOrder}` `{"idStatus":9}`. Se
+dispara automáticamente en los dos caminos de cancelación (cliente y panel) y
+**nunca revierte lo local**: UpBuy sigue siendo la fuente de verdad.
+
+| Estado | Significado | Acción |
+| --- | --- | --- |
+| `NULL` | El pedido no se canceló o no existía en MasterShop | ninguna |
+| `pending` | Fallo transitorio (5xx, 429, red); el cron reintenta | automática |
+| `done` | MasterShop confirmó la cancelación (`msCancelledAt`) | ninguna |
+| `failed` | Fallo definitivo (400 de esquema, 404, 401/403) o reintentos agotados | revisar y reintentar |
+
+Detalles:
+
+- Antes de crear un pedido en MasterShop se comprueba que el pedido local no
+  esté cancelado: uno anulado no debe nacer en el proveedor.
+- Un segundo `PUT {idStatus:9}` se trata como éxito idempotente ("ya cancelada").
+- Cada intento queda en `mastershop_order_attempts` con `action = 'cancel'`.
+- La cancelación pendiente aparece en `npm run reconcile:mastershop`
+  (`pendingCancellations`).
+- **Panel**: `/admin/proveedores/mastershop/pedidos` lista los pedidos en
+  `needs_review`/`failed` y las cancelaciones pendientes, con el motivo y un
+  botón para reintentar (`GET /api/admin/orders/mastershop/attention` y
+  `POST /api/admin/orders/mastershop/:id/retry`).
+
+### 4.2 Estado y tracking (webhooks 16/17/18)
+
+MasterShop avisa cambios con los webhooks `16` (estado del pedido), `17`
+(transportadora) y `18` (entregado). **No firma el evento**: el cuerpo solo
+sirve para identificar el pedido. La verdad sale de reconsultar
+`GET /api/orders?idOrder=...` antes de escribir nada.
+
+Flujo:
+
+1. `POST /api/webhooks/mastershop` recibe el aviso (rate limit de webhooks).
+2. Idempotencia por `webhook_events(provider='mastershop', eventId)`. Sin id
+   explícito, `eventId` es el hash del cuerpo: un reintento idéntico se ignora y
+   un cambio nuevo no.
+3. Se localiza el pedido local por `msIdOrder`, `msExternalOrderId` u
+   `orderNumber`.
+4. Se reconsulta el pedido en MasterShop y se aplica una "foto": `msStatus`, guía
+   (`trackingNumber`, `trackingUrl`, `trackingCarrier`) y el estado canónico.
+   `manualOverride` bloquea todo cambio automático y "enviado" exige guía.
+5. Siempre se responde 200 (salvo error de programación). Un fallo de red queda
+   con el evento sin procesar y lo reconcilia el cron.
+
+Registro de las suscripciones (una sola vez por entorno):
+
+```bash
+cd Back
+npm run mastershop:webhooks -- --url=https://<backend>/api/webhooks/mastershop
+```
+
+El script guarda el `idProductWebhook` en `mastershop_webhooks` (MasterShop no
+lo vuelve a exponer) y reactiva las suscripciones existentes. Sin
+`MASTERSHOP_WEBHOOK_URL` ni `--url` el script no hace nada.
+
+Red de seguridad sin webhooks: `syncMastershopOrderStatuses` (cron
+`/api/cron/sync-providers`) reconsulta los pedidos abiertos y aplica el mismo
+mapeo. Así `msStatus` y la guía se actualizan incluso si la cuenta no tiene las
+suscripciones registradas.
+
 ## 5. Cómo leer los logs
 
 Todos los logs son estructurados por `scope` (filtrables en Vercel/Neon):
@@ -109,7 +174,8 @@ Todos los logs son estructurados por `scope` (filtrables en Vercel/Neon):
 | --- | --- |
 | `wompi.webhook` | `firma_invalida`, `ambiente_distinto`, `ya_procesado`, `aplicado`, `encolado_outbox` |
 | `mastershop.orders.service` | `Fallo creando pedido en MasterShop`, `Faltan mapeos de variante`, alarma de tasa de fallos |
-| `mastershop.orders` | `createOrder ok` / `rechazado por validacion` / `rate limit` / `duplicado` |
+| `mastershop.orders` | `createOrder ok` / `rechazado por validacion` / `rate limit` / `duplicado` / `cancelOrder ok` |
+| `mastershop.webhooks.service` | `Webhook de MasterShop aplicado` / `reconsulta_fallida` / `manual_override` |
 | `mastershop.client` | `Respuesta de error de MasterShop` (status + rateLimit) |
 
 Cada pedido lleva `correlationId` (= `order.id` en la creación, `reference` en el

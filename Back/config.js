@@ -625,6 +625,9 @@ module.exports = {
     Math.max(toNumber(process.env.MASTERSHOP_SYNC_PAGE_SIZE, 50), 1),
     50,
   ),
+  // URL publica a la que MasterShop enviara los webhooks de estado/tracking.
+  // Vacia = no se registran suscripciones (el cron sigue reconciliando).
+  MASTERSHOP_WEBHOOK_URL: (process.env.MASTERSHOP_WEBHOOK_URL || "").trim(),
 
   // Clave AES-256-GCM (base64, 32 bytes) para cifrar las credenciales que se
   // persisten en supplier_credentials. Sin ella, la rotacion del refresh token

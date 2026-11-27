@@ -42,6 +42,7 @@ const {
 const {
   MastershopOrderAttempt,
 } = require("./MastershopOrderAttempt.js");
+const { MastershopWebhook } = require("./MastershopWebhook.js");
 const { VenndeloOrderOutbox } = require("./VenndeloOrderOutbox.js");
 const { VenndeloOrderAttempt } = require("./VenndeloOrderAttempt.js");
 const enums = require("./enums.js");
@@ -83,6 +84,7 @@ module.exports = {
   MastershopAttrAlias,
   MastershopOrderOutbox,
   MastershopOrderAttempt,
+  MastershopWebhook,
   // Integracion Venndelo (pago aprobado -> pedido)
   VenndeloOrderOutbox,
   VenndeloOrderAttempt,

@@ -25,6 +25,10 @@ const {
 } = require("../Services/syncService.js");
 const { listProviders } = require("../Services/providers/index.js");
 const {
+  listMastershopAttentionOrders,
+  retryMastershopOrder,
+} = require("../Services/mastershopOrders.service.js");
+const {
   listOrderPayments,
   registerPayment,
   changePaymentStatus,
@@ -407,6 +411,33 @@ const changePayment = async (req, res) => {
   }
 };
 
+// GET /api/admin/orders/mastershop/attention?issue&q&limit&offset
+// Pedidos de MasterShop en needs_review/failed o con cancelacion pendiente.
+const mastershopAttention = async (req, res) => {
+  try {
+    const { issue, q, limit, offset } = req.query || {};
+    return res.json(
+      await listMastershopAttentionOrders({ issue, q, limit, offset }),
+    );
+  } catch (error) {
+    return sendError(
+      res,
+      error,
+      "No se pudieron cargar los pedidos de MasterShop",
+    );
+  }
+};
+
+// POST /api/admin/orders/mastershop/:id/retry
+// Reintenta la creacion o la cancelacion, segun el estado del pedido.
+const retryMastershop = async (req, res) => {
+  try {
+    return res.json(await retryMastershopOrder({ orderId: req.params.id }));
+  } catch (error) {
+    return sendError(res, error, "No se pudo reintentar el pedido en MasterShop");
+  }
+};
+
 module.exports = {
   list,
   recent,
@@ -427,4 +458,6 @@ module.exports = {
   payments,
   registerPaymentHandler,
   changePayment,
+  mastershopAttention,
+  retryMastershop,
 };

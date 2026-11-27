@@ -38,6 +38,7 @@ const getSchemaState = async (transaction) => {
        to_regclass('public.mastershop_attr_alias') IS NOT NULL       AS "hasAttrAlias",
        to_regclass('public.mastershop_order_outbox') IS NOT NULL     AS "hasOutbox",
        to_regclass('public.mastershop_order_attempts') IS NOT NULL   AS "hasAttempts",
+       to_regclass('public.mastershop_webhooks') IS NOT NULL         AS "hasWebhooks",
        EXISTS (
          SELECT 1 FROM information_schema.columns
           WHERE table_schema = 'public' AND table_name = 'orders'
@@ -48,6 +49,21 @@ const getSchemaState = async (transaction) => {
           WHERE table_schema = 'public' AND table_name = 'orders'
             AND column_name = 'msSyncState'
        ) AS "hasMsSyncState",
+       EXISTS (
+         SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'orders'
+            AND column_name = 'msCancelState'
+       ) AS "hasMsCancelState",
+       EXISTS (
+         SELECT 1
+           FROM pg_constraint c
+           JOIN pg_class t ON t.oid = c.conrelid
+           JOIN pg_namespace n ON n.oid = t.relnamespace
+          WHERE n.nspname = 'public'
+            AND t.relname = 'mastershop_order_attempts'
+            AND c.conname = 'mastershop_order_attempts_action_check'
+            AND pg_get_constraintdef(c.oid) LIKE '%cancel%'
+       ) AS "hasCancelAction",
        EXISTS (
          SELECT 1 FROM pg_indexes
           WHERE schemaname = 'public'
@@ -62,8 +78,11 @@ const needsMigration = (state) =>
   !state.hasAttrAlias ||
   !state.hasOutbox ||
   !state.hasAttempts ||
+  !state.hasWebhooks ||
   !state.hasMsIdOrder ||
   !state.hasMsSyncState ||
+  !state.hasMsCancelState ||
+  !state.hasCancelAction ||
   !state.hasMsIdOrderIndex;
 
 // ---------------------------------------------------------------------------
@@ -81,7 +100,12 @@ const applySchema = async (transaction) => {
        ADD COLUMN IF NOT EXISTS "msSyncedAt" TIMESTAMPTZ,
        ADD COLUMN IF NOT EXISTS "msStatus" VARCHAR(80),
        ADD COLUMN IF NOT EXISTS "msSyncState" VARCHAR(30),
-       ADD COLUMN IF NOT EXISTS "msSyncError" TEXT`,
+       ADD COLUMN IF NOT EXISTS "msSyncError" TEXT,
+       ADD COLUMN IF NOT EXISTS "msCancelState" VARCHAR(20),
+       ADD COLUMN IF NOT EXISTS "msCancelAttempts" INTEGER NOT NULL DEFAULT 0,
+       ADD COLUMN IF NOT EXISTS "msCancelNextAttemptAt" TIMESTAMPTZ,
+       ADD COLUMN IF NOT EXISTS "msCancelError" TEXT,
+       ADD COLUMN IF NOT EXISTS "msCancelledAt" TIMESTAMPTZ`,
     { transaction },
   );
 
@@ -103,6 +127,12 @@ const applySchema = async (transaction) => {
   await sequelize.query(
     `CREATE INDEX IF NOT EXISTS orders_ms_external_order_idx
        ON orders ("msExternalOrderId")`,
+    { transaction },
+  );
+
+  await sequelize.query(
+    `CREATE INDEX IF NOT EXISTS orders_ms_cancel_state_idx
+       ON orders ("msCancelState")`,
     { transaction },
   );
 
@@ -178,13 +208,55 @@ const applySchema = async (transaction) => {
        "durationMs" INTEGER,
        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
        CONSTRAINT mastershop_order_attempts_action_check
-         CHECK (action IN ('create', 'recover'))
+         CHECK (action IN ('create', 'recover', 'cancel'))
      )`,
+    { transaction },
+  );
+  // Reescribe el CHECK en bases creadas antes de la cancelacion: el
+  // `CREATE TABLE IF NOT EXISTS` de arriba no lo toca si la tabla ya existia.
+  await sequelize.query(
+    `ALTER TABLE mastershop_order_attempts
+       DROP CONSTRAINT IF EXISTS mastershop_order_attempts_action_check`,
+    { transaction },
+  );
+  await sequelize.query(
+    `ALTER TABLE mastershop_order_attempts
+       ADD CONSTRAINT mastershop_order_attempts_action_check
+       CHECK (action IN ('create', 'recover', 'cancel'))`,
     { transaction },
   );
   await sequelize.query(
     `CREATE INDEX IF NOT EXISTS mastershop_order_attempts_order_idx
        ON mastershop_order_attempts ("orderId", "createdAt")`,
+    { transaction },
+  );
+
+  // -------------------------------------------------------------------------
+  // 5. Suscripciones de webhook (estado/tracking)
+  // -------------------------------------------------------------------------
+  await sequelize.query(
+    `CREATE TABLE IF NOT EXISTS mastershop_webhooks (
+       id UUID PRIMARY KEY,
+       "idWebhook" INTEGER NOT NULL,
+       "idProductWebhook" VARCHAR(120) NOT NULL,
+       url VARCHAR(500) NOT NULL,
+       name VARCHAR(120),
+       "isEnable" BOOLEAN NOT NULL DEFAULT true,
+       "lastRegisteredAt" TIMESTAMPTZ,
+       "lastError" TEXT,
+       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+       "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
+     )`,
+    { transaction },
+  );
+  await sequelize.query(
+    `CREATE UNIQUE INDEX IF NOT EXISTS mastershop_webhooks_product_unique
+       ON mastershop_webhooks ("idProductWebhook")`,
+    { transaction },
+  );
+  await sequelize.query(
+    `CREATE INDEX IF NOT EXISTS mastershop_webhooks_event_idx
+       ON mastershop_webhooks ("idWebhook")`,
     { transaction },
   );
 };

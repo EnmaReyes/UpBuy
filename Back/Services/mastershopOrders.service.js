@@ -18,6 +18,7 @@
 // (llamada directa o via cron/endpoint en Fase 5).
 const {
   Order,
+  OrderItem,
   Payment,
   MastershopOrderOutbox,
   MastershopOrderAttempt,
@@ -25,13 +26,20 @@ const {
 const { Op } = require("sequelize");
 const {
   PAYMENT_STATUS,
+  FULFILLMENT_STATUS,
+  SUPPLIER_SLUG,
 } = require("../DataBase/models/enums.js");
 const { resolveOrderItem } = require("./mastershopMapping.service.js");
+const { resolveOrderProvider } = require("./orders/providerRouting.service.js");
 const {
   buildOrderPayload,
   createOrder,
+  cancelOrder,
   getOrder,
+  MASTERSHOP_ORDER_STATUS,
 } = require("../integrations/suppliers/mastershop/mastershop.orders.js");
+const HttpError = require("../Utils/HttpError.js");
+const { assertUuid } = require("../Utils/ids.js");
 const { createLogger } = require("../Utils/logger.js");
 
 const log = createLogger("mastershop.orders.service");
@@ -45,20 +53,43 @@ const MS_SYNC_STATE = {
   DISABLED: "disabled",
 };
 
+// Estado del push de cancelacion a MasterShop (orders.msCancelState).
+//   pending -> hay que reintentar (fallo transitorio)
+//   done    -> MasterShop confirmo la cancelacion
+//   failed  -> fallo definitivo (400 de esquema, 404, llave): no se reintenta
+const MS_CANCEL_STATE = {
+  PENDING: "pending",
+  DONE: "done",
+  FAILED: "failed",
+};
+
+// Tope de reintentos automaticos del push de cancelacion. Un fallo
+// reintentable (5xx, 429, red) se reintenta desde el cron hasta este tope;
+// despues queda `failed` para revision manual (nunca se reintenta sin fin).
+const MAX_CANCEL_ATTEMPTS = 5;
+
 // MasterShop exige country = CO y currency = COP para este pais.
 const MASTERSHOP_COUNTRY = "CO";
 const MASTERSHOP_CURRENCY = "COP";
 
+// Deja SOLO letras (incl. acentos y ñ) y espacios: MasterShop rechaza digitos
+// y simbolos en los nombres con 400. Los caracteres invalidos se reemplazan
+// por espacio para no pegar palabras ("Juan123Perez" -> "Juan Perez").
+const sanitizeName = (value) => {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/[^\p{L}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
 // Confirmado contra la API real (2026-11-24): first_name/last_name NO admiten
 // null ni cadena vacia; exigen "solo letras y espacios". UpBuy no captura el
-// nombre separado, asi que se deriva del recipientName congelado. Si no hay
-// nombre, queda vacio y MasterShop lo rechaza con 400 -> needs_review (alerta
-// accionable), en vez de inventar un dato del cliente.
+// nombre separado, asi que se deriva del recipientName congelado (ya saneado).
+// Si no hay nombre, queda vacio y MasterShop lo rechaza con 400 ->
+// needs_review (alerta accionable), en vez de inventar un dato del cliente.
 const splitName = (fullName) => {
-  const parts = String(fullName || "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const parts = sanitizeName(fullName).split(/\s+/).filter(Boolean);
   return {
     first_name: parts[0] || "",
     last_name: parts.slice(1).join(" ") || parts[0] || "",
@@ -117,7 +148,7 @@ const mapAddress = (snapshot = {}) => {
     city: snapshot.city || null,
     address1: snapshot.address || null,
     address2: null,
-    full_name: snapshot.recipientName || null,
+    full_name: sanitizeName(snapshot.recipientName) || null,
     first_name: names.first_name,
     last_name: names.last_name,
     phone: snapshot.phone || null,
@@ -130,7 +161,7 @@ const mapAddress = (snapshot = {}) => {
 // Datos del comprador. documentType/documentNumber no se capturan hoy:
 // MasterShop acepta ambos o ninguno, asi que van null/null.
 const mapCustomer = (snapshot = {}) => {
-  const fullName = snapshot.recipientName || null;
+  const fullName = sanitizeName(snapshot.recipientName) || null;
   const names = splitName(fullName);
   return {
     full_name: fullName,
@@ -263,6 +294,23 @@ const syncPaidOrderToMastershop = async (reference) => {
     throw new Error(`Orden local inexistente para la reference ${reference}`);
   }
 
+  // Un pedido cancelado en UpBuy no debe nacer en MasterShop: se evita
+  // despachar algo que el negocio (o el comprador) ya anulo. El outbox lo
+  // cierra como `done` en processMastershopOutbox.
+  if (order.fulfillmentStatus === FULFILLMENT_STATUS.CANCELLED) {
+    log.info("Pedido cancelado: no se crea en MasterShop", {
+      correlationId,
+      reference,
+      orderId: order.id,
+    });
+    return {
+      ok: false,
+      skipped: true,
+      orderId: order.id,
+      reason: "pedido_cancelado",
+    };
+  }
+
   // Idempotencia: ya se sincronizo con MasterShop.
   if (order.msIdOrder) {
     log.info("Pedido ya sincronizado con MasterShop", {
@@ -351,6 +399,16 @@ const syncPaidOrderToMastershop = async (reference) => {
   }
 
   // 4. Construir payload (Fase 2).
+  // MasterShop exige total = Σ(price×qty) + Σ(additional_charge.value). El
+  // subtotal de UpBuy ya es Σ(unitPrice×qty); el envio debe viajar aqui para
+  // que el total cuadre. El descuento manual no es representable (los cargos
+  // no pueden ser negativos): si existiera, el payload no cuadraria y el
+  // pedido iria a needs_review en vez de enviar un total incorrecto.
+  const shippingCost = Number(order.shippingCost) || 0;
+  const additionalCharge = shippingCost > 0
+    ? [{ type_charge: "shipping", value: shippingCost }]
+    : [];
+
   const snapshot = order.addressSnapshot || {};
   const input = {
     idOrder: order.orderNumber,
@@ -365,7 +423,7 @@ const syncPaidOrderToMastershop = async (reference) => {
     },
     customer: mapCustomer(snapshot),
     orderItems: resolution.items,
-    additionalCharge: [],
+    additionalCharge,
     notes: snapshot.notes ? [snapshot.notes] : [],
     tags: ["upbuy", "wompi"],
   };
@@ -436,10 +494,12 @@ const syncPaidOrderToMastershop = async (reference) => {
     let action = "create";
 
     // Duplicado (Código 409): tratar como exito idempotente y recuperar
-    // el idOrder real de MasterShop via externalOrderId.
+    // el idOrder real de MasterShop via externalOrderId. El externalOrderId
+    // que MasterShop guarda es el `id_order` enviado (= order.orderNumber),
+    // NO la reference de Wompi.
     if (createResult.status === "duplicate" || createResult.idempotent) {
       action = "recover";
-      const existing = await getOrder({ externalOrderId: reference });
+      const existing = await getOrder({ externalOrderId: order.orderNumber });
       if (existing && existing.idOrder) {
         idOrder = Number(existing.idOrder);
         log.info("Duplicado resuelto: idOrder recuperado de MasterShop", {
@@ -459,7 +519,9 @@ const syncPaidOrderToMastershop = async (reference) => {
 
     await order.update({
       msIdOrder: idOrder || null,
-      msExternalOrderId: reference,
+      // El externalOrderId es el `id_order` que se manda a MasterShop; coincide
+      // con orderNumber (la reference de Wompi es otra cosa y va en Payment).
+      msExternalOrderId: order.orderNumber,
       msSyncedAt: new Date(),
       msStatus: createResult.status || null,
       msSyncState: idOrder ? MS_SYNC_STATE.SYNCED : MS_SYNC_STATE.NEEDS_REVIEW,
@@ -489,6 +551,23 @@ const syncPaidOrderToMastershop = async (reference) => {
       responseBody: createResult.raw || {},
       durationMs,
     });
+
+    // Carrera creacion/cancelacion: si el pedido se cancelo mientras se
+    // creaba en MasterShop, ya existe alla y hay que cancelarlo. Se relee para
+    // no confiar en el estado que se cargo antes del POST.
+    if (idOrder) {
+      try {
+        const fresh = await Order.findByPk(order.id);
+        if (fresh && fresh.fulfillmentStatus === FULFILLMENT_STATUS.CANCELLED) {
+          await cancelMastershopOrder({ orderId: order.id });
+        }
+      } catch (error) {
+        log.error("No se pudo cancelar en MasterShop tras crearlo (carrera)", {
+          orderId: order.id,
+          error: error.message,
+        });
+      }
+    }
 
     return {
       ok: Boolean(idOrder),
@@ -576,6 +655,456 @@ const syncPaidOrderToMastershop = async (reference) => {
 };
 
 // ---------------------------------------------------------------------------
+// Push de cancelacion (PUT /api/orders/{idOrder} {idStatus:9})
+// ---------------------------------------------------------------------------
+//
+// Cuando un pedido se cancela en UpBuy y ya existe en MasterShop (msIdOrder),
+// se empuja la cancelacion para que el proveedor no lo despache. UpBuy es la
+// fuente de verdad: un fallo del push NUNCA revierte lo local; queda en
+// msCancelState = pending (reintentable) o failed (definitivo) para el panel.
+const cancelMastershopOrder = async ({ orderId } = {}) => {
+  assertUuid(orderId, "pedido");
+  const startedAt = Date.now();
+
+  const order = await Order.findByPk(orderId);
+  if (!order) {
+    throw new HttpError(404, "Pedido no encontrado");
+  }
+
+  // Sin pedido en MasterShop no hay nada que cancelar alla.
+  if (!order.msIdOrder) {
+    return { ok: false, skipped: true, orderId: order.id, reason: "sin_pedido_en_mastershop" };
+  }
+
+  // Idempotencia: ya se confirmo la cancelacion con MasterShop.
+  if (order.msCancelState === MS_CANCEL_STATE.DONE || order.msCancelledAt) {
+    return {
+      ok: true,
+      orderId: order.id,
+      idOrder: order.msIdOrder,
+      idempotent: true,
+      reason: "ya_cancelado_en_mastershop",
+    };
+  }
+
+  let result;
+  try {
+    result = await cancelOrder(order.msIdOrder, {
+      correlationId: order.id,
+      reference: order.orderNumber,
+    });
+  } catch (error) {
+    // Excepcion no controlada del cliente: fallo de red reintentable.
+    result = {
+      ok: false,
+      status: "unexpected_error",
+      raw: null,
+      retryable: true,
+      error: error.message,
+    };
+  }
+
+  const attemptNumber = await nextAttemptNumber(order.id);
+  const durationMs = Date.now() - startedAt;
+  const requestPayload = {
+    idOrder: order.msIdOrder,
+    idStatus: MASTERSHOP_ORDER_STATUS.CANCELADA,
+  };
+
+  if (result.ok) {
+    await order.update({
+      msCancelState: MS_CANCEL_STATE.DONE,
+      msCancelledAt: new Date(),
+      msCancelError: null,
+      msCancelNextAttemptAt: null,
+      msCancelAttempts: 0,
+    });
+
+    await recordAttempt({
+      orderId: order.id,
+      attempt: attemptNumber,
+      action: "cancel",
+      ok: true,
+      httpStatus: 200,
+      retryable: false,
+      msIdOrder: order.msIdOrder,
+      requestPayload,
+      responseBody: result.raw || {},
+      durationMs,
+    });
+
+    log.info("Pedido cancelado en MasterShop", {
+      orderId: order.id,
+      msIdOrder: order.msIdOrder,
+      idempotent: Boolean(result.idempotent),
+    });
+
+    return {
+      ok: true,
+      orderId: order.id,
+      idOrder: order.msIdOrder,
+      reason: result.status || "cancelado",
+    };
+  }
+
+  // Fallo: decidir si se reintenta desde el cron o queda para revision.
+  const attempts = Number(order.msCancelAttempts || 0) + 1;
+  const willRetry = Boolean(result.retryable) && attempts < MAX_CANCEL_ATTEMPTS;
+  const cancelError = JSON.stringify({
+    motivo: result.status || "error_desconocido",
+    detalle: result.raw
+      ? String(result.raw.error || result.raw.message || "").slice(0, 2000)
+      : result.error || null,
+  });
+
+  if (willRetry) {
+    // Backoff exponencial + jitter (mismo criterio que el outbox de creacion).
+    const baseMinutes = Math.min(2 ** attempts, 4 * 60);
+    const jitterMs = Math.floor(Math.random() * 60 * 1000);
+    await order.update({
+      msCancelState: MS_CANCEL_STATE.PENDING,
+      msCancelAttempts: attempts,
+      msCancelError: cancelError,
+      msCancelNextAttemptAt: new Date(Date.now() + baseMinutes * 60 * 1000 + jitterMs),
+    });
+  } else {
+    await order.update({
+      msCancelState: MS_CANCEL_STATE.FAILED,
+      msCancelAttempts: attempts,
+      msCancelError: cancelError,
+      msCancelNextAttemptAt: null,
+    });
+  }
+
+  await recordAttempt({
+    orderId: order.id,
+    attempt: attemptNumber,
+    action: "cancel",
+    ok: false,
+    httpStatus: result.status === "config_error" ? 401 : result.status === "rejected" ? 400 : 500,
+    retryable: willRetry,
+    error: result.status || "error_desconocido",
+    msIdOrder: order.msIdOrder,
+    requestPayload,
+    responseBody: result.raw || {},
+    durationMs,
+  });
+
+  log.error("Fallo cancelando pedido en MasterShop", {
+    orderId: order.id,
+    msIdOrder: order.msIdOrder,
+    status: result.status,
+    retryable: willRetry,
+  });
+
+  return {
+    ok: false,
+    orderId: order.id,
+    idOrder: order.msIdOrder,
+    reason: result.status || "error_desconocido",
+    retryable: willRetry,
+  };
+};
+
+// Reintenta los pushes de cancelacion pendientes (los toma el cron).
+// Solo mira pedidos cancelados con pedido en MasterShop y estado `pending`
+// cuyo backoff ya vencio.
+const retryPendingMastershopCancellations = async ({ limit = 20 } = {}) => {
+  const now = new Date();
+  const rows = await Order.findAll({
+    where: {
+      fulfillmentStatus: FULFILLMENT_STATUS.CANCELLED,
+      msIdOrder: { [Op.ne]: null },
+      msCancelState: MS_CANCEL_STATE.PENDING,
+      [Op.or]: [
+        { msCancelNextAttemptAt: null },
+        { msCancelNextAttemptAt: { [Op.lte]: now } },
+      ],
+    },
+    order: [["msCancelNextAttemptAt", "ASC"]],
+    limit: Math.min(Math.max(Number(limit) || 1, 1), 100),
+  });
+
+  const results = [];
+  for (const order of rows) {
+    try {
+      results.push(await cancelMastershopOrder({ orderId: order.id }));
+    } catch (error) {
+      results.push({ orderId: order.id, ok: false, error: error.message });
+    }
+  }
+
+  return { processed: results.length, results };
+};
+
+// ---------------------------------------------------------------------------
+// Panel: pedidos de MasterShop que necesitan atencion
+// ---------------------------------------------------------------------------
+//
+// Junta los dos motivos por los que un pedido queda colgado:
+//   - creacion fallida o en revision (msSyncState = needs_review | failed);
+//   - cancelacion que no se pudo empujar (msCancelState = pending | failed).
+// El pedido cancelado sin pedido en MasterShop no se muestra: no hay nada que
+// recrear ni cancelar.
+const ATTENTION_SYNC_STATES = [MS_SYNC_STATE.NEEDS_REVIEW, MS_SYNC_STATE.FAILED];
+const ATTENTION_CANCEL_STATES = [MS_CANCEL_STATE.PENDING, MS_CANCEL_STATE.FAILED];
+
+const attentionWhere = (issue) => {
+  const syncIssue = {
+    msSyncState: { [Op.in]: ATTENTION_SYNC_STATES },
+    fulfillmentStatus: { [Op.ne]: FULFILLMENT_STATUS.CANCELLED },
+  };
+  const cancelIssue = {
+    fulfillmentStatus: FULFILLMENT_STATUS.CANCELLED,
+    msIdOrder: { [Op.ne]: null },
+    msCancelState: { [Op.in]: ATTENTION_CANCEL_STATES },
+  };
+  if (issue === "sync") return syncIssue;
+  if (issue === "cancel") return cancelIssue;
+  return { [Op.or]: [syncIssue, cancelIssue] };
+};
+
+const countMastershopAttention = async () => {
+  const [needsReview, failed, cancelPending, cancelFailed] = await Promise.all([
+    Order.count({
+      where: {
+        msSyncState: MS_SYNC_STATE.NEEDS_REVIEW,
+        fulfillmentStatus: { [Op.ne]: FULFILLMENT_STATUS.CANCELLED },
+      },
+    }),
+    Order.count({
+      where: {
+        msSyncState: MS_SYNC_STATE.FAILED,
+        fulfillmentStatus: { [Op.ne]: FULFILLMENT_STATUS.CANCELLED },
+      },
+    }),
+    Order.count({
+      where: {
+        fulfillmentStatus: FULFILLMENT_STATUS.CANCELLED,
+        msIdOrder: { [Op.ne]: null },
+        msCancelState: MS_CANCEL_STATE.PENDING,
+      },
+    }),
+    Order.count({
+      where: {
+        fulfillmentStatus: FULFILLMENT_STATUS.CANCELLED,
+        msIdOrder: { [Op.ne]: null },
+        msCancelState: MS_CANCEL_STATE.FAILED,
+      },
+    }),
+  ]);
+
+  return {
+    needsReview,
+    failed,
+    cancelPending,
+    cancelFailed,
+    total: needsReview + failed + cancelPending + cancelFailed,
+  };
+};
+
+const listMastershopAttentionOrders = async ({
+  issue = "all",
+  q = "",
+  limit = 20,
+  offset = 0,
+} = {}) => {
+  const safeIssue = issue === "sync" || issue === "cancel" ? issue : "all";
+  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+  const safeOffset = Math.max(Number(offset) || 0, 0);
+
+  let where = attentionWhere(safeIssue);
+  const term = String(q || "").trim();
+  if (term) {
+    const like = `%${term}%`;
+    where = {
+      [Op.and]: [
+        where,
+        {
+          [Op.or]: [
+            { orderNumber: { [Op.iLike]: like } },
+            { recipientName: { [Op.iLike]: like } },
+            { email: { [Op.iLike]: like } },
+          ],
+        },
+      ],
+    };
+  }
+
+  const { rows, count } = await Order.findAndCountAll({
+    where,
+    order: [["updatedAt", "DESC"]],
+    limit: safeLimit,
+    offset: safeOffset,
+  });
+
+  // Ultimo intento por pedido, en una sola consulta.
+  const ids = rows.map((row) => row.id);
+  const lastAttemptByOrder = new Map();
+  if (ids.length) {
+    const attempts = await MastershopOrderAttempt.findAll({
+      where: { orderId: { [Op.in]: ids } },
+      order: [["createdAt", "DESC"]],
+    });
+    for (const attempt of attempts) {
+      if (!lastAttemptByOrder.has(attempt.orderId)) {
+        lastAttemptByOrder.set(attempt.orderId, attempt);
+      }
+    }
+  }
+
+  const orders = rows.map((order) => {
+    const isCancelIssue =
+      order.fulfillmentStatus === FULFILLMENT_STATUS.CANCELLED &&
+      ATTENTION_CANCEL_STATES.includes(order.msCancelState);
+    const attempt = lastAttemptByOrder.get(order.id) || null;
+
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      recipientName: order.recipientName,
+      email: order.email,
+      phone: order.phone,
+      total: order.total,
+      currency: order.currency,
+      fulfillmentStatus: order.fulfillmentStatus,
+      paymentState: order.paymentState,
+      msIdOrder: order.msIdOrder,
+      msExternalOrderId: order.msExternalOrderId,
+      msStatus: order.msStatus,
+      msSyncState: order.msSyncState,
+      msSyncError: order.msSyncError,
+      msCancelState: order.msCancelState,
+      msCancelAttempts: order.msCancelAttempts,
+      msCancelNextAttemptAt: order.msCancelNextAttemptAt,
+      msCancelError: order.msCancelError,
+      msCancelledAt: order.msCancelledAt,
+      issue: isCancelIssue ? "cancel" : "sync",
+      lastAttempt: attempt
+        ? {
+            action: attempt.action,
+            ok: attempt.ok,
+            httpStatus: attempt.httpStatus,
+            retryable: attempt.retryable,
+            error: attempt.error,
+            createdAt: attempt.createdAt,
+          }
+        : null,
+    };
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    total: count,
+    limit: safeLimit,
+    offset: safeOffset,
+    counts: await countMastershopAttention(),
+    orders,
+  };
+};
+
+// Reintenta un pedido desde el panel.
+//
+//   - cancelacion pendiente/fallida -> vuelve a empujar `PUT {idStatus:9}`;
+//   - creacion needs_review/failed  -> reactiva el outbox y crea el pedido;
+//   - pedido cancelado sin pedido en MasterShop -> no se recrea.
+//
+// Fuerza un intento nuevo aunque se haya alcanzado el tope de reintentos.
+const retryMastershopOrder = async ({ orderId } = {}) => {
+  assertUuid(orderId, "pedido");
+  const order = await Order.findByPk(orderId);
+  if (!order) {
+    throw new HttpError(404, "Pedido no encontrado");
+  }
+
+  // 1) Cancelacion: reintentar el push de cancelacion.
+  if (order.fulfillmentStatus === FULFILLMENT_STATUS.CANCELLED) {
+    if (!order.msIdOrder) {
+      // Nunca llego a crearse en MasterShop: se cierra el outbox y se deja de
+      // reintentar (no hay nada que cancelar alla).
+      await MastershopOrderOutbox.update(
+        { status: "done", lastError: "pedido_cancelado", lockedAt: null },
+        { where: { orderId: order.id } },
+      );
+      await order.update({
+        msSyncState: MS_SYNC_STATE.DISABLED,
+        msSyncError: null,
+        msCancelState: null,
+        msCancelNextAttemptAt: null,
+      });
+      return {
+        ok: true,
+        action: "none",
+        orderId: order.id,
+        reason: "pedido_cancelado_sin_pedido_en_mastershop",
+      };
+    }
+
+    // El operador fuerza el intento: se reinicia el contador para que un
+    // fallo transitorio vuelva a quedar en `pending`.
+    await order.update({ msCancelAttempts: 0, msCancelNextAttemptAt: null });
+    const result = await cancelMastershopOrder({ orderId: order.id });
+    return { action: "cancel", ...result };
+  }
+
+  // 2) Ya existe en MasterShop: no hay nada que recrear.
+  if (order.msIdOrder) {
+    return {
+      ok: true,
+      action: "none",
+      orderId: order.id,
+      idOrder: order.msIdOrder,
+      reason: "ya_creado_en_mastershop",
+    };
+  }
+
+  // 3) Creacion: hace falta un pago Wompi aprobado.
+  const payment = await Payment.findOne({
+    where: {
+      orderId: order.id,
+      provider: "wompi",
+      status: PAYMENT_STATUS.APROBADO,
+    },
+  });
+  if (!payment) {
+    return {
+      ok: false,
+      action: "create",
+      orderId: order.id,
+      reason: "pago_wompi_no_aprobado",
+    };
+  }
+
+  // Reactivar el outbox (exista o no la fila) y limpiar el error anterior.
+  const [row] = await MastershopOrderOutbox.findOrCreate({
+    where: { orderId: order.id },
+    defaults: { status: "pending", attempts: 0 },
+  });
+  await row.update({
+    status: "pending",
+    attempts: 0,
+    nextAttemptAt: null,
+    lockedAt: null,
+    lastError: null,
+  });
+  await order.update({ msSyncState: MS_SYNC_STATE.PENDING, msSyncError: null });
+
+  try {
+    const result = await syncPaidOrderToMastershop(payment.reference);
+    return { action: "create", ...result };
+  } catch (error) {
+    return {
+      ok: false,
+      action: "create",
+      orderId: order.id,
+      reason: error.message,
+    };
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Procesador del outbox (Fase 4/5)
 // ---------------------------------------------------------------------------
 
@@ -657,6 +1186,10 @@ const processMastershopOutbox = async ({ limit = 20 } = {}) => {
     // Sincronizar el estado del outbox con el resultado del servicio.
     if (result.ok && result.idOrder) {
       await row.update({ status: "done", lastError: null, lockedAt: null });
+    } else if (result.reason === "pedido_cancelado") {
+      // El pedido se anulo antes de llegar a MasterShop: no se crea y se
+      // cierra la fila para no reintentar.
+      await row.update({ status: "done", lastError: result.reason, lockedAt: null });
     } else if (
       result.reason === "faltan_mapeos_de_variante" ||
       result.reason === "payload_invalido" ||
@@ -733,6 +1266,16 @@ const checkFailureRate = async () => {
 //     `includeRemote: true` porque llama a la API (red).
 //   - msStatusMismatch: pedidos locales ya sincronizados cuyo msStatus local
 //     no coincide con el que reporta MasterShop. Requiere `includeRemote`.
+// Un pedido es "de MasterShop" solo si todos sus items enrutan a ese proveedor.
+// Evita que la conciliacion cuente pedidos de Venndelo (o manuales) como
+// "pagos aprobados sin pedido en MasterShop".
+const orderIsMastershop = async (orderId) => {
+  const items = await OrderItem.findAll({ where: { orderId } });
+  if (items.length === 0) return false;
+  const routing = await resolveOrderProvider(items);
+  return routing.ok && routing.provider === SUPPLIER_SLUG.MASTERSHOP;
+};
+
 const buildReconciliationReport = async ({
   includeRemote = false,
   limit = 500,
@@ -753,16 +1296,21 @@ const buildReconciliationReport = async ({
     : [];
   const ordersById = new Map(approvedOrders.map((o) => [o.id, o]));
 
-  const approvedWithoutMsOrder = approvedPayments
-    .map((p) => ({ payment: p, order: ordersById.get(p.orderId) }))
-    .filter(({ order }) => order && !order.msIdOrder)
-    .map(({ payment, order }) => ({
+  const approvedWithoutMsOrder = [];
+  for (const payment of approvedPayments) {
+    const order = ordersById.get(payment.orderId);
+    if (!order || order.msIdOrder) continue;
+    // Solo pedidos de MasterShop: uno de Venndelo no es un desajuste de esta
+    // integracion (cada proveedor tiene su propio outbox y su propio informe).
+    if (!(await orderIsMastershop(order.id))) continue;
+    approvedWithoutMsOrder.push({
       orderId: order.id,
       orderNumber: order.orderNumber,
       reference: payment.reference,
       paymentCreatedAt: payment.createdAt,
       msSyncState: order.msSyncState || null,
-    }));
+    });
+  }
 
   // Pedidos que fallaron o quedaron para revision.
   const failedOrders = await Order.findAll({
@@ -795,12 +1343,32 @@ const buildReconciliationReport = async ({
     limit,
   });
 
+  // Cancelaciones que no se pudieron empujar a MasterShop (pending/failed).
+  const pendingCancellations = await Order.findAll({
+    where: {
+      fulfillmentStatus: FULFILLMENT_STATUS.CANCELLED,
+      msIdOrder: { [Op.ne]: null },
+      msCancelState: { [Op.in]: [MS_CANCEL_STATE.PENDING, MS_CANCEL_STATE.FAILED] },
+    },
+    order: [["updatedAt", "DESC"]],
+    limit,
+  });
+
   const report = {
     generatedAt,
     includeRemote: Boolean(includeRemote),
     approvedWithoutMsOrder,
     failedOrders: failedOrders.map(toOrderRef),
     needsReviewOrders: needsReviewOrders.map(toOrderRef),
+    pendingCancellations: pendingCancellations.map((order) => ({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      msIdOrder: order.msIdOrder,
+      msCancelState: order.msCancelState,
+      msCancelAttempts: order.msCancelAttempts,
+      msCancelNextAttemptAt: order.msCancelNextAttemptAt,
+      msCancelError: order.msCancelError || null,
+    })),
     stuckOutbox: stuckOutbox.map((row) => ({
       orderId: row.orderId,
       status: row.status,
@@ -882,9 +1450,15 @@ const buildReconciliationReport = async ({
 module.exports = {
   syncPaidOrderToMastershop,
   processMastershopOutbox,
+  cancelMastershopOrder,
+  retryPendingMastershopCancellations,
+  listMastershopAttentionOrders,
+  retryMastershopOrder,
   checkFailureRate,
   buildReconciliationReport,
   MS_SYNC_STATE,
+  MS_CANCEL_STATE,
+  MAX_CANCEL_ATTEMPTS,
   mapAddress,
   mapCustomer,
   redactObject,

@@ -23,6 +23,7 @@ const {
   PAYMENT_METHOD_CODE,
   COD_PAYMENT_METHOD_CODES,
   PROVIDER,
+  SUPPLIER_SLUG,
   STATUS_SOURCE,
 } = require("../DataBase/models/enums.js");
 const HttpError = require("../Utils/HttpError.js");
@@ -316,6 +317,35 @@ const PALABRAS_PAGO = {
 // que tienen prioridad. Se completan segun la documentacion de cada uno.
 const OVERRIDES_POR_PROVEEDOR = {
   [PROVIDER.DROPI]: {},
+  // MasterShop usa estados propios en espanol. "Pendiente" aqui NO significa
+  // "sin pagar": el pedido ya nacio de un pago Wompi aprobado, asi que se
+  // mapea a `paid` para no degradar el cumplimiento local.
+  [SUPPLIER_SLUG.MASTERSHOP]: {
+    por_confirmar: { fulfillmentStatus: FULFILLMENT_STATUS.PAID },
+    pendiente: { fulfillmentStatus: FULFILLMENT_STATUS.PAID },
+    confirmada: { fulfillmentStatus: FULFILLMENT_STATUS.PAID },
+    confirmado: { fulfillmentStatus: FULFILLMENT_STATUS.PAID },
+    en_alistamiento: { fulfillmentStatus: FULFILLMENT_STATUS.PACKING },
+    alistamiento: { fulfillmentStatus: FULFILLMENT_STATUS.PACKING },
+    alistando: { fulfillmentStatus: FULFILLMENT_STATUS.PACKING },
+    preparando: { fulfillmentStatus: FULFILLMENT_STATUS.PACKING },
+    en_preparacion: { fulfillmentStatus: FULFILLMENT_STATUS.PACKING },
+    empacando: { fulfillmentStatus: FULFILLMENT_STATUS.PACKING },
+    despachado: { fulfillmentStatus: FULFILLMENT_STATUS.SHIPPED },
+    despachada: { fulfillmentStatus: FULFILLMENT_STATUS.SHIPPED },
+    en_camino: { fulfillmentStatus: FULFILLMENT_STATUS.SHIPPED },
+    en_transito: { fulfillmentStatus: FULFILLMENT_STATUS.SHIPPED },
+    en_reparto: { fulfillmentStatus: FULFILLMENT_STATUS.SHIPPED },
+    en_ruta: { fulfillmentStatus: FULFILLMENT_STATUS.SHIPPED },
+    entregado: { fulfillmentStatus: FULFILLMENT_STATUS.DELIVERED },
+    entregada: { fulfillmentStatus: FULFILLMENT_STATUS.DELIVERED },
+    cancelada: { fulfillmentStatus: FULFILLMENT_STATUS.CANCELLED },
+    cancelado: { fulfillmentStatus: FULFILLMENT_STATUS.CANCELLED },
+    devuelto: { fulfillmentStatus: FULFILLMENT_STATUS.CANCELLED },
+    devuelta: { fulfillmentStatus: FULFILLMENT_STATUS.CANCELLED },
+    rechazado: { fulfillmentStatus: FULFILLMENT_STATUS.CANCELLED },
+    rechazada: { fulfillmentStatus: FULFILLMENT_STATUS.CANCELLED },
+  },
 };
 
 // Normaliza un estado crudo para compararlo: minusculas, sin tildes, sin

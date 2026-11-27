@@ -63,8 +63,8 @@ test("total = suma exacta de items + cargos", () => {
   const input = {
     ...baseInput,
     orderItems: [
-      { id_product: 1, hasVariants: false, quantity: 3, sku: null, name: "A", weight: 0, price: 10000 },
-      { id_product: 2, hasVariants: false, quantity: 1, sku: null, name: "B", weight: 0, price: 5000 },
+      { id_product: 1, hasVariants: false, quantity: 3, sku: null, name: "A", weight: 0.5, price: 10000 },
+      { id_product: 2, hasVariants: false, quantity: 1, sku: null, name: "B", weight: 0.5, price: 5000 },
     ],
     additionalCharge: [{ type_charge: "envio", value: 8000 }],
     orderTransaction: { ...baseInput.orderTransaction, total: 43000 },

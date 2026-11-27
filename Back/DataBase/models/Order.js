@@ -344,7 +344,8 @@ const Order = sequelize.define(
       type: DataTypes.BIGINT,
       allowNull: true,
     },
-    // `externalOrderId` que se manda a MasterShop (referencia del pago).
+    // `externalOrderId` que se manda a MasterShop (= orderNumber; es el
+    // `id_order`). NO es la reference de Wompi, que vive en Payment.
     msExternalOrderId: {
       type: DataTypes.STRING(120),
       allowNull: true,
@@ -366,6 +367,31 @@ const Order = sequelize.define(
     },
     msSyncError: {
       type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    // Push de cancelacion a MasterShop (`PUT {idStatus:9}`).
+    //   null | pending | done | failed  (ver MS_CANCEL_STATE)
+    // Se llena solo cuando el pedido local se cancela Y ya existe en MasterShop.
+    msCancelState: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    msCancelAttempts: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    msCancelNextAttemptAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    msCancelError: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    // Momento en que MasterShop confirmo la cancelacion.
+    msCancelledAt: {
+      type: DataTypes.DATE,
       allowNull: true,
     },
 

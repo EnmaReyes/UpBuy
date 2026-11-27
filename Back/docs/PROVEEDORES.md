@@ -349,10 +349,13 @@ PATCH /settings           ({ publishPolicy, defaultCategoryId })
 POST /sync
 ```
 
-No existen rutas de billetera ni de pedidos: MasterShop se integra solo como
-catálogo. `publishPolicy` (`manual` | `auto_draft` | `auto_visible`) y
-`defaultCategoryId` viven en `suppliers`; publicar sin `visibility` explícita
-crea el producto en borrador salvo que la política sea `auto_visible`.
+No existen rutas de billetera. La integración de **pedidos** (creación tras un
+pago Wompi aprobado y cancelación) vive en `Services/mastershopOrders.service.js`
+y en `integrations/suppliers/mastershop/mastershop.orders.js`; se documenta en
+[`integracion-mastershop-wompi.md`](integracion-mastershop-wompi.md). `publishPolicy`
+(`manual` | `auto_draft` | `auto_visible`) y `defaultCategoryId` viven en
+`suppliers`; publicar sin `visibility` explícita crea el producto en borrador
+salvo que la política sea `auto_visible`.
 
 ## 15. Cron
 
@@ -366,10 +369,13 @@ uno y `ok` global.
 - **Dropi**: no hay catálogo por API. Decisión vigente: sus cargas se hacen
   **manualmente**; no se implementa el importador CSV de la Fase 6 mientras no
   exista contrato. La integración de pedidos de Dropi sigue como estaba.
-- **Pedidos**: sin integrar. `POST /api/orders` exige un esquema de
-  `variation[]` que no está documentado y `orders.provider` solo acepta `dropi`.
-- **Webhooks**: sin integrar. MasterShop no documenta firma HMAC ni secreto
-  compartido, así que el origen no se puede verificar.
+- **Pedidos**: creación automática y cancelación integradas; ver
+  [`integracion-mastershop-wompi.md`](integracion-mastershop-wompi.md).
+- **Webhooks de estado/tracking**: integrados para los eventos 16/17/18. No
+  traen firma HMAC, así que el cuerpo solo identifica el pedido y el estado se
+  valida reconsultando `GET /api/orders`. Se registran con
+  `npm run mastershop:webhooks`; el cron reconcilia por si se pierden.
 - **Market / billetera / devoluciones**: fuera de alcance.
-- **Variaciones**: no se importan (contrato no documentado).
+- **Variaciones**: se importan para la creación de pedidos; el contrato de
+  atributos se documenta en `mastershop.attributes.js`.
 

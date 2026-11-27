@@ -177,6 +177,34 @@ const resolveOrderItem = async ({ orderItem, product = null } = {}) => {
     };
   }
 
+  // Variante exacta fijada en el checkout: `order_items.variantId` apunta a la
+  // fila de `supplier_product_variations`, que la sincronizacion actualiza en
+  // sitio (conserva el UUID). Es mas fiable que re-resolver por talla/color y
+  // permite crear pedidos multivariante aunque la linea no traiga atributos.
+  if (orderItem.variantId) {
+    const stored = rows.find((row) => row.id === orderItem.variantId);
+    if (stored) {
+      const externalId = Number(stored.externalId);
+      if (Number.isInteger(externalId) && externalId > 0) {
+        const shape =
+          variations.find(
+            (variation) => variation.externalId === String(stored.externalId),
+          ) || toVariationShape(stored);
+        return {
+          ok: true,
+          reason: "resuelto_por_variante_id",
+          idProduct: base.idProduct,
+          idVariant: externalId,
+          sku: stored.sku || null,
+          attributes: shape.attributes || {},
+          variation: shape,
+        };
+      }
+    }
+    // Si el `variantId` ya no existe (variante retirada del proveedor) se cae
+    // al respaldo por talla/color en vez de fallar de inmediato.
+  }
+
   const wanted = {
     size: orderItem.size || null,
     color: orderItem.shirtColor || null,

@@ -514,9 +514,31 @@ const changeOrderStatus = async ({
     });
   }
 
+  // La cancelacion SIEMPRE se empuja a MasterShop (si el pedido existe alla):
+  // evitar que el proveedor despache un pedido anulado en UpBuy es critico.
+  // Nunca revierte lo local: un fallo queda en msCancelState para reintento.
+  let mastershopCancel = null;
+  if (status === FULFILLMENT_STATUS.CANCELLED) {
+    try {
+      const {
+        cancelMastershopOrder,
+      } = require("./mastershopOrders.service.js");
+      mastershopCancel = await cancelMastershopOrder({ orderId: order.id });
+    } catch (error) {
+      log.error("No se pudo empujar la cancelación a MasterShop", {
+        orderId: order.id,
+        error: error.message,
+      });
+      mastershopCancel = { ok: false, error: error.message };
+    }
+  }
+
   const result = await getOrderAdminDetail(orderId);
   if (providerPush) {
     result.providerPush = providerPush;
+  }
+  if (mastershopCancel && !mastershopCancel.skipped) {
+    result.mastershopCancel = mastershopCancel;
   }
   return result;
 };

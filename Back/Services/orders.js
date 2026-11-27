@@ -988,6 +988,21 @@ const cancelOrder = async ({ orderId, userId }) => {
       });
     }
 
+    // Si el pedido ya se habia creado en MasterShop, se empuja la
+    // cancelacion para que no lo despache. Nunca revierte lo local: el
+    // resultado queda en msCancelState para que el cron reintente.
+    try {
+      const {
+        cancelMastershopOrder,
+      } = require("./mastershopOrders.service.js");
+      await cancelMastershopOrder({ orderId: full.id });
+    } catch (error) {
+      log.error("No se pudo empujar la cancelación a MasterShop", {
+        orderId: full.id,
+        error: error.message,
+      });
+    }
+
     return full;
   } catch (error) {
     await transaction.rollback();

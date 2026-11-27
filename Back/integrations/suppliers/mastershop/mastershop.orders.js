@@ -26,6 +26,39 @@ const ADDRESS_KEYS = [
 // Monedas legales por pais (Anexo A: COP + CO).
 const CURRENCY_BY_COUNTRY = { CO: "COP" };
 
+// idStatus del contrato de MasterShop (`PUT /api/orders/{idOrder}`).
+//   1 = Por confirmar, 2 = Pendiente, 9 = Cancelada.
+// Solo los pedidos en estado 1 o 2 se pueden actualizar/cancelar.
+const MASTERSHOP_ORDER_STATUS = {
+  POR_CONFIRMAR: 1,
+  PENDIENTE: 2,
+  CANCELADA: 9,
+};
+
+// Dominios de uso especial que nunca son un correo real (RFC 2606/6761).
+// MasterShop los rechaza con un 400 interno opaco ("Error interno del
+// servidor", data: null); se detectan aqui para dejar el pedido en
+// needs_review con un motivo accionable.
+const RESERVED_EMAIL_TLDS = new Set([
+  "local",
+  "localhost",
+  "test",
+  "invalid",
+  "example",
+  "internal",
+  "lan",
+]);
+
+// Valida forma basica y TLD publico: algo@dominio.tld (sin espacios).
+const isValidEmail = (value) => {
+  if (typeof value !== "string") return false;
+  const email = value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(email)) return false;
+  const domain = email.slice(email.lastIndexOf("@") + 1).toLowerCase();
+  const tld = domain.slice(domain.lastIndexOf(".") + 1);
+  return !RESERVED_EMAIL_TLDS.has(tld);
+};
+
 const isPositiveInt = (value) =>
   Number.isInteger(value) && value > 0;
 
@@ -71,7 +104,14 @@ const buildOrderPayload = (input) => {
 
   // --- id_order ---
   const idOrder = cleanText(data.idOrder, 120);
-  if (!idOrder) errors.push("idOrder es obligatorio");
+  if (!idOrder) {
+    errors.push("idOrder es obligatorio");
+  } else if (!/^[A-Za-z0-9-]+$/.test(idOrder)) {
+    // El contrato solo admite letras, numeros y guiones medios. Un `_` crea el
+    // pedido pero luego rompe GET /api/orders?externalOrderId=... (recuperacion
+    // por duplicado); por eso se rechaza antes de salir.
+    errors.push("id_order solo admite letras, numeros y guiones medios (-)");
+  }
 
   // --- direcciones ---
   const shippingAddress = ensureAddressKeys(
@@ -124,6 +164,13 @@ const buildOrderPayload = (input) => {
   if (customer) {
     if (!fullName) errors.push("customer.full_name es obligatorio");
     if (!phone) errors.push("customer.phone es obligatorio");
+    // MasterShop necesita un email real: un email invalido (p. ej. dominio
+    // ".local") responde 400 interno opaco en vez de un error de esquema.
+    if (!email) {
+      errors.push("customer.email es obligatorio");
+    } else if (!isValidEmail(email)) {
+      errors.push("customer.email no es valido");
+    }
     // documentType y documentNumber: ambos o ninguno.
     if ((documentType && !documentNumber) || (!documentType && documentNumber)) {
       errors.push("documentType y documentNumber deben venir ambos o ninguno");
@@ -180,8 +227,9 @@ const buildOrderPayload = (input) => {
 
       const sku = cleanText(item.sku, 255);
       const weight = item.weight;
-      if (weight !== undefined && weight !== null && (typeof weight !== "number" || !Number.isFinite(weight) || weight < 0)) {
-        errors.push(`order_items[${index}].weight invalido`);
+      // MasterShop exige peso > 0: un 0 (o ausente) hace que rechace el pedido.
+      if (typeof weight !== "number" || !Number.isFinite(weight) || weight <= 0) {
+        errors.push(`order_items[${index}].weight debe ser numero mayor a 0`);
       }
 
       // Duplicados sin consolidar.
@@ -205,7 +253,7 @@ const buildOrderPayload = (input) => {
         quantity,
         sku: sku || null,
         name,
-        weight: weight === undefined || weight === null ? 0 : weight,
+        weight,
         price,
       });
     });
@@ -310,6 +358,20 @@ const buildOrderPayload = (input) => {
 // ---------------------------------------------------------------------------
 const isDuplicateMessage = (text) =>
   typeof text === "string" && text.includes("Código 409 - La orden ya existe");
+
+// MasterShop no documenta un codigo propio de "ya cancelada": ante un segundo
+// `PUT {idStatus:9}` responde 400/500 con un texto variable. Se detecta para
+// tratarlo como exito idempotente en vez de alertar por un falso fallo.
+const isAlreadyCancelledMessage = (text) => {
+  if (typeof text !== "string") return false;
+  const value = text.toLowerCase();
+  return (
+    value.includes("cancelad") &&
+    (value.includes("ya ") ||
+      value.includes("ya esta") ||
+      value.includes("se encuentra"))
+  );
+};
 
 const createOrder = async (payload, options = {}) => {
   assertConfigured();
@@ -461,6 +523,179 @@ const createOrder = async (payload, options = {}) => {
   };
 };
 
+// ---------------------------------------------------------------------------
+// cancelOrder (HTTP)
+// ---------------------------------------------------------------------------
+//
+// Cancela un pedido en MasterShop con `PUT /api/orders/{idOrder}` `{"idStatus":9}`.
+// UpBuy es la fuente de verdad: si esta llamada falla, el pedido local sigue
+// cancelado; el llamador decide si reintentar.
+//
+// Garantias:
+//   - idempotente: si MasterShop responde "ya cancelada", se trata como exito.
+//   - `retryable` distingue fallos transitorios (5xx, 429, red) de definitivos
+//     (400 de esquema, 404, 401/403 de llave).
+//   - 404 no se reintenta: el pedido no existe en MasterShop.
+const cancelOrder = async (idOrder, options = {}) => {
+  assertConfigured();
+
+  const correlationId = options.correlationId || null;
+  const reference = options.reference || null;
+  const startedAt = Date.now();
+
+  const parsedId = Number(idOrder);
+  if (!Number.isInteger(parsedId) || parsedId <= 0) {
+    return {
+      ok: false,
+      status: "missing_id_order",
+      raw: null,
+      retryable: false,
+    };
+  }
+
+  let response;
+  try {
+    response = await requestJson("PUT", `/api/orders/${parsedId}`, {
+      body: { idStatus: MASTERSHOP_ORDER_STATUS.CANCELADA },
+    });
+  } catch (error) {
+    const status = error.upstreamStatus || error.status || 0;
+    const body = error.upstreamBody || null;
+    const message = (body && (body.error || body.message)) || error.message || "";
+    const latencyMs = Date.now() - startedAt;
+
+    // "ya cancelada" llega como 400 o 500 segun el caso: exito idempotente.
+    if ((status === 400 || status >= 500) && isAlreadyCancelledMessage(message)) {
+      log.info("cancelOrder ya estaba cancelada (idempotente)", {
+        correlationId,
+        reference,
+        idOrder: parsedId,
+        status,
+        latencyMs,
+      });
+      return {
+        ok: true,
+        status: "already_cancelled",
+        raw: body,
+        retryable: false,
+        idempotent: true,
+      };
+    }
+
+    // 400: el pedido ya no esta en estado 1 o 2 (por ejemplo ya despachado).
+    if (status === 400) {
+      log.warn("cancelOrder rechazado por validacion", {
+        correlationId,
+        reference,
+        idOrder: parsedId,
+        status,
+        latencyMs,
+      });
+      return {
+        ok: false,
+        status: "rejected",
+        raw: body,
+        retryable: false,
+      };
+    }
+
+    if (status === 401 || status === 403) {
+      log.error("cancelOrder error de configuracion (llave)", {
+        correlationId,
+        reference,
+        idOrder: parsedId,
+        status,
+        latencyMs,
+      });
+      return {
+        ok: false,
+        status: "config_error",
+        raw: body,
+        retryable: false,
+        configError: true,
+      };
+    }
+
+    // El pedido no existe en MasterShop: reintentar no cambia nada.
+    if (status === 404) {
+      log.warn("cancelOrder: pedido inexistente en MasterShop", {
+        correlationId,
+        reference,
+        idOrder: parsedId,
+        latencyMs,
+      });
+      return {
+        ok: false,
+        status: "not_found",
+        raw: body,
+        retryable: false,
+      };
+    }
+
+    if (status === 429) {
+      log.warn("cancelOrder rate limit", {
+        correlationId,
+        reference,
+        idOrder: parsedId,
+        latencyMs,
+        retryAfterSeconds: error.retryAfterSeconds || null,
+      });
+      return {
+        ok: false,
+        status: "rate_limited",
+        raw: body,
+        retryable: true,
+        retryAfterSeconds: error.retryAfterSeconds || null,
+      };
+    }
+
+    if (status >= 500) {
+      log.warn("cancelOrder error de proveedor (reintentable)", {
+        correlationId,
+        reference,
+        idOrder: parsedId,
+        status,
+        latencyMs,
+      });
+      return {
+        ok: false,
+        status: "server_error",
+        raw: body,
+        retryable: true,
+      };
+    }
+
+    log.warn("cancelOrder fallo (reintentable)", {
+      correlationId,
+      reference,
+      idOrder: parsedId,
+      status,
+      latencyMs,
+      error: error.message,
+    });
+    return {
+      ok: false,
+      status: "network_error",
+      raw: body,
+      retryable: true,
+    };
+  }
+
+  log.info("cancelOrder ok", {
+    correlationId,
+    reference,
+    idOrder: parsedId,
+    latencyMs: Date.now() - startedAt,
+  });
+
+  return {
+    ok: true,
+    status: "cancelled",
+    raw: response || {},
+    retryable: false,
+  };
+};
+
 // Consulta un pedido existente (por idOrder o externalOrderId).
 const getOrder = async ({ idOrder, externalOrderId } = {}) => {
   const params = {};
@@ -490,9 +725,14 @@ const listOrders = async ({ page = 1, limit = 20, startDate, finalDate } = {}) =
 module.exports = {
   ADDRESS_KEYS,
   CURRENCY_BY_COUNTRY,
+  MASTERSHOP_ORDER_STATUS,
+  RESERVED_EMAIL_TLDS,
+  isValidEmail,
   buildOrderPayload,
   createOrder,
+  cancelOrder,
   getOrder,
   listOrders,
   isDuplicateMessage,
+  isAlreadyCancelledMessage,
 };

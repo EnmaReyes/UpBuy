@@ -28,6 +28,7 @@
     "venndelo:cities": "node scripts/refreshVenndeloCities.js",
     "mastershop:sync": "node scripts/mastershopSync.js",
     "mastershop:report": "node scripts/mastershopReport.js",
+    "mastershop:webhooks": "node scripts/registerMastershopWebhooks.js",
     "reconcile:mastershop": "node scripts/reconcileMastershop.js",
     "test": "node --test --test-concurrency=1 test/*.test.js"
   },

@@ -36,12 +36,12 @@ const MastershopOrderAttempt = sequelize.define(
       allowNull: false,
       defaultValue: 1,
     },
-    // 'create' | 'recover' (recuperacion tras el duplicado)
+    // 'create' | 'recover' (recuperacion tras el duplicado) | 'cancel'
     action: {
       type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: "create",
-      validate: { isIn: [["create", "recover"]] },
+      validate: { isIn: [["create", "recover", "cancel"]] },
     },
     ok: {
       type: DataTypes.BOOLEAN,

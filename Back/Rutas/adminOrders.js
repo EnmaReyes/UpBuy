@@ -29,6 +29,8 @@ const {
   payments,
   registerPaymentHandler,
   changePayment,
+  mastershopAttention,
+  retryMastershop,
 } = require("../Controllers/adminOrders.js");
 
 const router = express.Router();
@@ -63,6 +65,13 @@ router.get("/stats", canReadOrders, stats);
 router.get("/ventas", canReadOrders, sales);
 router.get("/accounting", canReadOrders, accounting);
 router.get("/providers", canReadOrders, providers);
+// Pedidos de MasterShop que necesitan atencion (antes de /:id).
+router.get("/mastershop/attention", canReadOrders, mastershopAttention);
+router.post(
+  "/mastershop/:id/retry",
+  canWriteOrders,
+  retryMastershop,
+);
 // Exportacion CSV operativa (antes de /:id para que no la capture el parametro).
 router.get("/export.csv", canReadOrders, exportCsv);
 

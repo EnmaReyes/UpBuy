@@ -46,6 +46,7 @@ contener secretos**.
 | `npm run venndelo:cities` | Regenera el catálogo DANE de municipios de Venndelo |
 | `npm run mastershop:sync` | Importa el catálogo de MasterShop (productos + variantes) |
 | `npm run mastershop:report` | Reporta huecos de mapeo de variantes (solo lectura) |
+| `npm run mastershop:webhooks` | Registra/reactiva los webhooks de estado/tracking (`--url=`) |
 | `npm run reconcile:mastershop` | Concilia pagos Wompi vs pedidos en MasterShop (`--remote`, `--json`) |
 | `npm run db:create` | Crea la base local |
 | `npm run db:migrate:indexes` | Aplica los índices del panel (ADM-10); idempotente |
@@ -147,6 +148,7 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 | GET | `/api/orders/:id/tracking?phone=&email=` | Tracking sin sesión |
 | POST | `/api/webhooks/wompi` | Firma de Wompi |
 | POST | `/api/webhooks/venndelo` | Firma HMAC de Venndelo |
+| POST | `/api/webhooks/mastershop` | Estado/tracking (sin firma: se reconsulta la API) |
 | POST | `/api/webhooks/:provider` | Alias |
 | POST | `/api/payments/webhook` | Compatibilidad con Wompi |
 
@@ -181,6 +183,8 @@ Reglas clave (detalle en [`docs/ESTADOS.md`](docs/ESTADOS.md)):
 | GET | `/api/admin/orders/ventas` |
 | GET | `/api/admin/orders/accounting?from=&to=&provider=` |
 | GET | `/api/admin/orders/providers` |
+| GET | `/api/admin/orders/mastershop/attention?issue=&q=&limit=&offset=` |
+| POST | `/api/admin/orders/mastershop/:id/retry` |
 | GET | `/api/admin/orders/export.csv` |
 | POST | `/api/admin/orders/manual` |
 | POST | `/api/admin/orders/manual/preview` |
@@ -834,6 +838,24 @@ Resumen:
   `idOrder` real vía `externalOrderId`.
 - Un fallo de mapeo de variante **no** crea pedidos a medias: el pedido queda en
   `needs_review` con motivo accionable.
+- **Cancelación**: si el pedido se cancela en UpBuy y ya existe en MasterShop se
+  empuja `PUT /api/orders/{idOrder}` `{"idStatus":9}`. Los fallos transitorios
+  se reintentan desde el cron (`retryPendingMastershopCancellations`); el estado
+  queda en `orders.msCancelState`. Un pedido cancelado antes de crearse en
+  MasterShop nunca se envía.
+- **Panel**: `GET /api/admin/orders/mastershop/attention` lista los pedidos en
+  `needs_review`/`failed` y las cancelaciones pendientes;
+  `POST /api/admin/orders/mastershop/:id/retry` reintenta la creación o la
+  cancelación según el estado. La UI vive en
+  `/admin/proveedores/mastershop/pedidos`.
+- **Estado y tracking (webhooks 16/17/18)**: `POST /api/webhooks/mastershop`
+  recibe el aviso, localiza el pedido y **reconsulta** `GET /api/orders` (no hay
+  firma HMAC; el cuerpo no es fuente de verdad). Guarda `msStatus`, la guía
+  (`trackingNumber`, `trackingUrl`, `trackingCarrier`) y aplica la transición
+  canónica sin saltarse la máquina de estados. `manualOverride` manda.
+  Las suscripciones se registran con `npm run mastershop:webhooks -- --url=...`
+  (persiste el `idProductWebhook`, que MasterShop no vuelve a exponer). El cron
+  reconcilia los pedidos abiertos por si un webhook se pierde.
 
 ---
 

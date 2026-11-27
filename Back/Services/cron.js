@@ -19,8 +19,14 @@ const {
   syncIncomingStatuses,
   retryFailedOutbound,
 } = require("./syncService.js");
-const { processMastershopOutbox } = require("./mastershopOrders.service.js");
+const {
+  processMastershopOutbox,
+  retryPendingMastershopCancellations,
+} = require("./mastershopOrders.service.js");
 const { processVenndeloOutbox } = require("./venndeloOrders.service.js");
+const {
+  syncMastershopOrderStatuses,
+} = require("./mastershopWebhooks.service.js");
 const { createLogger } = require("../Utils/logger.js");
 
 const log = createLogger("cron");
@@ -35,6 +41,15 @@ const runProviderSync = async ({ limit = 50, retryLimit = 20 } = {}) => {
   // tras un pago Wompi aprobado). Es independiente del flujo de
   // Dropi que maneja retryFailedOutbound.
   const mastershopOutbox = await processMastershopOutbox({ limit: retryLimit });
+  // Etapa 3b: reintentar cancelaciones pendientes de empujar a MasterShop.
+  const mastershopCancels = await retryPendingMastershopCancellations({
+    limit: retryLimit,
+  });
+  // Etapa 3c: reconciliar estado/tracking de pedidos abiertos en MasterShop
+  // (red de seguridad si un webhook 16/17/18 se pierde).
+  const mastershopStatuses = await syncMastershopOrderStatuses({
+    limit: retryLimit,
+  });
   // Etapa 4: outbox de Venndelo (mismo patron, proveedor distinto).
   const venndeloOutbox = await processVenndeloOutbox({ limit: retryLimit });
 
@@ -52,6 +67,14 @@ const runProviderSync = async ({ limit = 50, retryLimit = 20 } = {}) => {
     },
     mastershopOutbox: {
       processed: mastershopOutbox.processed,
+    },
+    mastershopCancels: {
+      processed: mastershopCancels.processed,
+    },
+    mastershopStatuses: {
+      total: mastershopStatuses.total,
+      updated: mastershopStatuses.updated,
+      failed: mastershopStatuses.failed,
     },
     venndeloOutbox: {
       processed: venndeloOutbox.processed,

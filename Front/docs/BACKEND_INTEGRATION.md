@@ -24,6 +24,7 @@ Autenticación: cookie `httpOnly` `access_token` (JWT, 12h). El frontend nunca l
 | GET | `/orders/:id/tracking?phone=&email=` | Tracking público | `phone` o `email` |
 | POST | `/webhooks/wompi` | Webhook Wompi (firma) | (backend) |
 | POST | `/webhooks/venndelo` | Webhook Venndelo (HMAC) | (backend) |
+| POST | `/webhooks/mastershop` | Estado/tracking MasterShop (reconsulta, sin firma) | (backend) |
 | POST | `/payments/webhook` | Compatibilidad Wompi | (backend) |
 
 ### 1.1 Catálogo: contrato vigente (Venndelo Pro)
@@ -154,6 +155,8 @@ El panel usa tres lecturas y reutiliza las rutas Venndelo ya existentes:
 |---|---|---|
 | GET | `/admin/suppliers/overview` | Tarjetas de proveedor, contador `outOfSync` y salud de 14 días |
 | GET | `/admin/orders?outOfSync=1` | Pedidos desincronizados (enlace del contador) |
+| GET | `/admin/orders/mastershop/attention` | Pedidos MasterShop en `needs_review`/`failed` y cancelaciones pendientes |
+| POST | `/admin/orders/mastershop/:id/retry` | Reintenta la creación o la cancelación en MasterShop |
 | GET | `/admin/orders/export.csv` | Exportación operativa con los filtros de la lista |
 
 `overview` devuelve `catalogProviders[]` (Venndelo Pro y MasterShop:
@@ -167,11 +170,21 @@ Catálogo (`/admin/suppliers/venndelo/*` y `/admin/suppliers/mastershop/*`): la
 UI de catálogo, publicación, stock, precio, sincronización e historial usa las
 rutas de proveedor; no se duplican por slug. Pedidos, wallet e historial
 operativo de Venndelo también se consumen tal cual
-(`/admin/suppliers/venndelo/...` y `/admin/orders`). MasterShop solo expone
-catálogo: no tiene rutas de pedidos ni de billetera. Los paneles
+(`/admin/suppliers/venndelo/...` y `/admin/orders`). MasterShop expone catálogo
+y pedidos: el listado/reintento operativo vive en
+`/admin/proveedores/mastershop/pedidos` y usa
+`/admin/orders/mastershop/attention` + `/admin/orders/mastershop/:id/retry`
+(no hay billetera todavía). Los paneles
 `/admin/proveedores/venndelo` y `/admin/proveedores/mastershop` comparten
 estado, acciones, catálogo e historial (`CatalogSupplierParts`,
 `CatalogSupplierSections`, `SupplierCatalog`).
+
+`GET /admin/orders/mastershop/attention` acepta `issue=all|sync|cancel`, `q`,
+`limit` y `offset`, y devuelve `counts` (needsReview, failed, cancelPending,
+cancelFailed) y `orders[]` con el estado `ms*` y el último intento. El front no
+deduce el motivo: lee `issue` y los campos `msSyncError`/`msCancelError`
+(JSON serializado) para mostrarlos. `retry` no exige step-up: no mueve dinero ni
+cambia el estado local; como máximo dispara una llamada al proveedor.
 
 Curaduría del catálogo publicado (`/admin/catalogo`), con permiso
 `catalog.write`:
@@ -626,6 +639,7 @@ elegido (respaldo ante un fallback inesperado).
 | Venta manual | ✅ `/admin/orders/manual` (+ `/preview`) | ✅ `/admin/pedidos/nuevo` |
 | Importación CSV de pedidos | ✅ `/admin/orders/import` | ✅ `/admin/pedidos/importar` (vista previa + confirmación) |
 | Exportación CSV de pedidos | ✅ `/admin/orders/export.csv` | ✅ `/admin/proveedores/pedidos` |
+| Pedidos MasterShop por resolver | ✅ `/admin/orders/mastershop/attention` + `/:id/retry` | ✅ `/admin/proveedores/mastershop/pedidos` (ver motivo y reintentar creación/cancelación) |
 | Avisos de compra en vivo | ✅ `/admin/orders/recent` | ✅ Pila en todo el panel + `/admin/notificaciones` |
 | DTF por categoría | ❌ Ya no aplica (DTF retirado) | Ya no aplica como fuente separada |
 | Tarifa de precios / variantes | ❌ Eliminado (antes `/prices`) | **Bloqueado** |
@@ -639,6 +653,7 @@ elegido (respaldo ante un fallback inesperado).
 | Tracking público | ✅ `/orders/:id/tracking` | ✅ `/seguimiento/[id]` (FASE 7) |
 | Pago Wompi | ✅ `/orders/:id/payment`, `/payment/verify`, `/payments/intent` | ✅ `/pedido/[id]` + `/mis-pedidos/[id]` (requiere `WOMPI_*`) |
 | Webhooks Wompi/Venndelo | ✅ firmados | N/A (backend) |
+| Webhook MasterShop (16/17/18) | ✅ reconsulta `GET /api/orders` (sin firma) | N/A (backend) |
 | Notificaciones | ✅ `/notifications/*` | ✅ Campana en navbar + `/cuenta/notificaciones` (FASE 8) |
 | Difusión por email (campañas) | ✅ `/admin/campaigns/*` + `/public/campaigns/unsubscribe` (ADM-7) | ✅ `/admin/difusion` (historial), `/admin/difusion/email` (composición + envío con Hold Button y step-up), `/baja` (pública). Requiere `GMAIL_*` + `GMAIL_TOKEN_ENCRYPTION_KEY`; sin ellas la UI lo informa y no envía |
 | Difusión por WhatsApp | ✅ `/admin/whatsapp/*` + `/admin/campaigns/*` (canal whatsapp, ADM-8) | ✅ `/admin/difusion/whatsapp`: con Cloud API, prueba + lotes de 20; sin configuración, modo manual (wa.me, copiar, CSV). Requiere `WHATSAPP_*` + plantilla Meta aprobada |

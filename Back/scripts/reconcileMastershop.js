@@ -55,6 +55,12 @@ const run = async () => {
     (r) => `${r.orderNumber}${r.msSyncError ? ` — ${r.msSyncError}` : ""}`,
   );
   push(
+    "Cancelaciones sin confirmar en MasterShop",
+    report.pendingCancellations || [],
+    (r) =>
+      `${r.orderNumber} (idOrder ${r.msIdOrder}, ${r.msCancelState}, intentos ${r.msCancelAttempts})`,
+  );
+  push(
     "Outbox atascado (>1 h sin avanzar)",
     report.stuckOutbox,
     (r) => `orden ${r.orderId} — ${r.status} (intentos ${r.attempts})`,
@@ -81,6 +87,7 @@ const run = async () => {
     report.approvedWithoutMsOrder.length +
     report.failedOrders.length +
     report.needsReviewOrders.length +
+    (report.pendingCancellations || []).length +
     report.stuckOutbox.length;
 
   lines.push("");

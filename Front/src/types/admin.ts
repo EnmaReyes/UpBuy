@@ -742,6 +742,78 @@ export type AdminProviderOrdersFilters = {
 };
 
 // ---------------------------------------------------------------------------
+// Pedidos de MasterShop que necesitan atencion (creacion/cancelacion)
+// ---------------------------------------------------------------------------
+
+export type AdminMastershopAttentionIssue = "sync" | "cancel";
+
+export type AdminMastershopLastAttempt = {
+  action: string;
+  ok: boolean;
+  httpStatus: number | null;
+  retryable: boolean;
+  error: string | null;
+  createdAt: string;
+};
+
+export type AdminMastershopAttentionOrder = {
+  id: string;
+  orderNumber: string;
+  createdAt: string;
+  updatedAt: string;
+  recipientName: string | null;
+  email: string | null;
+  phone: string | null;
+  total: number;
+  currency: string;
+  fulfillmentStatus: string;
+  paymentState: string;
+  msIdOrder: string | number | null;
+  msExternalOrderId: string | null;
+  msStatus: string | null;
+  msSyncState: string | null;
+  msSyncError: string | null;
+  msCancelState: string | null;
+  msCancelAttempts: number;
+  msCancelNextAttemptAt: string | null;
+  msCancelError: string | null;
+  msCancelledAt: string | null;
+  issue: AdminMastershopAttentionIssue;
+  lastAttempt: AdminMastershopLastAttempt | null;
+};
+
+export type AdminMastershopAttentionCounts = {
+  needsReview: number;
+  failed: number;
+  cancelPending: number;
+  cancelFailed: number;
+  total: number;
+};
+
+export type AdminMastershopAttentionResult = {
+  generatedAt: string;
+  total: number;
+  limit: number;
+  offset: number;
+  counts: AdminMastershopAttentionCounts;
+  orders: AdminMastershopAttentionOrder[];
+};
+
+export const ADMIN_MASTERSHOP_SYNC_STATE_LABELS: Record<string, string> = {
+  needs_review: "Por revisar",
+  failed: "Falló",
+  pending: "Pendiente",
+  synced: "Sincronizado",
+  disabled: "Deshabilitado",
+};
+
+export const ADMIN_MASTERSHOP_CANCEL_STATE_LABELS: Record<string, string> = {
+  pending: "Reintentando",
+  done: "Cancelado",
+  failed: "Falló",
+};
+
+// ---------------------------------------------------------------------------
 // Seguridad del administrador (ADM-S2 / ADM-S3)
 // ---------------------------------------------------------------------------
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Boxes, History } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Boxes, History } from "lucide-react";
 import { getCatalogSupplierStatus } from "@/services/admin/providers";
 import { listAdminCategories } from "@/services/admin/catalog";
 import { getAdminMe } from "@/services/admin/me";
@@ -43,6 +44,7 @@ export default async function MasterShopPage({
   let status;
   let categories;
   let canManageProviders;
+  let canReadOrders;
   try {
     const [statusResult, categoryResult, admin] = await Promise.all([
       getCatalogSupplierStatus(SLUG),
@@ -52,6 +54,7 @@ export default async function MasterShopPage({
     status = statusResult;
     categories = categoryResult.categories;
     canManageProviders = admin.permissions.includes("providers.manage");
+    canReadOrders = admin.permissions.includes("orders.read");
   } catch (error) {
     return <SupplierPageError error={error} name="MasterShop" />;
   }
@@ -61,10 +64,31 @@ export default async function MasterShopPage({
       <CatalogSupplierHeader
         slug={SLUG}
         name="MasterShop"
-        description="Catálogo del proveedor con llave estática (MASTERSHOP_API_KEY). Solo catálogo: pedidos, billetera y webhooks no están integrados."
+        description="Catálogo y pedidos del proveedor con llave estática (MASTERSHOP_API_KEY). Los webhooks de estado/tracking aún no están integrados."
         status={status}
         envHint="MASTERSHOP_API_URL y MASTERSHOP_API_KEY"
       />
+
+      {canReadOrders ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
+          <div>
+            <p className="font-heading text-sm font-semibold text-carbon">
+              Pedidos en MasterShop
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Revisa y reintenta los pedidos que quedaron en revisión o con la
+              cancelación pendiente.
+            </p>
+          </div>
+          <Link
+            href="/admin/proveedores/mastershop/pedidos"
+            className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-carbon px-4 text-sm font-semibold text-cream hover:bg-terracotta-deep"
+          >
+            Ver pedidos por resolver
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
+      ) : null}
 
       <CatalogSupplierMetrics
         status={status}
