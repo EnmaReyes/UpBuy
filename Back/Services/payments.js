@@ -12,6 +12,9 @@ const {
   STATUS_SOURCE,
 } = require("../DataBase/models/enums.js");
 const { restoreOrderStock, detectStockConflicts } = require("./orders.js");
+const {
+  enqueueMastershopOrderIfNeeded,
+} = require("./mastershopOrders.service.js");
 const { notifyAdmins } = require("./notifications.js");
 const { transitionFulfillment } = require("./orderService.js");
 const HttpError = require("../Utils/HttpError.js");
@@ -522,6 +525,20 @@ const registerPayment = async ({
     await notifyStockConflicts(result.order, result.stockConflicts);
   }
 
+  // Confirmacion de pago (manual, transferencia, Nequi...): encolar para
+  // MasterShop. Wompi ya lo hace en su webhook; este hook cubre los demas
+  // origenes. Si el commit lo hace el llamador (`transaction`), ese flujo
+  // encola despues de confirmar.
+  if (!transaction && result.payment?.status === PAYMENT_STATUS.APROBADO) {
+    await enqueueMastershopOrderIfNeeded({ orderId: result.order.id }).catch(
+      (error) =>
+        log.error("No se pudo encolar el pago confirmado para MasterShop", {
+          orderId: result.order.id,
+          error: error.message,
+        }),
+    );
+  }
+
   return result;
 };
 
@@ -568,6 +585,15 @@ const changePaymentStatus = async ({
   }).then(async (result) => {
     if (result.stockConflicts?.length) {
       await notifyStockConflicts(result.order, result.stockConflicts);
+    }
+    if (result.payment?.status === PAYMENT_STATUS.APROBADO) {
+      await enqueueMastershopOrderIfNeeded({ orderId: result.order.id }).catch(
+        (error) =>
+          log.error("No se pudo encolar el pago confirmado para MasterShop", {
+            orderId: result.order.id,
+            error: error.message,
+          }),
+      );
     }
     return result;
   });

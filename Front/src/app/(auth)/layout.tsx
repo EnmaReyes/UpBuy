@@ -21,7 +21,7 @@ export default function AuthLayout({
           href="/"
           className="font-heading text-2xl font-bold tracking-tight text-cream"
         >
-          UPBUY
+          <img src="/LogoIcon.png" alt="UPBUY" className="h-[106px] w-auto" />
         </Link>
 
         <div className="max-w-md">
@@ -53,7 +53,7 @@ export default function AuthLayout({
             href="/"
             className="font-heading text-xl font-bold tracking-tight text-carbon"
           >
-            UPBUY
+            <img src="/LogoIcon.png" alt="UPBUY" className="h-[79px] w-auto" />
           </Link>
           <Link
             href="/"

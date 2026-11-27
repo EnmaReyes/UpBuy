@@ -17,6 +17,9 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "UpBuy",
   description: "E-commerce tienda online de calzados y accesorios de moda.",
+  icons: {
+    icon: "/icon/LogoTerracota.ico",
+  },
   // iOS convierte teléfonos/correos en enlaces automáticamente; eso cambia el
   // DOM antes de hidratar y provoca mismatches en la página de contacto.
   formatDetection: {

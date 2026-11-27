@@ -158,7 +158,7 @@ export function Navbar() {
             className="group flex shrink-0 items-center gap-1.5 justify-self-start"
           >
             <span className="font-heading text-lg font-bold tracking-tight text-cream sm:text-xl">
-              UPBUY
+              <img src="/LogoTipo.png" alt="UPBUY" className="h-[64px] w-auto sm:h-[72px]" />
             </span>
             <span
               aria-hidden="true"
@@ -217,7 +217,7 @@ export function Navbar() {
           >
             <div className="mb-8 flex items-center justify-between">
               <span className="font-heading text-lg font-bold tracking-tight text-cream">
-                UPBUY
+                <img src="/LogoTipo.png" alt="UPBUY" className="h-[64px] w-auto sm:h-[72px]" />
               </span>
               <button
                 type="button"

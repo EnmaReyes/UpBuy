@@ -237,6 +237,12 @@ export type AdminProviderSync = {
   fulfillmentLabel: string | null;
   paymentState: string | null;
   paymentLabel: string | null;
+  // Datos propios de la sincronizacion con MasterShop.
+  msIdOrder: string | number | null;
+  msSyncState: string | null;
+  msSyncStateLabel: string | null;
+  msSyncError: string | null;
+  msSyncedAt: string | null;
 };
 
 export type AdminAllowedTransition = {
@@ -358,6 +364,7 @@ export const ADMIN_CHANNEL_LABELS: Record<string, string> = {
 
 export const ADMIN_PROVIDER_LABELS: Record<string, string> = {
   dropi: "Dropi",
+  mastershop: "MasterShop",
 };
 
 export const ADMIN_PAYMENT_METHOD_CODE_LABELS: Record<string, string> = {

@@ -70,7 +70,7 @@ export function Footer() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-1">
             <p className="font-heading text-2xl font-bold tracking-tight">
-              UPBUY
+              <img src="/LogoTipo.png" alt="UPBUY" className="h-[80px] w-auto" />
             </p>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-cream/70">
               Marca de ropa con identidad propia. Diseños pensados para moverte

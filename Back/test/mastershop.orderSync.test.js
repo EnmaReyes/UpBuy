@@ -32,6 +32,9 @@ const {
 const { PAYMENT_STATUS } = require("../DataBase/models/enums.js");
 const {
   syncPaidOrderToMastershop,
+  syncOrderToMastershopByOrderId,
+  enqueueMastershopOrderIfNeeded,
+  retryMastershopOrder,
   buildReconciliationReport,
 } = require("../Services/mastershopOrders.service.js");
 
@@ -90,7 +93,14 @@ const ensureSupplier = async (slug) => {
 };
 
 // Crea un pedido pagado con UN item de un producto del proveedor indicado.
-const seed = async ({ slug = "mastershop", provider = "mastershop" } = {}) => {
+// `withWompiPayment: false` simula una venta manual: solo el estado canonico
+// del dinero (`paymentState`) acredita el pago.
+const seed = async ({
+  slug = "mastershop",
+  provider = "mastershop",
+  withWompiPayment = true,
+  paymentState = null,
+} = {}) => {
   const s = suffix();
   const { supplier, created: supplierCreated } = await ensureSupplier(slug);
 
@@ -122,6 +132,7 @@ const seed = async ({ slug = "mastershop", provider = "mastershop" } = {}) => {
     discountTotal: 0,
     total: 65000,
     currency: "COP",
+    ...(paymentState ? { paymentState } : {}),
     addressSnapshot: {
       recipientName: "Ana Perez",
       phone: "3001234567",
@@ -145,14 +156,16 @@ const seed = async ({ slug = "mastershop", provider = "mastershop" } = {}) => {
     nameSnapshot: "Producto integracion",
   });
 
-  const payment = await Payment.create({
-    orderId: order.id,
-    provider: "wompi",
-    reference: `ref-it-${s}`,
-    status: PAYMENT_STATUS.APROBADO,
-    amountInCents: 6500000,
-    wompiStatus: "APPROVED",
-  });
+  const payment = withWompiPayment
+    ? await Payment.create({
+        orderId: order.id,
+        provider: "wompi",
+        reference: `ref-it-${s}`,
+        status: PAYMENT_STATUS.APROBADO,
+        amountInCents: 6500000,
+        wompiStatus: "APPROVED",
+      })
+    : null;
 
   return { supplier, supplierCreated, supplierProduct, product, order, item, payment };
 };
@@ -160,7 +173,9 @@ const seed = async ({ slug = "mastershop", provider = "mastershop" } = {}) => {
 const cleanup = async (ctx) => {
   await MastershopOrderAttempt.destroy({ where: { orderId: ctx.order.id } }).catch(() => {});
   await MastershopOrderOutbox.destroy({ where: { orderId: ctx.order.id } }).catch(() => {});
-  await Payment.destroy({ where: { id: ctx.payment.id } }).catch(() => {});
+  if (ctx.payment) {
+    await Payment.destroy({ where: { id: ctx.payment.id } }).catch(() => {});
+  }
   await OrderItem.destroy({ where: { id: ctx.item.id } }).catch(() => {});
   await Order.destroy({ where: { id: ctx.order.id } }).catch(() => {});
   await Product.destroy({ where: { id: ctx.product.id } }).catch(() => {});
@@ -254,5 +269,120 @@ test("la conciliacion solo cuenta pedidos de MasterShop, no de otro proveedor", 
   } finally {
     await cleanup(ms);
     await cleanup(other);
+  }
+});
+
+test("una venta manual pagada se encola sin pago de Wompi", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  const ctx = await seed({ withWompiPayment: false, paymentState: "settled" });
+  try {
+    const result = await enqueueMastershopOrderIfNeeded({
+      orderId: ctx.order.id,
+    });
+
+    assert.equal(result.enqueued, true);
+
+    const row = await MastershopOrderOutbox.findOne({
+      where: { orderId: ctx.order.id },
+    });
+    assert.equal(row.status, "pending");
+
+    await ctx.order.reload();
+    assert.equal(ctx.order.msSyncState, "pending");
+  } finally {
+    await cleanup(ctx);
+  }
+});
+
+test("una venta manual sin pagar no se encola", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  const ctx = await seed({ withWompiPayment: false, paymentState: "unpaid" });
+  try {
+    const result = await enqueueMastershopOrderIfNeeded({
+      orderId: ctx.order.id,
+    });
+
+    assert.equal(result.enqueued, false);
+    assert.match(result.reason, /^pedido_no_pagado/);
+
+    const row = await MastershopOrderOutbox.findOne({
+      where: { orderId: ctx.order.id },
+    });
+    assert.equal(row, null);
+  } finally {
+    await cleanup(ctx);
+  }
+});
+
+test("un pedido de otro proveedor no se encola para MasterShop", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  const ctx = await seed({
+    slug: `test-otro-${suffix()}`,
+    provider: "test-otro",
+    withWompiPayment: false,
+    paymentState: "settled",
+  });
+  try {
+    const result = await enqueueMastershopOrderIfNeeded({
+      orderId: ctx.order.id,
+    });
+
+    assert.equal(result.enqueued, false);
+    assert.equal(result.reason, "proveedor_no_soportado");
+
+    const row = await MastershopOrderOutbox.findOne({
+      where: { orderId: ctx.order.id },
+    });
+    assert.equal(row, null);
+  } finally {
+    await cleanup(ctx);
+  }
+});
+
+test("se crea en MasterShop por id de pedido sin exigir pago de Wompi", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  const calls = captureFetch(() =>
+    jsonResponse(200, { idOrder: 888, status: "Por Confirmar" }),
+  );
+  const ctx = await seed({ withWompiPayment: false, paymentState: "settled" });
+
+  try {
+    const result = await syncOrderToMastershopByOrderId(ctx.order.id);
+
+    assert.equal(result.ok, true);
+    assert.equal(result.idOrder, 888);
+
+    await ctx.order.reload();
+    assert.equal(Number(ctx.order.msIdOrder), 888);
+    assert.equal(ctx.order.msExternalOrderId, ctx.order.orderNumber);
+
+    const post = calls.find((c) => c.options.method === "POST");
+    assert.equal(JSON.parse(post.options.body).id_order, ctx.order.orderNumber);
+  } finally {
+    await cleanup(ctx);
+  }
+});
+
+test("el reintento del panel acepta una venta manual pagada", async (t) => {
+  if (skipIfNoDb(t)) return;
+
+  captureFetch(() => jsonResponse(200, { idOrder: 999, status: "Por Confirmar" }));
+  const ctx = await seed({ withWompiPayment: false, paymentState: "settled" });
+
+  try {
+    const result = await retryMastershopOrder({ orderId: ctx.order.id });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.action, "create");
+    assert.equal(result.idOrder, 999);
+
+    await ctx.order.reload();
+    assert.equal(Number(ctx.order.msIdOrder), 999);
+  } finally {
+    await cleanup(ctx);
   }
 });

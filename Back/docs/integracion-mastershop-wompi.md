@@ -1,9 +1,15 @@
 # Integración MasterShop ↔ Wompi
 
-Flujo automático: **pago aprobado en Wompi ⇒ pedido creado en MasterShop**, sin
+Flujo automático: **pago confirmado ⇒ pedido creado en MasterShop**, sin
 intervención manual. Este documento explica el flujo, las variables de entorno,
 cómo leer los logs, cómo reintentar un pedido fallido y el runbook de
 incidentes.
+
+El disparador **no es exclusivo de Wompi**: una venta manual del panel, una
+transferencia/Nequi registrada por un administrador o un COD recaudado también
+encolan el pedido (`enqueueMastershopOrderIfNeeded`) en cuanto el pedido queda
+pagado. Las importaciones CSV quedan fuera: son ventas históricas y no se
+recrean en el proveedor.
 
 - **Fuente de verdad del dinero**: UpBuy (Wompi).
 - **Fuente de verdad del pedido físico**: MasterShop.
@@ -15,7 +21,7 @@ incidentes.
 ## 1. Flujo extremo a extremo
 
 ```
-Comprador paga
+Comprador paga (Wompi) o el admin confirma el pago (venta manual / COD)
       │
       ▼
 Wompi ──POST /api/webhooks/wompi──┐

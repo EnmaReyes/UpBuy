@@ -17,6 +17,7 @@ import {
   type AdminOrder,
   type AdminSyncLog,
 } from "@/types/admin";
+import { MastershopRetryButton } from "@/components/admin/providers/MastershopRetryButton";
 import { SyncBadge } from "./OrderBadges";
 
 // Bloque «Proveedor»: estado mapeado (nunca el crudo), última sincronización y
@@ -154,6 +155,14 @@ export function AdminOrderProviderPanel({
               {sync.lastSyncOk === false ? " · falló" : ""}
             </dd>
           </div>
+          {sync.provider === "mastershop" ? (
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-muted-foreground">Sincronización</dt>
+              <dd className="text-right text-xs font-semibold text-carbon">
+                {sync.msSyncStateLabel || "Sin enviar"}
+              </dd>
+            </div>
+          ) : null}
         </dl>
       )}
 
@@ -213,7 +222,7 @@ export function AdminOrderProviderPanel({
         </details>
       ) : null}
 
-      {canWrite && sync.provider ? (
+      {canWrite && sync.provider && sync.provider !== "mastershop" ? (
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <button
             type="button"
@@ -236,6 +245,12 @@ export function AdminOrderProviderPanel({
             <Send className="h-4 w-4" aria-hidden="true" />
             {busy === "push" ? "Enviando…" : "Enviar al proveedor"}
           </button>
+        </div>
+      ) : null}
+
+      {canWrite && sync.provider === "mastershop" ? (
+        <div className="mt-4">
+          <MastershopRetryButton id={order.id} />
         </div>
       ) : null}
 

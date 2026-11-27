@@ -21,6 +21,7 @@ const {
   SALE_CHANNEL_VALUES,
   PAYMENT_METHOD_VALUES,
   PROVIDER_VALUES,
+  SUPPLIER_SLUG,
   STATUS_SOURCE,
 } = require("../DataBase/models/enums.js");
 const { releaseOrderStock, restoreOrderStock } = require("./orders.js");
@@ -356,23 +357,92 @@ const decorateAdminOrder = (order, syncLogs = []) => {
       ? mapProviderToCanonical(data.provider, order.providerStatus)
       : {};
 
+  // MasterShop no escribe `orders.provider` (el CHECK solo admite dropi): su
+  // presencia se deduce de las columnas ms*. Asi el panel no lo muestra como
+  // "sin proveedor" y puede ofrecer el reintento propio.
+  const msProvider =
+    !data.provider && (data.msIdOrder || data.msSyncState)
+      ? SUPPLIER_SLUG.MASTERSHOP
+      : null;
+  const provider = data.provider || msProvider;
+  const isMastershop = provider === SUPPLIER_SLUG.MASTERSHOP;
+  const msAttention =
+    isMastershop && ["needs_review", "failed"].includes(data.msSyncState || "");
+
+  const msStateLabels = {
+    pending: "Pendiente de enviar",
+    synced: "Creado en MasterShop",
+    needs_review: "Requiere revisión",
+    failed: "Falló el envío",
+    disabled: "Desactivado",
+  };
+
+  const msSyncError =
+    isMastershop && data.msSyncError
+      ? String(data.msSyncError).slice(0, 500)
+      : null;
+
   data.providerSync = {
-    provider: data.provider || null,
-    providerOrderId: data.providerOrderId || null,
-    outOfSync: Boolean(data.providerOutOfSync),
+    provider,
+    providerOrderId: data.provider
+      ? data.providerOrderId
+      : data.msIdOrder
+        ? String(data.msIdOrder)
+        : null,
+    outOfSync: Boolean(data.providerOutOfSync) || msAttention,
     manualOverride: Boolean(data.manualOverride),
-    lastSyncAt: lastLog?.createdAt ?? null,
-    lastSyncOk: lastLog ? Boolean(lastLog.ok) : null,
-    lastSyncDirection: lastLog?.direction ?? null,
-    lastSyncError: lastLog && !lastLog.ok ? lastLog.error || null : null,
-    fulfillmentStatus: mapped.fulfillmentStatus || null,
-    fulfillmentLabel: mapped.fulfillmentStatus
-      ? FULFILLMENT_LABELS[mapped.fulfillmentStatus] || mapped.fulfillmentStatus
+    lastSyncAt: isMastershop
+      ? data.msSyncedAt || lastLog?.createdAt || null
+      : (lastLog?.createdAt ?? null),
+    lastSyncOk: isMastershop
+      ? data.msSyncState === "synced"
+        ? true
+        : msAttention
+          ? false
+          : null
+      : lastLog
+        ? Boolean(lastLog.ok)
+        : null,
+    lastSyncDirection: isMastershop
+      ? "out"
+      : (lastLog?.direction ?? null),
+    lastSyncError: isMastershop
+      ? msSyncError
+      : lastLog && !lastLog.ok
+        ? lastLog.error || null
+        : null,
+    // En MasterShop el estado canonico ya es el de UpBuy (fuente de verdad);
+    // nunca se expone el estado crudo del proveedor.
+    fulfillmentStatus: isMastershop
+      ? data.fulfillmentStatus || null
+      : mapped.fulfillmentStatus || null,
+    fulfillmentLabel: isMastershop
+      ? data.fulfillmentStatus
+        ? FULFILLMENT_LABELS[data.fulfillmentStatus] ||
+          data.fulfillmentStatus
+        : null
+      : mapped.fulfillmentStatus
+        ? FULFILLMENT_LABELS[mapped.fulfillmentStatus] ||
+          mapped.fulfillmentStatus
+        : null,
+    paymentState: isMastershop
+      ? data.paymentState || null
+      : mapped.paymentState || null,
+    paymentLabel: isMastershop
+      ? data.paymentState
+        ? PAYMENT_LABELS[data.paymentState] || data.paymentState
+        : null
+      : mapped.paymentState
+        ? PAYMENT_LABELS[mapped.paymentState] || mapped.paymentState
+        : null,
+    // Datos propios de la sincronizacion con MasterShop.
+    msIdOrder: data.msIdOrder ?? null,
+    msSyncState: data.msSyncState ?? null,
+    msSyncStateLabel: isMastershop
+      ? msStateLabels[data.msSyncState] || data.msSyncState || null
       : null,
-    paymentState: mapped.paymentState || null,
-    paymentLabel: mapped.paymentState
-      ? PAYMENT_LABELS[mapped.paymentState] || mapped.paymentState
-      : null,
+    msSyncError: msSyncError,
+    msSyncedAt: data.msSyncedAt ?? null,
   };
 
   data.lastSyncAt = data.providerSync.lastSyncAt;
@@ -500,6 +570,22 @@ const changeOrderStatus = async ({
       orderId: order.id,
       error: error.message,
     });
+  }
+
+  // Confirmacion manual del pago: encolar para MasterShop si corresponde.
+  // Es idempotente y no bloquea la respuesta si el proveedor falla.
+  if (status === FULFILLMENT_STATUS.PAID) {
+    try {
+      const {
+        enqueueMastershopOrderIfNeeded,
+      } = require("./mastershopOrders.service.js");
+      await enqueueMastershopOrderIfNeeded({ orderId: order.id });
+    } catch (error) {
+      log.error("No se pudo encolar el pedido pagado para MasterShop", {
+        orderId: order.id,
+        error: error.message,
+      });
+    }
   }
 
   // Empujar el cambio al proveedor es OPCIONAL y nunca revierte lo local:

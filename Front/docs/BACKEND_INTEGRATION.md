@@ -156,7 +156,7 @@ El panel usa tres lecturas y reutiliza las rutas Venndelo ya existentes:
 | GET | `/admin/suppliers/overview` | Tarjetas de proveedor, contador `outOfSync` y salud de 14 días |
 | GET | `/admin/orders?outOfSync=1` | Pedidos desincronizados (enlace del contador) |
 | GET | `/admin/orders/mastershop/attention` | Pedidos MasterShop en `needs_review`/`failed` y cancelaciones pendientes |
-| POST | `/admin/orders/mastershop/:id/retry` | Reintenta la creación o la cancelación en MasterShop |
+| POST | `/admin/orders/mastershop/:id/retry` | Reintenta la creación o la cancelación en MasterShop (sirve para cualquier pedido pagado, no solo Wompi) |
 | GET | `/admin/orders/export.csv` | Exportación operativa con los filtros de la lista |
 
 `overview` devuelve `catalogProviders[]` (Venndelo Pro y MasterShop:

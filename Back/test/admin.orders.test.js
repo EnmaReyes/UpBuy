@@ -74,6 +74,59 @@ test("un pedido sin proveedor devuelve providerSync vacio y sin errores", () => 
   assert.equal(data.providerSync.fulfillmentStatus, null);
 });
 
+test("un pedido de MasterShop se muestra con proveedor y estado de sincronizacion", () => {
+  const data = decorateAdminOrder(
+    {
+      id: "22222222-2222-4222-8222-222222222222",
+      orderNumber: "UPBUY-2026-000200",
+      fulfillmentStatus: "paid",
+      paymentState: "settled",
+      provider: null,
+      providerStatus: null,
+      msIdOrder: "3247815",
+      msSyncState: "synced",
+      msSyncedAt: "2026-11-26T12:00:00.000Z",
+      msSyncError: null,
+    },
+    [],
+  );
+
+  assert.equal(data.providerSync.provider, "mastershop");
+  assert.equal(data.providerSync.providerOrderId, "3247815");
+  assert.equal(data.providerSync.fulfillmentStatus, "paid");
+  assert.equal(data.providerSync.paymentState, "settled");
+  assert.equal(data.providerSync.msSyncState, "synced");
+  assert.equal(data.providerSync.msSyncStateLabel, "Creado en MasterShop");
+  assert.equal(data.providerSync.lastSyncOk, true);
+  assert.equal(data.providerSync.outOfSync, false);
+  assert.equal(data.providerSync.lastSyncAt, "2026-11-26T12:00:00.000Z");
+});
+
+test("un pedido de MasterShop con error queda desincronizado", () => {
+  const data = decorateAdminOrder(
+    {
+      id: "33333333-3333-4333-8333-333333333333",
+      orderNumber: "UPBUY-2026-000201",
+      fulfillmentStatus: "paid",
+      paymentState: "settled",
+      provider: null,
+      providerStatus: null,
+      msIdOrder: null,
+      msSyncState: "failed",
+      msSyncedAt: null,
+      msSyncError: '{"motivo":"no_saldo"}',
+    },
+    [],
+  );
+
+  assert.equal(data.providerSync.provider, "mastershop");
+  assert.equal(data.providerSync.providerOrderId, null);
+  assert.equal(data.providerSync.outOfSync, true);
+  assert.equal(data.providerSync.lastSyncOk, false);
+  assert.equal(data.providerSync.msSyncStateLabel, "Falló el envío");
+  assert.equal(data.providerSync.lastSyncError, '{"motivo":"no_saldo"}');
+});
+
 test("las transiciones permitidas salen de la maquina de estados", () => {
   assert.deepEqual(allowedFulfillmentTransitions("pending_payment"), [
     {

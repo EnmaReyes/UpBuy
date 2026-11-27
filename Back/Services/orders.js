@@ -27,6 +27,9 @@ const {
 } = require("../DataBase/models/enums.js");
 const { buildOrderLines } = require("./pricing.js");
 const {
+  enqueueMastershopOrderIfNeeded,
+} = require("./mastershopOrders.service.js");
+const {
   buildAddressSnapshot,
   applyAccountingTotals,
   transitionFulfillment,
@@ -881,7 +884,7 @@ const createManualOrder = async ({
     throw new HttpError(400, "Estado de pago inválido");
   }
 
-  return createOrderCore({
+  const order = await createOrderCore({
     userId: null,
     items,
     shipping,
@@ -907,6 +910,20 @@ const createManualOrder = async ({
     notify: false,
     manual: true,
   });
+
+  // Una venta manual ya cobrada se encola igual que un pago Wompi. Las
+  // importaciones CSV (`externalRef`) quedan fuera: son ventas historicas que
+  // no deben recrearse en el proveedor.
+  if (yaEstaPagado && !externalRef) {
+    await enqueueMastershopOrderIfNeeded({ orderId: order.id }).catch((error) =>
+      log.error("No se pudo encolar la venta manual para MasterShop", {
+        orderId: order.id,
+        error: error.message,
+      }),
+    );
+  }
+
+  return order;
 };
 
 // Cancela un pedido pendiente de pago y libera su stock.

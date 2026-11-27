@@ -64,7 +64,7 @@ export default async function MasterShopPage({
       <CatalogSupplierHeader
         slug={SLUG}
         name="MasterShop"
-        description="Catálogo y pedidos del proveedor con llave estática (MASTERSHOP_API_KEY). Los webhooks de estado/tracking aún no están integrados."
+        description="Catálogo y pedidos del proveedor con llave estática (MASTERSHOP_API_KEY). Los webhooks de estado/tracking se integran vía reconsulta del backend."
         status={status}
         envHint="MASTERSHOP_API_URL y MASTERSHOP_API_KEY"
       />

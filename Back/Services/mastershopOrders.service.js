@@ -1,7 +1,11 @@
-// Orquestador: pago Wompi aprobado -> pedido creado en MasterShop.
+// Orquestador: pago confirmado -> pedido creado en MasterShop.
+//
+// El origen del pago NO tiene que ser Wompi: una venta manual, una
+// transferencia o un COD recaudado tambien encolan. Lo unico que importa es
+// que el pedido este pagado y que todos sus items ruteen a MasterShop.
 //
 // Flujo (Fase 4):
-//   1. Cargar la orden local por reference de Wompi (única).
+//   1. Cargar la orden local (por reference de Wompi o por id).
 //   2. Si ya tiene msIdOrder -> idempotente, no hacer nada.
 //   3. Resolver cada item -> id_product/id_variant (Fase 1).
 //      Si falta algun mapeo -> no crear pedido parcial;
@@ -26,6 +30,7 @@ const {
 const { Op } = require("sequelize");
 const {
   PAYMENT_STATUS,
+  PAYMENT_STATE,
   FULFILLMENT_STATUS,
   SUPPLIER_SLUG,
 } = require("../DataBase/models/enums.js");
@@ -256,43 +261,117 @@ const recordAttempt = async ({
 };
 
 // ---------------------------------------------------------------------------
+// Carga y estado de pago
+// ---------------------------------------------------------------------------
+
+const loadOrderWithItems = (orderId) =>
+  Order.findByPk(orderId, {
+    include: [{ model: OrderItem, as: "items" }],
+  });
+
+// Un pedido esta pagado cuando el dinero ya ingreso: liquidado (Wompi,
+// transferencia, Nequi...) o recaudado (COD entregado). Es la condicion para
+// crear el pedido en el proveedor, sin importar quien lo cobro.
+const isOrderPaid = (order) =>
+  [PAYMENT_STATE.SETTLED, PAYMENT_STATE.COLLECTED].includes(order.paymentState);
+
+// ---------------------------------------------------------------------------
+// Encolado: todos los origenes de pago
+// ---------------------------------------------------------------------------
+
+// Deja una fila `pending` en el outbox para un pedido ya pagado que rutea a
+// MasterShop. No llama a la API: el cron (`processMastershopOutbox`) hace el
+// POST. Es idempotente y respeta un pedido ya creado o cancelado.
+//
+// Lo llaman: la venta manual del panel, el registro de pagos y el cambio de
+// estado a pagado. Wompi sigue encolando desde su webhook.
+const enqueueMastershopOrderIfNeeded = async ({ orderId } = {}) => {
+  assertUuid(orderId, "pedido");
+
+  const order = await loadOrderWithItems(orderId);
+  if (!order) return { enqueued: false, reason: "pedido_no_encontrado" };
+
+  if (order.fulfillmentStatus === FULFILLMENT_STATUS.CANCELLED) {
+    return { enqueued: false, reason: "pedido_cancelado" };
+  }
+  if (order.msIdOrder) {
+    return {
+      enqueued: false,
+      reason: "ya_sincronizado",
+      idOrder: order.msIdOrder,
+    };
+  }
+  if (!isOrderPaid(order)) {
+    return {
+      enqueued: false,
+      reason: `pedido_no_pagado:${order.paymentState || "sin_estado"}`,
+    };
+  }
+
+  const routing = await resolveOrderProvider(order.items || []);
+  if (!routing.ok) {
+    return {
+      enqueued: false,
+      reason: routing.reason,
+      provider: routing.provider || null,
+    };
+  }
+  if (routing.provider !== SUPPLIER_SLUG.MASTERSHOP) {
+    return {
+      enqueued: false,
+      reason: "otro_proveedor",
+      provider: routing.provider,
+    };
+  }
+
+  const [row, created] = await MastershopOrderOutbox.findOrCreate({
+    where: { orderId: order.id },
+    defaults: { status: "pending", attempts: 0 },
+  });
+
+  // Una fila `processing` la esta tomando el cron ahora mismo: no se toca.
+  // Una fila `done` ya se proceso (o se cerro por cancelacion): no se reabre
+  // sola; el reintento explicito del panel es el unico camino.
+  if (!created && row.status === "processing") {
+    return { enqueued: false, reason: "en_proceso" };
+  }
+  if (!created && row.status === "done") {
+    return { enqueued: false, reason: "outbox_cerrado" };
+  }
+  if (!created) {
+    await row.update({
+      status: "pending",
+      attempts: 0,
+      nextAttemptAt: null,
+      lockedAt: null,
+      lastError: null,
+    });
+  }
+
+  await order.update({
+    msSyncState: MS_SYNC_STATE.PENDING,
+    msSyncError: null,
+  });
+
+  log.info("Pedido encolado para MasterShop", {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    outbox: created ? "nueva" : "reactivada",
+  });
+
+  return { enqueued: true, reason: "encolado", orderId: order.id };
+};
+
+// ---------------------------------------------------------------------------
 // Orquestador principal: syncPaidOrderToMastershop(reference)
 // ---------------------------------------------------------------------------
 
-// reference: payment.reference de Wompi (unica por intento de pago).
-const syncPaidOrderToMastershop = async (reference) => {
+// Nucleo compartido: crea el pedido en MasterShop para una orden ya pagada.
+// `reference` es la reference de Wompi cuando existe; en ventas manuales se usa
+// el orderNumber solo para trazabilidad (logs y cabecera de correlacion).
+const createMastershopOrder = async ({ order, reference }) => {
   const startedAt = Date.now();
-  const correlationId = String(reference || "").slice(0, 120);
-
-  if (!reference) {
-    throw new Error("Falta la reference de Wompi");
-  }
-
-  // 1. Cargar el pago por reference (única en Wompi).
-  const payment = await Payment.findOne({
-    where: { provider: "wompi", reference },
-  });
-
-  if (!payment) {
-    log.error("Orden no encontrada para la reference de Wompi", {
-      correlationId,
-      reference,
-    });
-    throw new Error(`No existe pago de Wompi con reference ${reference}`);
-  }
-
-  // 2. Cargar la orden con sus items.
-  const order = await Order.findByPk(payment.orderId, {
-    include: [{ model: require("../DataBase/models/index.js").OrderItem, as: "items" }],
-  });
-  if (!order) {
-    log.error("Orden local inexistente para el pago", {
-      correlationId,
-      reference,
-      orderId: payment.orderId,
-    });
-    throw new Error(`Orden local inexistente para la reference ${reference}`);
-  }
+  const correlationId = String(reference || order.orderNumber || order.id).slice(0, 120);
 
   // Un pedido cancelado en UpBuy no debe nacer en MasterShop: se evita
   // despachar algo que el negocio (o el comprador) ya anulo. El outbox lo
@@ -325,23 +404,6 @@ const syncPaidOrderToMastershop = async (reference) => {
       idOrder: order.msIdOrder,
       orderId: order.id,
       reason: "ya_sincronizado",
-    };
-  }
-
-  // Solo crear pedido si el pago esta aprobado.
-  if (payment.status !== PAYMENT_STATUS.APROBADO) {
-    log.warn("Pago no aprobado, no se crea pedido en MasterShop", {
-      correlationId,
-      reference,
-      orderId: order.id,
-      paymentStatus: payment.status,
-      wompiStatus: payment.wompiStatus,
-    });
-    return {
-      ok: false,
-      idOrder: null,
-      orderId: order.id,
-      reason: `pago_no_aprobado:${payment.status}`,
     };
   }
 
@@ -652,6 +714,81 @@ const syncPaidOrderToMastershop = async (reference) => {
     reason: createResult.status || "error_desconocido",
     retryable,
   };
+};
+
+// Compatibilidad: entrada por reference de Wompi (webhook y outbox historico).
+const syncPaidOrderToMastershop = async (reference) => {
+  if (!reference) {
+    throw new Error("Falta la reference de Wompi");
+  }
+
+  const payment = await Payment.findOne({
+    where: { provider: "wompi", reference },
+  });
+  if (!payment) {
+    log.error("Orden no encontrada para la reference de Wompi", { reference });
+    throw new Error(`No existe pago de Wompi con reference ${reference}`);
+  }
+
+  const order = await loadOrderWithItems(payment.orderId);
+  if (!order) {
+    log.error("Orden local inexistente para el pago", {
+      reference,
+      orderId: payment.orderId,
+    });
+    throw new Error(`Orden local inexistente para la reference ${reference}`);
+  }
+
+  // Solo crear pedido si el pago esta aprobado.
+  if (payment.status !== PAYMENT_STATUS.APROBADO) {
+    log.warn("Pago no aprobado, no se crea pedido en MasterShop", {
+      reference,
+      orderId: order.id,
+      paymentStatus: payment.status,
+      wompiStatus: payment.wompiStatus,
+    });
+    return {
+      ok: false,
+      idOrder: null,
+      orderId: order.id,
+      reason: `pago_no_aprobado:${payment.status}`,
+    };
+  }
+
+  return createMastershopOrder({ order, reference });
+};
+
+// Entrada por id de pedido: sirve para cualquier origen de pago (venta
+// manual, transferencia, Nequi, COD recaudado). Exige que el pedido este
+// pagado; no depende de que exista un pago de Wompi.
+const syncOrderToMastershopByOrderId = async (orderId) => {
+  assertUuid(orderId, "pedido");
+
+  const order = await loadOrderWithItems(orderId);
+  if (!order) {
+    throw new Error(`Orden local inexistente: ${orderId}`);
+  }
+
+  if (!isOrderPaid(order)) {
+    await order
+      .update({
+        msSyncState: MS_SYNC_STATE.NEEDS_REVIEW,
+        msSyncError: JSON.stringify({
+          motivo: "pedido_no_pagado",
+          paymentState: order.paymentState || null,
+        }),
+      })
+      .catch(() => {});
+    return {
+      ok: false,
+      idOrder: null,
+      orderId: order.id,
+      reason: `pedido_no_pagado:${order.paymentState || "sin_estado"}`,
+      retryable: false,
+    };
+  }
+
+  return createMastershopOrder({ order, reference: order.orderNumber });
 };
 
 // ---------------------------------------------------------------------------
@@ -1060,20 +1197,14 @@ const retryMastershopOrder = async ({ orderId } = {}) => {
     };
   }
 
-  // 3) Creacion: hace falta un pago Wompi aprobado.
-  const payment = await Payment.findOne({
-    where: {
-      orderId: order.id,
-      provider: "wompi",
-      status: PAYMENT_STATUS.APROBADO,
-    },
-  });
-  if (!payment) {
+  // 3) Creacion: el pedido debe estar pagado, sin importar el medio (Wompi,
+  // transferencia, Nequi o COD recaudado).
+  if (!isOrderPaid(order)) {
     return {
       ok: false,
       action: "create",
       orderId: order.id,
-      reason: "pago_wompi_no_aprobado",
+      reason: `pedido_no_pagado:${order.paymentState || "sin_estado"}`,
     };
   }
 
@@ -1092,7 +1223,7 @@ const retryMastershopOrder = async ({ orderId } = {}) => {
   await order.update({ msSyncState: MS_SYNC_STATE.PENDING, msSyncError: null });
 
   try {
-    const result = await syncPaidOrderToMastershop(payment.reference);
+    const result = await syncOrderToMastershopByOrderId(order.id);
     return { action: "create", ...result };
   } catch (error) {
     return {
@@ -1163,25 +1294,15 @@ const processMastershopOutbox = async ({ limit = 20 } = {}) => {
     );
     if (!updated[0]) continue; // Otra instancia ya lo toma.
 
-    let payment;
-    try {
-      payment = await Payment.findOne({
-        where: { orderId: row.orderId, provider: "wompi", status: PAYMENT_STATUS.APROBADO },
-      });
-    } catch {
-      // Se ignora: el intento abajo marcara error.
-    }
-
-    let result;
-    if (!payment) {
-      result = { ok: false, reason: "pago_wompi_no_aprobado_encontrado" };
-    } else {
-      result = await syncPaidOrderToMastershop(payment.reference).catch((error) => ({
+    // Cualquier origen de pago vale: la funcion valida que el pedido este
+    // pagado y que sus items ruteen a MasterShop.
+    const result = await syncOrderToMastershopByOrderId(row.orderId).catch(
+      (error) => ({
         ok: false,
         reason: error.message,
         retryable: false,
-      }));
-    }
+      }),
+    );
 
     // Sincronizar el estado del outbox con el resultado del servicio.
     if (result.ok && result.idOrder) {
@@ -1196,6 +1317,9 @@ const processMastershopOutbox = async ({ limit = 20 } = {}) => {
       result.reason === "rejected"
     ) {
       // 400 de esquema o falta de mapeo: revision manual, no reintentar solo.
+      await row.update({ status: "needs_review", lastError: result.reason, lockedAt: null });
+    } else if (String(result.reason || "").startsWith("pedido_no_pagado")) {
+      // Un pago reembolsado/anulado ya no habilita crear el pedido.
       await row.update({ status: "needs_review", lastError: result.reason, lockedAt: null });
     } else if (result.retryable) {
       // Reintentable: volver a `pending` con backoff exponencial + jitter.
@@ -1449,6 +1573,9 @@ const buildReconciliationReport = async ({
 
 module.exports = {
   syncPaidOrderToMastershop,
+  syncOrderToMastershopByOrderId,
+  enqueueMastershopOrderIfNeeded,
+  isOrderPaid,
   processMastershopOutbox,
   cancelMastershopOrder,
   retryPendingMastershopCancellations,
