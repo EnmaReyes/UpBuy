@@ -1,6 +1,7 @@
 const express = require("express");
 
 const authRoutes = require("./Rutas/auth.js");
+const contactoRoutes = require("./Rutas/contacto.js");
 const userRoutes = require("./Rutas/user.js");
 const usersRoutes = require("./Rutas/users.js");
 const notificationsRoutes = require("./Rutas/notifications.js");
@@ -297,6 +298,7 @@ app.use(async (req, res, next) => {
 
 // Rutas
 app.use("/api/auth", authRoutes);
+app.use("/api/contacto", contactoRoutes);
 app.use("/api/user", userRoutes);
 // API canonica del comprador: /api/users/me (+ direcciones).
 app.use("/api/users", usersRoutes);

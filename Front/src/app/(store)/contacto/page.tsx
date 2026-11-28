@@ -85,7 +85,8 @@ export default function ContactoPage() {
                 <ContactCard
                   icon={Mail}
                   label="Correo"
-                  value="hola@upbuy.co"
+                  value="upbuy.official@gmail.com"
+                    href="mailto:upbuy.official@gmail.com"
                   detail="Respuesta en 1–2 días hábiles"
                 />
                 <ContactCard

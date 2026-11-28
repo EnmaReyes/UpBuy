@@ -45,13 +45,13 @@ export const privacyDocument: LegalDocument = {
         },
         {
           kind: "paragraph",
-          text: "El domicilio principal de operación está en Colombia y se realizan envíos y operación hacia Argentina. Las solicitudes relacionadas con datos personales se atienden por el correo oficial upbuy.official@gmail.com, con el asunto “Protección de datos”, o por el teléfono y WhatsApp +57 320 3775834.",
+          text: "El domicilio principal de operación está en Colombia y se realizan envíos y operación hacia Argentina. Las solicitudes relacionadas con datos personales se atienden por el correo oficial upbuy.official@gmail.com, con el asunto “Protección de datos”, o por el teléfono y WhatsApp +57 312 887 2019.",
         },
         {
           kind: "links",
           items: [
             { label: "upbuy.official@gmail.com", href: "mailto:upbuy.official@gmail.com" },
-            { label: "+57 320 3775834", href: "tel:+573203775834" },
+            { label: "+57 312 887 2019", href: "tel:+573128872019" },
           ],
         },
         {
@@ -434,7 +434,7 @@ export const privacyDocument: LegalDocument = {
         },
         {
           kind: "paragraph",
-          text: "Canal único: envía tu solicitud a upbuy.official@gmail.com con el asunto “Protección de datos” o comunícate al +57 320 3775834. Para tramitarla necesitamos tu nombre completo, documento de identidad, un correo o teléfono de contacto, la descripción clara de lo que solicitas y, si actúas por otra persona, la prueba de representación.",
+          text: "Canal único: envía tu solicitud a upbuy.official@gmail.com con el asunto “Protección de datos” o comunícate al +57 312 887 2019. Para tramitarla necesitamos tu nombre completo, documento de identidad, un correo o teléfono de contacto, la descripción clara de lo que solicitas y, si actúas por otra persona, la prueba de representación.",
         },
         {
           kind: "paragraph",
@@ -444,7 +444,7 @@ export const privacyDocument: LegalDocument = {
           kind: "links",
           items: [
             { label: "Escribir a Protección de datos", href: "mailto:upbuy.official@gmail.com?subject=Protecci%C3%B3n%20de%20datos" },
-            { label: "Llamar al +57 320 3775834", href: "tel:+573203775834" },
+            { label: "Llamar al +57 312 887 2019", href: "tel:+573128872019" },
           ],
         },
       ],

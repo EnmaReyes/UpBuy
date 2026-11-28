@@ -1,16 +1,55 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Check } from "lucide-react";
+import { Check, AlertCircle } from "lucide-react";
+import { apiSend } from "@/services/api/client";
 
-// Formulario de contacto. El backend todavía no expone un endpoint de mensajes,
-// así que el envío NO simula una operación exitosa: solo explica el estado.
+type FormStatus = "idle" | "pending" | "success" | "error";
+
+type ContactoPayload = {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+};
+
+// Formulario de contacto publico. Envía el mensaje al endpoint
+// POST /api/contacto del backend y muestra el estado al usuario.
 export function ContactForm() {
-  const [status, setStatus] = useState<"idle" | "pending">("idle");
+  const [status, setStatus] = useState<FormStatus>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("pending");
+    setErrorMessage(null);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    const payload: ContactoPayload = {
+      name: String(formData.get("name") || ""),
+      email: String(formData.get("email") || ""),
+      subject: String(formData.get("subject") || ""),
+      message: String(formData.get("message") || ""),
+    };
+
+    try {
+      await apiSend<{ message: string; id: string }>("/api/contacto", {
+        method: "POST",
+        body: payload,
+      });
+
+      setStatus("success");
+      form.reset();
+    } catch (error) {
+      setStatus("error");
+      if (error instanceof Error) {
+        setErrorMessage(error.message || "No se pudo enviar el mensaje.");
+      } else {
+        setErrorMessage("No se pudo enviar el mensaje. Intentalo de nuevo.");
+      }
+    }
   };
 
   return (
@@ -62,19 +101,29 @@ export function ContactForm() {
 
       <button
         type="submit"
-        className="mt-1 inline-flex h-12 items-center justify-center rounded-full bg-carbon px-7 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep"
+        disabled={status === "pending"}
+        className="mt-1 inline-flex h-12 items-center justify-center rounded-full bg-carbon px-7 text-sm font-semibold text-cream transition-colors hover:bg-terracotta-deep disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        Enviar mensaje
+        {status === "pending" ? "Enviando…" : "Enviar mensaje"}
       </button>
 
-      {status === "pending" ? (
+      {status === "success" ? (
         <p
           role="status"
           className="flex items-start gap-2 rounded-lg border border-terracotta/25 bg-terracotta/5 p-3 text-xs leading-relaxed text-coffee-deep"
         >
           <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-terracotta-deep" aria-hidden="true" />
-          El envío de mensajes todavía no está disponible: falta el endpoint de contacto en el
-          backend. Tu mensaje no fue enviado ni almacenado.
+          ¡Mensaje enviado! Te responderemos a tu correo en 1–2 días hábiles.
+        </p>
+      ) : null}
+
+      {status === "error" && errorMessage ? (
+        <p
+          role="alert"
+          className="flex items-start gap-2 rounded-lg border border-red/25 bg-red/5 p-3 text-xs leading-relaxed text-red-deep"
+        >
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-deep" aria-hidden="true" />
+          {errorMessage}
         </p>
       ) : null}
     </form>

@@ -117,6 +117,15 @@ const campaignLimiter = crearLimite({
     "Demasiadas acciones de difusión seguidas. Espera unos minutos antes de volver a intentarlo.",
 });
 
+// Mensajes de contacto publico: limite estricto para evitar spam.
+// 5 mensajes por hora por IP/usuario.
+const contactoLimiter = crearLimite({
+  windowMs: HOUR,
+  limit: 5,
+  message:
+    "Has enviado demasiados mensajes de contacto. Espera una hora antes de volver a intentarlo.",
+});
+
 module.exports = {
   globalLimiter,
   authLimiter,
@@ -127,5 +136,7 @@ module.exports = {
   adminMfaLimiter,
   importLimiter,
   campaignLimiter,
+  contactoLimiter,
   porUsuarioOIp,
+  crearLimite,
 };

@@ -69,13 +69,13 @@ export const termsDocument: LegalDocument = {
         },
         {
           kind: "paragraph",
-          text: "Canales oficiales de atención: correo upbuy.official@gmail.com y teléfono o WhatsApp +57 320 3775834. Cualquier otro canal no representa a UPBUY ni está autorizado para recibir pagos o modificar pedidos.",
+          text: "Canales oficiales de atención: correo upbuy.official@gmail.com y teléfono o WhatsApp +57 312 887 2019. Cualquier otro canal no representa a UPBUY ni está autorizado para recibir pagos o modificar pedidos.",
         },
         {
           kind: "links",
           items: [
             { label: "upbuy.official@gmail.com", href: "mailto:upbuy.official@gmail.com" },
-            { label: "+57 320 3775834", href: "tel:+573203775834" },
+            { label: "+57 312 887 2019", href: "tel:+573128872019" },
           ],
         },
       ],
@@ -475,7 +475,7 @@ export const termsDocument: LegalDocument = {
         },
         {
           kind: "paragraph",
-          text: "Antes de acudir a una autoridad, te pedimos intentar una solución directa: escríbenos a upbuy.official@gmail.com o al +57 320 3775834 con el número de pedido y una descripción del conflicto. Responderemos dentro de los plazos de la sección 19.",
+          text: "Antes de acudir a una autoridad, te pedimos intentar una solución directa: escríbenos a upbuy.official@gmail.com o al +57 312 887 2019 con el número de pedido y una descripción del conflicto. Responderemos dentro de los plazos de la sección 19.",
         },
         {
           kind: "paragraph",
@@ -503,7 +503,7 @@ export const termsDocument: LegalDocument = {
             ],
             [
               "Teléfono y WhatsApp",
-              "+57 320 3775834",
+              "+57 312 887 2019",
               "Consultas rápidas, coordinación de entregas y seguimiento.",
             ],
             [
@@ -521,7 +521,7 @@ export const termsDocument: LegalDocument = {
           kind: "links",
           items: [
             { label: "Escribir a UPBUY", href: "mailto:upbuy.official@gmail.com" },
-            { label: "Llamar al +57 320 3775834", href: "tel:+573203775834" },
+            { label: "Llamar al +57 312 887 2019", href: "tel:+573128872019" },
           ],
         },
       ],

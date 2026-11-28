@@ -28,6 +28,7 @@ const { Notificacion } = require("./Notificacion.js");
 const { Address } = require("./Address.js");
 const { WebhookEvent } = require("./WebhookEvent.js");
 const { AuditLog } = require("./AuditLog.js");
+const { ContactMessage } = require("./ContactMessage.js");
 const { SyncLog } = require("./SyncLog.js");
 const { AdminSession } = require("./AdminSession.js");
 const { AuthEvent } = require("./AuthEvent.js");
@@ -73,6 +74,7 @@ module.exports = {
   Address,
   WebhookEvent,
   AuditLog,
+  ContactMessage,
   SyncLog,
   AdminSession,
   AuthEvent,
