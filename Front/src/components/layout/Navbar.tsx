@@ -90,6 +90,8 @@ export function Navbar() {
   // En la Home el navbar se integra al Hero oscuro; en el resto de páginas
   // arranca sólido para que el texto claro no quede sobre fondos crema.
   const solid = scrolled || menuOpen || pathname !== "/";
+  // En el dashboard de usuario el logo va un 30% más grande en escritorio.
+  const isAccountArea = pathname.startsWith("/cuenta");
 
   const goToStyleSection = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -158,7 +160,14 @@ export function Navbar() {
             className="group flex shrink-0 items-center gap-1.5 justify-self-start"
           >
             <span className="font-heading text-lg font-bold tracking-tight text-cream sm:text-xl">
-              <img src="/LogoTipo.png" alt="UPBUY" className="h-[64px] w-auto sm:h-[72px]" />
+              <img
+                src="/LogoTipo.png"
+                alt="UPBUY"
+                className={cn(
+                  "h-[64px] w-auto",
+                  isAccountArea ? "sm:h-[94px]" : "sm:h-[72px]",
+                )}
+              />
             </span>
             <span
               aria-hidden="true"

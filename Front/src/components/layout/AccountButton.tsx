@@ -4,6 +4,7 @@ import Link from "next/link";
 import { User } from "lucide-react";
 import { getDashboardRoute } from "@/lib/dashboard-route";
 import { useSessionProbe } from "@/hooks/use-session-probe";
+import { UserAvatar } from "@/components/shared/UserAvatar";
 import type { AuthUser } from "@/types/auth";
 
 // Acceso a la cuenta en el navbar.
@@ -32,7 +33,11 @@ export function AccountButton({ className }: { className?: string }) {
         "flex h-11 min-w-11 items-center justify-center gap-2 rounded-xl px-2 text-cream transition-colors hover:bg-cream/10"
       }
     >
-      <User className="h-5 w-5 shrink-0" aria-hidden="true" />
+      {user ? (
+        <UserAvatar user={user} size="sm" ariaLabel={ariaLabel} />
+      ) : (
+        <User className="h-5 w-5 shrink-0" aria-hidden="true" />
+      )}
       {/* La etiqueta aparece solo cuando hay sitio para ella: en 1024-1279 px
           ensancharía las acciones y descentraría el Split Nav. */}
       <span className="hidden text-xs font-semibold tracking-wide uppercase xl:inline">

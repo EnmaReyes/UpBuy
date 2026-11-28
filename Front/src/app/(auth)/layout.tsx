@@ -53,7 +53,11 @@ export default function AuthLayout({
             href="/"
             className="font-heading text-xl font-bold tracking-tight text-carbon"
           >
-            <img src="/LogoIcon.png" alt="UPBUY" className="h-[79px] w-auto" />
+            <img
+              src="/LogoTerracota.png"
+              alt="UPBUY"
+              className="h-[99px] w-auto"
+            />
           </Link>
           <Link
             href="/"

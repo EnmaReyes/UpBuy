@@ -122,7 +122,11 @@ export function AdminSidebar({
         onClick={onNavigate}
         className="font-heading text-xl font-bold tracking-[0.18em] text-cream"
       >
-        <img src="/LogoTipo.png" alt="UPBUY" className="h-[64px] w-auto" />
+        <img
+          src="/LogoTipo.png"
+          alt="UPBUY"
+          className="h-[64px] w-auto lg:h-[83px]"
+        />
         <span className="mt-0.5 block text-[10px] font-semibold tracking-[0.3em] text-terracotta">
           PANEL
         </span>

@@ -79,7 +79,7 @@ const buildProfileUpdate = (payload = {}) => {
   }
   if (payload.image !== undefined) {
     const image = cleanText(payload.image);
-    if (image && !/^https?:\/\//i.test(image)) {
+    if (image && !/^https?:\/\//i.test(image) && !/^data:image\//i.test(image) && !/^avatar:/i.test(image)) {
       throw new HttpError(400, "URL de imagen inválida");
     }
     update.image = image || null;

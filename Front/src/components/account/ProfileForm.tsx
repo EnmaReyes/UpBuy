@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, CircleAlert } from "lucide-react";
+import { CheckCircle2, CircleAlert, Loader2 } from "lucide-react";
 import { updateProfile } from "@/services/account";
 import { ApiError } from "@/services/api/client";
 import { safeInternalPath } from "@/lib/safe-url";
@@ -13,6 +13,10 @@ import {
   type Profile,
 } from "@/types/auth";
 import { Field, FormMessage, SubmitButton, inputClass } from "@/components/auth/fields";
+import { UserAvatar } from "@/components/shared/UserAvatar";
+import AvatarPicker from "@/components/kokonutui/avatar-picker";
+import { cn } from "@/lib/utils";
+import { generateAvatarDataUrl } from "@/lib/avatar-generator";
 
 // Datos personales. El backend exige nombre, apellido, teléfono y una
 // dirección principal para poder comprar; aquí se muestran los que falten y
@@ -27,11 +31,15 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [fieldError, setFieldError] = useState<Record<string, string>>({});
+  const [avatarSaving, setAvatarSaving] = useState(false);
 
   const [missing, setMissing] = useState<MissingProfileField[]>(
     profile.missing ?? [],
   );
   const [complete, setComplete] = useState(profile.profileComplete);
+
+  // Construir el nombre para mostrar en el AvatarPicker
+  const displayName = [profile.name, profile.lastName].filter(Boolean).join(" ") || profile.username || "Usuario";
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -83,6 +91,28 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     }
   };
 
+  const handleAvatarComplete = async (value: { displayName: string; variant: number; seed: string }) => {
+    setAvatarSaving(true);
+    try {
+      // Guardamos el seed del avatar con el prefijo "avatar:" para que el
+      // frontend pueda regenerar el avatar animado con los ojos siguiendo el mouse.
+      const avatarSeed = `avatar:${value.seed}`;
+      const result = await updateProfile({ image: avatarSeed });
+      setMissing(result.missing ?? []);
+      setComplete(result.profileComplete);
+      setSaved(true);
+      router.refresh();
+    } catch (caught) {
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : "No se pudo guardar el avatar.",
+      );
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <ProfileStatus complete={complete} missing={missing} nextPath={nextPath} />
@@ -98,6 +128,44 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <p className="mt-1 text-sm text-muted-foreground">
           Se usan para tus envíos y para contactarte sobre tus pedidos.
         </p>
+
+        {/* Vista previa del avatar + Avatar Picker */}
+        <div className="mt-6 flex flex-col sm:flex-row gap-6 items-start">
+          <div className="flex flex-col items-center sm:items-start gap-3 shrink-0">
+            <UserAvatar
+              user={{
+                ...profile,
+                image: profile.image,
+              }}
+              size="xl"
+              ariaLabel={`Avatar actual de ${displayName}`}
+            />
+            <p className="text-xs text-muted-foreground text-center">
+              Tu avatar actual
+            </p>
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <AvatarPicker
+              defaultValue={{
+                displayName,
+                variant: 0,
+              }}
+              title="Elige tu avatar"
+              description="Generado a partir de tu nombre. Gíralo, tócalo o baraja."
+              submitLabel="Guardar avatar"
+              onComplete={handleAvatarComplete}
+              className={cn(
+                "rounded-2xl border border-border bg-card p-5",
+                "dark:border-border dark:bg-card"
+              )}
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              El avatar se genera a partir de tu nombre. Puedes girarlo,
+              tocarlo o barajar para ver más opciones.
+            </p>
+          </div>
+        </div>
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <Field id="profile-name" label="Nombre" error={fieldError.name}>
@@ -141,8 +209,8 @@ export function ProfileForm({ profile }: { profile: Profile }) {
 
           <Field
             id="profile-image"
-            label="Foto de perfil (URL)"
-            hint="Opcional."
+            label="Foto de perfil (URL personalizada)"
+            hint="Opcional. Si eliges un avatar animado arriba, se usará ese."
             error={fieldError.image}
           >
             <input
@@ -162,9 +230,17 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             <FormMessage kind="success">Perfil guardado.</FormMessage>
           ) : null}
 
-          <SubmitButton pending={pending} className="w-full sm:w-auto">
-            Guardar cambios
-          </SubmitButton>
+          <div className="flex items-center gap-3">
+            <SubmitButton pending={pending} className="w-full sm:w-auto">
+              Guardar cambios
+            </SubmitButton>
+            {avatarSaving && (
+              <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                Guardando avatar…
+              </span>
+            )}
+          </div>
         </div>
       </form>
     </div>
